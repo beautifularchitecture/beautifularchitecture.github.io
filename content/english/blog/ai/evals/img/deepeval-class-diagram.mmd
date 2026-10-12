@@ -1,0 +1,139 @@
+classDiagram
+    %% Transcribed verbatim from the mermaid block in deepeval.md.
+    %%
+    %% Render: npx -p @mermaid-js/mermaid-cli mmdc -i <this file> -o <file>.png \
+    %%   -b white --scale 16
+    %% Scale 16 (not the documented default 8) matches the sibling
+    %% evals-class-diagram render so label size is consistent across posts.
+    direction LR
+
+    class LLMTestCase {
+      +input: str
+      +actual_output: str
+      +expected_output: str
+      +context: list[str]
+      +retrieval_context: list[str or RetrievedContextData]
+      +tools_called: list[ToolCall]
+      +expected_tools: list[ToolCall]
+      +metadata: dict
+    }
+    class ConversationalTestCase {
+      +turns: list[Turn]
+      +scenario: str
+      +expected_outcome: str
+      +context: list[str]
+    }
+    class Turn {
+      +role: Role
+      +content: str
+      +retrieval_context: list[str]
+      +tools_called: list[ToolCall]
+      +completion_time: float
+      +token_cost: float
+    }
+    class ToolCall {
+      +name: str
+      +description: str
+      +reasoning: str
+      +input_parameters: dict
+      +output: str
+    }
+    class RetrievedContextData {
+      +context: str
+      +source: str
+    }
+    class SingleTurnParams {
+      <<enumeration>>
+      INPUT
+      ACTUAL_OUTPUT
+      EXPECTED_OUTPUT
+      CONTEXT
+      RETRIEVAL_CONTEXT
+      TOOLS_CALLED
+      EXPECTED_TOOLS
+    }
+    class MultiTurnParams {
+      <<enumeration>>
+    }
+    class BaseMetric {
+      <<abstract>>
+      +threshold: float
+      +score: float
+      +reason: str
+      +success: bool
+      +measure(test_case) float
+      +a_measure(test_case) float
+      +is_successful() bool
+    }
+    class BaseConversationalMetric {
+      <<abstract>>
+      +measure(test_case) float
+      +a_measure(test_case) float
+      +is_successful() bool
+    }
+    class BaseArenaMetric {
+      <<abstract>>
+      +measure(test_case) str
+      +a_measure(test_case) str
+      +is_successful() bool
+    }
+    class GEval
+    class FaithfulnessMetric
+    class HallucinationMetric
+    class AnswerRelevancyMetric
+    class ContextualRelevancyMetric
+    class ToxicityMetric
+    class BiasMetric
+    class TaskCompletionMetric
+    class ConversationalGEval
+    class CustomMetric {
+      +measure(test_case) float
+      +is_successful() bool
+    }
+    class EvaluationDataset {
+      +goldens: list of Golden or ConversationalGolden
+      +test_cases: list of LLMTestCase or ConversationalTestCase
+      +add_test_case(test_case) None
+      +add_golden(golden) None
+      +push(alias, ...) None
+    }
+    class Golden {
+      +input: str
+      +expected_output: str
+      +context: list[str]
+      +retrieval_context: list[str]
+    }
+    class ConversationalGolden {
+      +scenario: str
+      +expected_outcome: str
+      +turns: list[Turn]
+    }
+    class ArenaTestCase {
+      +query: str
+      +response_a: str
+      +response_b: str
+    }
+
+    BaseMetric <|-- GEval
+    BaseMetric <|-- FaithfulnessMetric
+    BaseMetric <|-- HallucinationMetric
+    BaseMetric <|-- AnswerRelevancyMetric
+    BaseMetric <|-- ContextualRelevancyMetric
+    BaseMetric <|-- ToxicityMetric
+    BaseMetric <|-- BiasMetric
+    BaseMetric <|-- TaskCompletionMetric
+    BaseMetric <|-- CustomMetric
+    BaseConversationalMetric <|-- ConversationalGEval
+    BaseArenaMetric ..> ArenaTestCase : evaluates
+    BaseMetric ..> LLMTestCase : evaluates
+    BaseConversationalMetric ..> ConversationalTestCase : evaluates
+    BaseMetric ..> SingleTurnParams : declares required fields
+    BaseConversationalMetric ..> MultiTurnParams : declares required fields
+    ConversationalTestCase *-- Turn : ordered turns
+    Turn *-- ToolCall : optional calls
+    LLMTestCase *-- ToolCall : optional calls
+    LLMTestCase *-- RetrievedContextData : optional retrieval items
+    EvaluationDataset o-- Golden
+    EvaluationDataset o-- ConversationalGolden
+    EvaluationDataset o-- LLMTestCase
+    EvaluationDataset o-- ConversationalTestCase
