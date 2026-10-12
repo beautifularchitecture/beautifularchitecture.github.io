@@ -22,8 +22,6 @@ It covers a lot of ground, so this post is organised as a reference:
 - judge-model setup, custom metrics, datasets, synthetic data,
 - cost, privacy and the pitfalls I ran into while verifying the examples.
 
-> **Version note.** Everything here was checked against **DeepEval 4.2.8** (released 2 October 2026; requires Python ≥3.9 and <4.0) and the v4.2.8 docs on 13 October 2026. The deterministic examples (custom metric, JSON, regex, tracing, `deepeval test run`) were executed. The judge-based examples (faithfulness, G-Eval, etc.) were constructed against 4.2.8 but not run, because they call a paid LLM. DeepEval ships frequently (several releases a month), so re-check anything version-sensitive.
-
 It fills Layers 1–3 of the [eval pyramid](../../ai-outputs-eval/) with ready-made metrics. Be precise about which layer is which, though:
 
 - **Deterministic checks** (exact match, regex, JSON schema) exist as metrics, but the documented non-LLM set is small: Exact Match, Pattern Match and JSON Correctness. For things like word counts or substring containment you write a short custom metric (see below).
