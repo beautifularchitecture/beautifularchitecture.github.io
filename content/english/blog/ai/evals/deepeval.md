@@ -29,28 +29,11 @@ It fills Layers 1–3 of the [eval pyramid](../../ai-outputs-eval/) with ready-m
 - **Deterministic checks** (exact match, regex, JSON schema) exist as metrics, but the documented non-LLM set is small: Exact Match, Pattern Match and JSON Correctness. For things like word counts or substring containment you write a short custom metric (see below).
 - **Semantic checks** (faithfulness, hallucination, relevancy, safety, G-Eval rubrics) are where DeepEval earns its keep, and nearly all of them are scored by an LLM judge.
 
-## TL;DR
-
 - A **metric** scores a **test case** from 0 to 1 and returns a `reason`. It passes when `score >= threshold` (default `0.5`). In the current docs *every* metric points the same way: 1 is a pass, and `threshold` is always a minimum.
 - Most built-in metrics are **LLM-as-a-judge**. That includes `ToxicityMetric` and `BiasMetric`. They cost tokens and are not perfectly repeatable.
 - The default judge is OpenAI (the docs list `gpt-5.4` as the default model), so you need `OPENAI_API_KEY` unless you configure another provider.
 - Use **`deepeval test run`**, not bare `pytest`, for CI. The docs call plain `pytest` "highly not recommended".
 - Pin your judge model, give G-Eval explicit `evaluation_steps`, mark noisy metrics `flaky=True`, and keep your metric list short (the docs recommend five at most).
-
-## What Changed in v4 (Read This If You Copy Older Code)
-
-If you are copying snippets from older blog posts or tutorials, expect friction:
-
-| Area | Current behaviour (v4.2.8) |
-| --- | --- |
-| Param enums | Docs use `SingleTurnParams` (and `MultiTurnParams` for conversations). `LLMTestCaseParams` still imports in 4.2.8 but emits a `DeprecationWarning` saying it will be removed in a future release. |
-| Score direction | Docs state all metrics share one direction (1 = pass, `threshold` = minimum). `ToxicityMetric` and `BiasMetric` return the share of opinions that are **not** toxic / biased, so *higher is safer*. If you migrate old tests, re-check threshold semantics. |
-| Default judge | The metric pages I checked list `gpt-5.4` as the default `model`. |
-| Eval modes | `llm` (default), `hybrid`, `system_one`. The last two use "Jev", a third-party model (see below). |
-| Tracing-first evals | `@observe`, `evals_iterator()` and `assert_test(golden=...)` are the recommended path for single-turn apps. |
-| Agent metrics | Trajectory metrics (task completion, step efficiency, plan adherence, plan quality) need a trace. |
-| New primitives | Classifiers (categorical judges), `Expectations` (`must` / `must_not`), `JevEval`. |
-| Local tooling | `deepeval inspect` terminal trace viewer, JSON or SQLite local result stores, `deepeval diagnose`. |
 
 ## The Mental Model
 
