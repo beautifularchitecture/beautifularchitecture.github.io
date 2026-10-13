@@ -10,21 +10,28 @@ summary = "DeepEval is an open-source Python framework with 50+ ready-made metri
 
 ## What DeepEval Does
 
-DeepEval is an open-source (Apache-2.0) Python framework for evaluating LLM applications. Its own description is "similar to Pytest but specialized for unit testing LLM apps". You describe an interaction as a test case, attach one or more **metrics**, and DeepEval returns a **score between 0 and 1**, a **reason**, and a **pass/fail** against a threshold you control. Run it with `deepeval test run` (a pytest wrapper) and a failing metric fails the build.
+DeepEval is an open-source (Apache-2.0) Python framework for evaluating LLM applications.
 
-It covers a lot of ground, so this post is organised as a reference:
-
-- the mental model (test case → metric → score → threshold),
-- every metric family and what each one needs,
-- how to run evals (standalone, `evaluate()`, pytest, tracing),
-- CI gating, flags, caching and flaky-test handling,
-- judge-model setup, custom metrics, datasets, synthetic data,
-- cost, privacy and the pitfalls I ran into while verifying the examples.
-
-DeepEval's built-in metrics focus on deterministic structural checks and semantic LLM-judged checks for things like faithfulness, hallucination, relevancy, safety, and G-Eval rubrics. The documented non-LLM set is small: Exact Match, Pattern Match and JSON Correctness. For things like word counts or substring containment you write a short custom metric (see below). Nearly all semantic checks are scored by an LLM judge.
-
-- A **metric** scores a **test case** from 0 to 1 and returns a `reason`. It passes when `score >= threshold` (default `0.5`). In the current docs _every_ metric points the same way: 1 is a pass, and `threshold` is always a minimum.
-- Most built-in metrics are **LLM-as-a-judge**. That includes `ToxicityMetric` and `BiasMetric`. They cost tokens and are not perfectly repeatable.
+- Its own description is "similar to Pytest but specialized for unit testing LLM apps".
+- You describe an interaction as a test case, attach one or more **metrics** and DeepEval returns a **score between 0 and 1**, a **reason**, and a **pass/fail** against a threshold you control.
+- Run it with `deepeval test run` (a pytest wrapper), a failing metric will fail the build.
+- DeepEval's built-in metrics focus on deterministic structural checks and semantic LLM-judged checks for things like
+  - faithfulness
+  - hallucination
+  - relevancy
+  - safety
+  - G-Eval rubrics.
+- The documented non-LLM set is small:
+  - Exact Match
+  - Pattern Match
+  - JSON Correctness.
+- For things like word counts or substring containment you write a short custom metric (see below).
+- A **metric** scores a **test case** from 0 to 1 and returns a `reason`.
+- It passes when `score >= threshold` (default `0.5`).
+- In the current docs _every_ metric points the same way: 1 is a pass, and `threshold` is always a minimum.
+- Most built-in metrics are **LLM-as-a-judge** they cost tokens and are not perfectly repeatable. That includes
+  - `ToxicityMetric`
+  - `BiasMetric`.
 - The default judge is OpenAI (the docs list `gpt-5.4` as the default model), so you need `OPENAI_API_KEY` unless you configure another provider.
 - Use **`deepeval test run`**, not bare `pytest`, for CI. The docs call plain `pytest` "highly not recommended".
 - Pin your judge model, give G-Eval explicit `evaluation_steps`, mark noisy metrics `flaky=True`, and keep your metric list short (the docs recommend five at most).
@@ -42,7 +49,7 @@ metric.reason                  # natural-language explanation (if include_reason
 metric.is_successful()         # score >= threshold
 ```
 
-Constructor options shared by most LLM-judged metrics:
+Constructor options shared by most LLM-judged metrics e.g. (FaithfulnessMetric):
 
 | Parameter                       | Meaning                                                                                                                        | Default                        |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
@@ -56,11 +63,21 @@ Constructor options shared by most LLM-judged metrics:
 | `evaluation_template`           | Override the metric's built-in judge prompts.                                                                                  | built-in                       |
 | `eval_mode`, `system_one_model` | Choose who judges (see "Eval Modes and Jev").                                                                                  | configured mode / `jev-latest` |
 
-Not every metric has every parameter (the non-LLM ones are much smaller), and metric-specific options are listed per metric below.
+- Not every metric has every parameter (the non-LLM ones are much smaller), and metric-specific options are listed per metric below.
 
 Two rules that bite people:
 
-- Every `evaluate()` or `assert_test()` call needs **at least one non-flaky metric with a `threshold`**, otherwise no test case can ever pass or fail and DeepEval raises an error.
+- **Something must be able to fail.** `evaluate()` and `assert_test()` mark a test case as passed only when a metric returns `is_successful()` (`score >= threshold`). A metric with `threshold=None` runs in score-only mode: it records `score` and `reason`, but `is_successful()` returns `None` and the metric never votes on the test case's status. A metric with `flaky=True` is computed and reported as usual, but its failure never decides that status. If every metric you pass is score-only or flaky, nothing is left to render a verdict, so DeepEval raises an error instead of reporting a silent pass. One gating metric is enough:
+
+  ```python
+  # raises: neither metric is allowed to decide pass/fail
+  evaluate([tc], [FaithfulnessMetric(threshold=None)])   # score-only
+  evaluate([tc], [AnswerRelevancyMetric(flaky=True)])    # never decides
+
+  # fine: the first metric only reports, the second gates
+  evaluate([tc], [FaithfulnessMetric(flaky=True), AnswerRelevancyMetric()])
+  ```
+
 - LLM metrics need the right **test case fields**. Missing ones raise errors unless you skip them (`-s` flag or `ErrorConfig(skip_on_missing_params=True)`).
 
 ## When to Use DeepEval
