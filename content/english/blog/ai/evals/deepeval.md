@@ -6,7 +6,6 @@ tags = ['DeepEval', 'Evals', 'LLM', 'Testing', 'CI', 'Python', 'Metrics', 'Pytes
 summary = "DeepEval is an open-source Python framework with 50+ ready-made metrics for LLM outputs: faithfulness, hallucination, toxicity, bias, G-Eval rubrics, agent and conversation metrics, plus deterministic checks. You build test cases, score them with metrics, and fail CI when a score drops below its threshold. This is the complete reference."
 +++
 
-
 ![Class diagram of the DeepEval 4.2.8 API: test cases, metric base classes and their subclasses, parameter enums, datasets and goldens](../img/deepeval-class-diagram.png)
 
 ## What DeepEval Does
@@ -22,12 +21,9 @@ It covers a lot of ground, so this post is organised as a reference:
 - judge-model setup, custom metrics, datasets, synthetic data,
 - cost, privacy and the pitfalls I ran into while verifying the examples.
 
-It fills Layers 1–3 of the [eval pyramid](../../ai-outputs-eval/) with ready-made metrics. Be precise about which layer is which, though:
+DeepEval's built-in metrics focus on deterministic structural checks and semantic LLM-judged checks for things like faithfulness, hallucination, relevancy, safety, and G-Eval rubrics. The documented non-LLM set is small: Exact Match, Pattern Match and JSON Correctness. For things like word counts or substring containment you write a short custom metric (see below). Nearly all semantic checks are scored by an LLM judge.
 
-- **Deterministic checks** (exact match, regex, JSON schema) exist as metrics, but the documented non-LLM set is small: Exact Match, Pattern Match and JSON Correctness. For things like word counts or substring containment you write a short custom metric (see below).
-- **Semantic checks** (faithfulness, hallucination, relevancy, safety, G-Eval rubrics) are where DeepEval earns its keep, and nearly all of them are scored by an LLM judge.
-
-- A **metric** scores a **test case** from 0 to 1 and returns a `reason`. It passes when `score >= threshold` (default `0.5`). In the current docs *every* metric points the same way: 1 is a pass, and `threshold` is always a minimum.
+- A **metric** scores a **test case** from 0 to 1 and returns a `reason`. It passes when `score >= threshold` (default `0.5`). In the current docs _every_ metric points the same way: 1 is a pass, and `threshold` is always a minimum.
 - Most built-in metrics are **LLM-as-a-judge**. That includes `ToxicityMetric` and `BiasMetric`. They cost tokens and are not perfectly repeatable.
 - The default judge is OpenAI (the docs list `gpt-5.4` as the default model), so you need `OPENAI_API_KEY` unless you configure another provider.
 - Use **`deepeval test run`**, not bare `pytest`, for CI. The docs call plain `pytest` "highly not recommended".
@@ -35,13 +31,7 @@ It fills Layers 1–3 of the [eval pyramid](../../ai-outputs-eval/) with ready-m
 
 ## The Mental Model
 
-```
-Golden (input + expected stuff)  →  your app runs  →  LLMTestCase (input + actual_output + ...)
-                                                              │
-                                              Metric(s) with thresholds
-                                                              │
-                                      score 0–1 + reason  →  pass / fail  →  CI
-```
+![Mental model of DeepEval: golden inputs/expected values feed into the app to produce an LLMTestCase, which is scored by metrics with thresholds to yield a score and reason, producing a pass/fail result in CI](../img/deepeval-mental-model.png)
 
 Every metric exposes the same surface:
 
@@ -54,17 +44,17 @@ metric.is_successful()         # score >= threshold
 
 Constructor options shared by most LLM-judged metrics:
 
-| Parameter | Meaning | Default |
-| --- | --- | --- |
-| `threshold` | Minimum passing score. `None` = **score-only mode**: the score and reason are recorded but the metric never decides pass/fail. | `0.5` |
-| `model` | An OpenAI model name string, or any `DeepEvalBaseLLM`. | `gpt-5.4` (per docs) |
-| `include_reason` | Generate a natural-language reason. | `True` |
-| `strict_mode` | Force a binary score (1 for perfect, else 0) and set the threshold to 1. | `False` |
-| `async_mode` | Run the metric's internal LLM calls concurrently. | `True` |
-| `verbose_mode` | Print intermediate steps (extracted claims, verdicts) to the console. | `False` |
-| `flaky` | Still compute and report the metric, but never let its failure decide the test case's status. | `False` |
-| `evaluation_template` | Override the metric's built-in judge prompts. | built-in |
-| `eval_mode`, `system_one_model` | Choose who judges (see "Eval Modes and Jev"). | configured mode / `jev-latest` |
+| Parameter                       | Meaning                                                                                                                        | Default                        |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
+| `threshold`                     | Minimum passing score. `None` = **score-only mode**: the score and reason are recorded but the metric never decides pass/fail. | `0.5`                          |
+| `model`                         | An OpenAI model name string, or any `DeepEvalBaseLLM`.                                                                         | `gpt-5.4` (per docs)           |
+| `include_reason`                | Generate a natural-language reason.                                                                                            | `True`                         |
+| `strict_mode`                   | Force a binary score (1 for perfect, else 0) and set the threshold to 1.                                                       | `False`                        |
+| `async_mode`                    | Run the metric's internal LLM calls concurrently.                                                                              | `True`                         |
+| `verbose_mode`                  | Print intermediate steps (extracted claims, verdicts) to the console.                                                          | `False`                        |
+| `flaky`                         | Still compute and report the metric, but never let its failure decide the test case's status.                                  | `False`                        |
+| `evaluation_template`           | Override the metric's built-in judge prompts.                                                                                  | built-in                       |
+| `eval_mode`, `system_one_model` | Choose who judges (see "Eval Modes and Jev").                                                                                  | configured mode / `jev-latest` |
 
 Not every metric has every parameter (the non-LLM ones are much smaller), and metric-specific options are listed per metric below.
 
@@ -75,17 +65,17 @@ Two rules that bite people:
 
 ## When to Use DeepEval
 
-| Scenario | Use DeepEval | Consider something else |
-| --- | --- | --- |
-| Faithfulness / hallucination / relevancy for RAG | ✅ Built-in metrics | — |
-| A custom rubric scored by an LLM | ✅ `GEval` | — |
-| Toxicity, bias and other safety scoring | ✅ Built-in (LLM-judged) | Dedicated red-teaming: DeepTeam (see below) |
-| Agent evals (tool use, task completion, traces) | ✅ Trajectory and component metrics | — |
-| Multi-turn chatbots | ✅ Conversational metrics and a conversation simulator | — |
-| Pytest-style CI gates with minimal code | ✅ `assert_test()` + `deepeval test run` | — |
-| Declarative, YAML-driven prompt/provider matrices with no code | — | Promptfoo |
-| Shared, hosted experiment history and dashboards | Possible via Confident AI (DeepEval's own commercial platform) | Braintrust, Langfuse and others |
-| Property-based invariant testing of your own code | — | `hypothesis` |
+| Scenario                                                       | Use DeepEval                                                   | Consider something else                     |
+| -------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------- |
+| Faithfulness / hallucination / relevancy for RAG               | ✅ Built-in metrics                                            | —                                           |
+| A custom rubric scored by an LLM                               | ✅ `GEval`                                                     | —                                           |
+| Toxicity, bias and other safety scoring                        | ✅ Built-in (LLM-judged)                                       | Dedicated red-teaming: DeepTeam (see below) |
+| Agent evals (tool use, task completion, traces)                | ✅ Trajectory and component metrics                            | —                                           |
+| Multi-turn chatbots                                            | ✅ Conversational metrics and a conversation simulator         | —                                           |
+| Pytest-style CI gates with minimal code                        | ✅ `assert_test()` + `deepeval test run`                       | —                                           |
+| Declarative, YAML-driven prompt/provider matrices with no code | —                                                              | Promptfoo                                   |
+| Shared, hosted experiment history and dashboards               | Possible via Confident AI (DeepEval's own commercial platform) | Braintrust, Langfuse and others             |
+| Property-based invariant testing of your own code              | —                                                              | `hypothesis`                                |
 
 DeepEval is more than a metric library: it also ships datasets (goldens), tracing, a synthetic-data generator, a conversation simulator, benchmarks, a CLI, and a pytest-based runner (`deepeval test run`). You can still call a single metric from any Python code via `metric.measure()`.
 
@@ -125,28 +115,28 @@ deepeval test run test_chatbot.py
 
 Housekeeping you will want to know about on day one:
 
-- **`.env` loading.** DeepEval auto-loads `.env.local`, then `.env`, from the current working directory *at import time* (precedence: process env → `.env.local` → `.env`). Disable with `DEEPEVAL_DISABLE_DOTENV=1`, which is useful in CI. Point it elsewhere with `ENV_DIR_PATH`.
+- **`.env` loading.** DeepEval auto-loads `.env.local`, then `.env`, from the current working directory _at import time_ (precedence: process env → `.env.local` → `.env`). Disable with `DEEPEVAL_DISABLE_DOTENV=1`, which is useful in CI. Point it elsewhere with `ENV_DIR_PATH`.
 - **`deepeval login`** is optional. It connects you to Confident AI (DeepEval's hosted platform). Once logged in, test results sync to it automatically. See "Confident AI and Privacy".
 
 ## Test Cases: `LLMTestCase`
 
 A single-turn test case represents one atomic interaction. You scope "interaction" however you like: the whole app, just the RAG pipeline, only the retriever.
 
-| Field | Type | Used for |
-| --- | --- | --- |
-| `input` | `str` | The user input. Do **not** include your prompt template, and don't dump a JSON message list here. |
-| `actual_output` | `str` | What your app produced. Required by nearly every metric. The docs mark it optional only because retriever-only evaluation may not have one. |
-| `expected_output` | `str` | The ideal answer (tone and phrasing included). Needed by reference-based metrics such as `ContextualPrecisionMetric`, and by G-Eval criteria that compare against it. |
-| `context` | `list[str]` | **Static ground truth** for this input. Used by `HallucinationMetric`. This is *not* generic metadata. |
-| `retrieval_context` | `list[str]` or `RetrievedContextData` | What your retriever **actually returned** at runtime. Used by faithfulness and the contextual metrics. `RetrievedContextData` carries `context` and `source`. |
-| `tools_called` / `expected_tools` | `list[ToolCall]` | Agent evals. `ToolCall` has `name` plus optional `description`, `reasoning`, `output`, `type` (function or MCP) and `input_parameters`. |
-| `expectations` | `Expectations(must=[...], must_not=[...])` | Define success directly on the case without picking a metric. Judged by an LLM (or Jev). |
-| `expected_labels` | `dict[str, str]` | Maps a classifier name to the label this case should receive. |
-| `token_cost`, `completion_time` | `float` | Logged for your own custom metrics or for Confident AI. No built-in metric uses them. |
-| `flaky` | `bool` | Failures print a warning instead of raising `AssertionError`. |
-| `name`, `tags` | `str`, `list[str]` | Labels for filtering on Confident AI. |
+| Field                             | Type                                       | Used for                                                                                                                                                              |
+| --------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `input`                           | `str`                                      | The user input. Do **not** include your prompt template, and don't dump a JSON message list here.                                                                     |
+| `actual_output`                   | `str`                                      | What your app produced. Required by nearly every metric. The docs mark it optional only because retriever-only evaluation may not have one.                           |
+| `expected_output`                 | `str`                                      | The ideal answer (tone and phrasing included). Needed by reference-based metrics such as `ContextualPrecisionMetric`, and by G-Eval criteria that compare against it. |
+| `context`                         | `list[str]`                                | **Static ground truth** for this input. Used by `HallucinationMetric`. This is _not_ generic metadata.                                                                |
+| `retrieval_context`               | `list[str]` or `RetrievedContextData`      | What your retriever **actually returned** at runtime. Used by faithfulness and the contextual metrics. `RetrievedContextData` carries `context` and `source`.         |
+| `tools_called` / `expected_tools` | `list[ToolCall]`                           | Agent evals. `ToolCall` has `name` plus optional `description`, `reasoning`, `output`, `type` (function or MCP) and `input_parameters`.                               |
+| `expectations`                    | `Expectations(must=[...], must_not=[...])` | Define success directly on the case without picking a metric. Judged by an LLM (or Jev).                                                                              |
+| `expected_labels`                 | `dict[str, str]`                           | Maps a classifier name to the label this case should receive.                                                                                                         |
+| `token_cost`, `completion_time`   | `float`                                    | Logged for your own custom metrics or for Confident AI. No built-in metric uses them.                                                                                 |
+| `flaky`                           | `bool`                                     | Failures print a warning instead of raising `AssertionError`.                                                                                                         |
+| `name`, `tags`                    | `str`, `list[str]`                         | Labels for filtering on Confident AI.                                                                                                                                 |
 
-`context` versus `retrieval_context` is the one people mix up: `context` is the *ideal* knowledge you supply, `retrieval_context` is what the retriever *actually fetched*. Comparing the two is how you assess retrieval.
+`context` versus `retrieval_context` is the one people mix up: `context` is the _ideal_ knowledge you supply, `retrieval_context` is what the retriever _actually fetched_. Comparing the two is how you assess retrieval.
 
 Images are supported through `MLLMImage` embedded in `input` / `actual_output` (f-string embedding), and multimodal test cases are detected automatically for metrics that support them.
 
@@ -178,39 +168,39 @@ The docs advertise "50+" metrics. The categories below are what the v4.2.8 docum
 
 ### Custom metrics
 
-| Metric | What it is |
-| --- | --- |
-| `GEval` | LLM-as-a-judge from your plain-language criteria (research-backed, see below). Single-turn, multi-turn (`ConversationalGEval`) and trace-level. Not deterministic. |
-| `DAGMetric` | Build a decision tree of LLM-judged nodes for more deterministic, rule-like scoring. Also a conversational variant. |
-| `ArenaGEval` | G-Eval for comparing outputs head to head. |
-| `JevEval` | Custom criteria expressed as bounded questions and scored by Jev rather than an LLM. |
-| `BaseMetric` subclass | 100% your code ("Do it yourself"): ROUGE, regex, anything. |
+| Metric                | What it is                                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GEval`               | LLM-as-a-judge from your plain-language criteria (research-backed, see below). Single-turn, multi-turn (`ConversationalGEval`) and trace-level. Not deterministic. |
+| `DAGMetric`           | Build a decision tree of LLM-judged nodes for more deterministic, rule-like scoring. Also a conversational variant.                                                |
+| `ArenaGEval`          | G-Eval for comparing outputs head to head.                                                                                                                         |
+| `JevEval`             | Custom criteria expressed as bounded questions and scored by Jev rather than an LLM.                                                                               |
+| `BaseMetric` subclass | 100% your code ("Do it yourself"): ROUGE, regex, anything.                                                                                                         |
 
 ### RAG metrics
 
 The docs treat the retriever and the generator separately:
 
-| Metric | Evaluates | Needs (checked) | Style |
-| --- | --- | --- | --- |
-| `AnswerRelevancyMetric` | Generator: is the answer on-topic for the input? | `input`, `actual_output` | Referenceless |
-| `FaithfulnessMetric` | Generator: is the answer aligned with the retrieved context? | `input`, `actual_output`, `retrieval_context` | Referenceless |
-| `ContextualRelevancyMetric` | Retriever: how much of the retrieved context is relevant to the input? | `input`, `actual_output`, `retrieval_context` | Referenceless |
-| `ContextualPrecisionMetric` | Retriever: are relevant chunks **ranked** above irrelevant ones? | `input`, `actual_output`, `expected_output`, `retrieval_context` | Reference-based |
-| `ContextualRecallMetric` | Retriever: did it fetch everything needed? | See its page (reference-based, uses `expected_output`) | Reference-based |
-| `RagasMetric` | Average of answer relevancy, faithfulness, contextual precision and contextual recall. | — | — |
+| Metric                      | Evaluates                                                                              | Needs (checked)                                                  | Style           |
+| --------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | --------------- |
+| `AnswerRelevancyMetric`     | Generator: is the answer on-topic for the input?                                       | `input`, `actual_output`                                         | Referenceless   |
+| `FaithfulnessMetric`        | Generator: is the answer aligned with the retrieved context?                           | `input`, `actual_output`, `retrieval_context`                    | Referenceless   |
+| `ContextualRelevancyMetric` | Retriever: how much of the retrieved context is relevant to the input?                 | `input`, `actual_output`, `retrieval_context`                    | Referenceless   |
+| `ContextualPrecisionMetric` | Retriever: are relevant chunks **ranked** above irrelevant ones?                       | `input`, `actual_output`, `expected_output`, `retrieval_context` | Reference-based |
+| `ContextualRecallMetric`    | Retriever: did it fetch everything needed?                                             | See its page (reference-based, uses `expected_output`)           | Reference-based |
+| `RagasMetric`               | Average of answer relevancy, faithfulness, contextual precision and contextual recall. | —                                                                | —               |
 
 Diagnostic cheat sheet from the docs: clean context with an off-topic answer points at the generator; noisy context points at the retriever; high relevancy with low faithfulness means a confidently wrong answer that leans on the model's own knowledge rather than the retrieved text.
 
 ### Agentic metrics
 
-| Metric | Scope |
-| --- | --- |
-| `TaskCompletionMetric` | Trajectory: did the agent accomplish the task? |
-| `StepEfficiencyMetric` | Trajectory: any unnecessary or redundant steps? |
-| `PlanAdherenceMetric` | Trajectory: did it follow its own plan? |
-| `PlanQualityMetric` | Trajectory: was the plan logical, complete and efficient? |
-| `ToolCorrectnessMetric` | Component: right tools chosen? (needs `tools_called` / `expected_tools`) |
-| `ArgumentCorrectnessMetric` | Component: right arguments passed? |
+| Metric                      | Scope                                                                    |
+| --------------------------- | ------------------------------------------------------------------------ |
+| `TaskCompletionMetric`      | Trajectory: did the agent accomplish the task?                           |
+| `StepEfficiencyMetric`      | Trajectory: any unnecessary or redundant steps?                          |
+| `PlanAdherenceMetric`       | Trajectory: did it follow its own plan?                                  |
+| `PlanQualityMetric`         | Trajectory: was the plan logical, complete and efficient?                |
+| `ToolCorrectnessMetric`     | Component: right tools chosen? (needs `tools_called` / `expected_tools`) |
+| `ArgumentCorrectnessMetric` | Component: right arguments passed?                                       |
 
 Trajectory metrics require **tracing** because they judge the complete ordered trace. (The PyPI README also lists Goal Accuracy and Tool Use; the docs introduction counts the six above.)
 
@@ -235,16 +225,16 @@ Bias, Toxicity, Non-Advice, Misuse, PII Leakage, Role Violation. (Deep-dives on 
 
 ### How the scores are computed
 
-| Metric | Score |
-| --- | --- |
-| Faithfulness | truthful claims ÷ total claims in `actual_output` |
-| Hallucination | contexts the output does **not** contradict ÷ total contexts |
-| Toxicity | non-toxic opinions ÷ total opinions |
-| Bias | unbiased opinions ÷ total opinions |
-| Contextual Relevancy | relevant statements ÷ total statements in `retrieval_context` |
-| Contextual Precision | weighted cumulative precision, rewarding relevant chunks that appear early |
-| JSON Correctness / Pattern Match | 1 if valid / fully matches, otherwise 0 |
-| G-Eval | judge score weighted by output-token probabilities (see below) |
+| Metric                           | Score                                                                      |
+| -------------------------------- | -------------------------------------------------------------------------- |
+| Faithfulness                     | truthful claims ÷ total claims in `actual_output`                          |
+| Hallucination                    | contexts the output does **not** contradict ÷ total contexts               |
+| Toxicity                         | non-toxic opinions ÷ total opinions                                        |
+| Bias                             | unbiased opinions ÷ total opinions                                         |
+| Contextual Relevancy             | relevant statements ÷ total statements in `retrieval_context`              |
+| Contextual Precision             | weighted cumulative precision, rewarding relevant chunks that appear early |
+| JSON Correctness / Pattern Match | 1 if valid / fully matches, otherwise 0                                    |
+| G-Eval                           | judge score weighted by output-token probabilities (see below)             |
 
 LLM-judged metrics typically make several calls: for example faithfulness first extracts the claims in your output, then classifies each against the context, then writes a reason. That matters for cost.
 
@@ -252,12 +242,12 @@ LLM-judged metrics typically make several calls: for example faithfulness first 
 
 Both ask "did the model make things up?", but against different sources of truth:
 
-| | `FaithfulnessMetric` | `HallucinationMetric` |
-| --- | --- | --- |
-| Compares output to | `retrieval_context` (what your retriever fetched at runtime) | `context` (curated ground truth you supply) |
-| Use for | RAG pipelines | Cases where you have known-correct reference material |
-| Measures | The **generator** given retrieved text | Contradictions with trusted context |
-| Don't use when | You have no retrieval context | Your "context" is noisy retrieved chunks |
+|                    | `FaithfulnessMetric`                                         | `HallucinationMetric`                                 |
+| ------------------ | ------------------------------------------------------------ | ----------------------------------------------------- |
+| Compares output to | `retrieval_context` (what your retriever fetched at runtime) | `context` (curated ground truth you supply)           |
+| Use for            | RAG pipelines                                                | Cases where you have known-correct reference material |
+| Measures           | The **generator** given retrieved text                       | Contradictions with trusted context                   |
+| Don't use when     | You have no retrieval context                                | Your "context" is noisy retrieved chunks              |
 
 ```python
 from deepeval.metrics import FaithfulnessMetric
@@ -280,7 +270,7 @@ Faithfulness-specific options: `truths_extraction_limit` (cap how many truths ar
 
 Behaviour to understand before you trust a score:
 
-- The docs define a claim as truthful when it **does not contradict** the retrieved context, but their FAQ also warns that a true real-world fact that is simply absent from the retrieved text can still be marked unfaithful. Treat it as a *grounding* check and read `reason` (or turn on `verbose_mode`) for borderline cases.
+- The docs define a claim as truthful when it **does not contradict** the retrieved context, but their FAQ also warns that a true real-world fact that is simply absent from the retrieved text can still be marked unfaithful. Treat it as a _grounding_ check and read `reason` (or turn on `verbose_mode`) for borderline cases.
 - A low score is a **generation** problem (prompt or model), not a retrieval problem. Retrieval is covered by the contextual metrics.
 
 ```python
@@ -359,7 +349,7 @@ json_ok.measure(tc)      # 1 if the output loads into the schema, else 0
 ```
 
 - `PatternMatchMetric` uses `re.fullmatch`, so the pattern must match the **entire** output. `\d+` fails on `"The code is 1234"`; use `.*\d+.*` for fragments. It needs no model or API key (I ran it with no key set).
-- `JsonCorrectnessMetric` scores by loading the output into your `pydantic` schema (wrap a list schema in `RootModel[List[...]]`). The `model` is only used to write the *reason* for an invalid output. However, **constructing the metric still initialises the default judge, so it raises `DeepEvalError` if no OpenAI key (or other configured judge) exists**, even with `include_reason=False`. With a key present, scoring itself ran offline in my test.
+- `JsonCorrectnessMetric` scores by loading the output into your `pydantic` schema (wrap a list schema in `RootModel[List[...]]`). The `model` is only used to write the _reason_ for an invalid output. However, **constructing the metric still initialises the default judge, so it raises `DeepEvalError` if no OpenAI key (or other configured judge) exists**, even with `include_reason=False`. With a key present, scoring itself ran offline in my test.
 - `ExactMatchMetric` is for a single literal answer.
 
 ## Safety Metrics: Toxicity and Bias
@@ -371,9 +361,9 @@ toxicity = ToxicityMetric(threshold=0.5)
 bias = BiasMetric(threshold=0.5)
 ```
 
-Corrections to a common assumption: both are **LLM-as-a-judge** metrics, not fast deterministic classifiers. Each first has an LLM extract the *opinions* in `actual_output`, then classifies each opinion. They need only `input` and `actual_output` (referenceless), so they are usable on live traffic.
+Corrections to a common assumption: both are **LLM-as-a-judge** metrics, not fast deterministic classifiers. Each first has an LLM extract the _opinions_ in `actual_output`, then classifies each opinion. They need only `input` and `actual_output` (referenceless), so they are usable on live traffic.
 
-- **Direction:** the score is the share of opinions that are *not* toxic (or biased). 1 means none found. The threshold is a minimum.
+- **Direction:** the score is the share of opinions that are _not_ toxic (or biased). 1 means none found. The threshold is a minimum.
 - **Toxicity rubric:** personal attacks, mockery, hate, dismissive statements, threats or intimidation.
 - **Bias rubric:** gender, political, racial/ethnic and geographical bias.
 - Only **opinions** are scored. A verifiable fact, a mistaken statement of fact, or an attributed quote is not an opinion, so reported statements generally aren't flagged.
@@ -457,23 +447,23 @@ To generate conversations instead of hand-writing them, wrap your chatbot in an 
 
 There are four ways to execute metrics:
 
-| Approach | Use it for | Notes |
-| --- | --- | --- |
-| `metric.measure(test_case)` | Debugging, notebooks, your own pipeline | No testing reports, caching or other run-level optimisations. |
-| `evaluate(test_cases=..., metrics=...)` | Scripts and notebooks | Collects results and **never fails** anything. |
-| `assert_test(...)` + `deepeval test run` | CI gating | Raises `AssertionError` when a metric is below threshold. |
-| `dataset.evals_iterator(metrics=...)` | Traced apps | Loop over goldens and call your instrumented app. |
+| Approach                                 | Use it for                              | Notes                                                         |
+| ---------------------------------------- | --------------------------------------- | ------------------------------------------------------------- |
+| `metric.measure(test_case)`              | Debugging, notebooks, your own pipeline | No testing reports, caching or other run-level optimisations. |
+| `evaluate(test_cases=..., metrics=...)`  | Scripts and notebooks                   | Collects results and **never fails** anything.                |
+| `assert_test(...)` + `deepeval test run` | CI gating                               | Raises `AssertionError` when a metric is below threshold.     |
+| `dataset.evals_iterator(metrics=...)`    | Traced apps                             | Loop over goldens and call your instrumented app.             |
 
 `assert_test()` has two shapes: `assert_test(test_case=..., metrics=[...])` (you build the test case) and `assert_test(golden=..., metrics=[...])` (after running a traced app on that golden). `run_async` defaults to `True`, which calls each metric's `a_measure()`. That matters for custom metrics (below).
 
 `evaluate()` also accepts `hyperparameters`, `identifier`, `official`, and four config objects from `deepeval.evaluate`:
 
-| Config | Fields (as of 4.2.8) |
-| --- | --- |
-| `AsyncConfig` | `run_async=True`, `throttle_value=0` (seconds), `max_concurrent=20`. Lower concurrency or add throttling for rate limits. |
+| Config          | Fields (as of 4.2.8)                                                                                                                                                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `AsyncConfig`   | `run_async=True`, `throttle_value=0` (seconds), `max_concurrent=20`. Lower concurrency or add throttling for rate limits.                                                                                                                  |
 | `DisplayConfig` | `show_indicator`, `print_results`, `verbose_mode`, `display_option` (`all` / `failing` / `passing`), `results_folder`, `results_subfolder`, `truncate_passing_cases`, `inspect_after_run`, `file_type` (`html` / `md`), `file_output_dir`. |
-| `ErrorConfig` | `ignore_errors=False`, `skip_on_missing_params=False` |
-| `CacheConfig` | `use_cache=False`, `write_cache=True` |
+| `ErrorConfig`   | `ignore_errors=False`, `skip_on_missing_params=False`                                                                                                                                                                                      |
+| `CacheConfig`   | `use_cache=False`, `write_cache=True`                                                                                                                                                                                                      |
 
 Docs discrepancy: the flags-and-configs page names the display field `display`, but the installed 4.2.8 signature is `display_option`. Trust `inspect.signature` over prose.
 
@@ -547,20 +537,20 @@ If any non-flaky metric is below its threshold the assertion fails and CI goes r
 
 ### `deepeval test run` flags
 
-| Flag | Effect |
-| --- | --- |
-| `-n <N>` | Run in N parallel processes (pytest-xdist). |
-| `-c` | Use the local cache instead of re-evaluating identical test cases and metric configs. |
-| `-i` | Ignore errors during metric execution (useful with flaky custom judges that emit invalid JSON). |
-| `-s` | Skip metrics whose required test case params are missing. |
-| `-v` | Verbose output; turns on `verbose_mode` for all metrics. |
-| `-x` | Stop after the first failure. |
-| `-w` | Show pytest warnings. |
-| `-id <name>` | Name the run (handy for deployment IDs). |
-| `-d all\|passing\|failing` | Control which cases are displayed. |
-| `-r <N>` | Repeat each test case N times. |
-| `-m <expr>` | Pytest marker expression. |
-| `--official` / `-o` | Mark the run as the official baseline on Confident AI (requires `CONFIDENT_API_KEY`). |
+| Flag                       | Effect                                                                                          |
+| -------------------------- | ----------------------------------------------------------------------------------------------- |
+| `-n <N>`                   | Run in N parallel processes (pytest-xdist).                                                     |
+| `-c`                       | Use the local cache instead of re-evaluating identical test cases and metric configs.           |
+| `-i`                       | Ignore errors during metric execution (useful with flaky custom judges that emit invalid JSON). |
+| `-s`                       | Skip metrics whose required test case params are missing.                                       |
+| `-v`                       | Verbose output; turns on `verbose_mode` for all metrics.                                        |
+| `-x`                       | Stop after the first failure.                                                                   |
+| `-w`                       | Show pytest warnings.                                                                           |
+| `-id <name>`               | Name the run (handy for deployment IDs).                                                        |
+| `-d all\|passing\|failing` | Control which cases are displayed.                                                              |
+| `-r <N>`                   | Repeat each test case N times.                                                                  |
+| `-m <expr>`                | Pytest marker expression.                                                                       |
+| `--official` / `-o`        | Mark the run as the official baseline on Confident AI (requires `CONFIDENT_API_KEY`).           |
 
 Flags combine: `deepeval test run tests/evals -i -c -n 2`. Extra pytest flags go after `--`.
 
@@ -627,11 +617,11 @@ To wrap your own LLM, subclass `DeepEvalBaseLLM` and implement `load_model()`, `
 
 New in the current docs: every built-in LLM-as-a-judge metric can run in one of three **eval modes**:
 
-| Mode | Who does what | Needs |
-| --- | --- | --- |
-| `llm` (default) | The LLM extracts, decides and writes the reason. | An LLM key |
-| `hybrid` | LLM extracts and writes the reason; **Jev** makes the yes/no decisions (falls back to the LLM if a Jev call fails). | LLM key + TypeSafe AI key |
-| `system_one` | Jev runs the whole metric in one request; no LLM is called. | TypeSafe AI key only |
+| Mode            | Who does what                                                                                                       | Needs                     |
+| --------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `llm` (default) | The LLM extracts, decides and writes the reason.                                                                    | An LLM key                |
+| `hybrid`        | LLM extracts and writes the reason; **Jev** makes the yes/no decisions (falls back to the LLM if a Jev call fails). | LLM key + TypeSafe AI key |
+| `system_one`    | Jev runs the whole metric in one request; no LLM is called.                                                         | TypeSafe AI key only      |
 
 Jev is **TypeSafe AI's "System One" model**: it answers bounded questions with calibrated probabilities instead of generating text. Set the mode globally with `deepeval set-eval-mode llm|hybrid|system_one` (or `DEEPEVAL_EVAL_MODE`), or per metric with `eval_mode=`. Key points:
 
@@ -729,20 +719,20 @@ Other patterns from the docs:
 
 ## CLI Cheat Sheet
 
-| Command | Purpose |
-| --- | --- |
-| `deepeval test run <path>` | Run eval tests through pytest with the DeepEval plugin. |
-| `deepeval login` / `logout` / `view` | Connect to Confident AI, remove credentials, open the latest run there. |
-| `deepeval set-<provider>` / `unset-<provider>` | Choose the judge provider (and embeddings / speech providers). |
-| `deepeval set-eval-mode llm\|hybrid\|system_one` | Choose who judges. |
-| `deepeval set-local-store json\|sqlite` | Where local runs are saved. |
-| `deepeval set-confident-region US\|EU` | Confident AI data region. |
-| `deepeval set-mode stable\|experimental` | Opt into unfinished features (may break between releases). |
-| `deepeval inspect` | Terminal trace viewer (`--list`, `--run-id`, `--folder`). |
-| `deepeval diagnose [--json]` | Show which config wins and from where (secrets masked). |
-| `deepeval generate` | Generate synthetic goldens from docs, contexts, scratch or existing goldens. |
-| `deepeval settings -l [filter]` | List and filter settings. |
-| `deepeval gate` | Check against a Confident AI governance policy; non-zero exit on failure. |
+| Command                                          | Purpose                                                                      |
+| ------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `deepeval test run <path>`                       | Run eval tests through pytest with the DeepEval plugin.                      |
+| `deepeval login` / `logout` / `view`             | Connect to Confident AI, remove credentials, open the latest run there.      |
+| `deepeval set-<provider>` / `unset-<provider>`   | Choose the judge provider (and embeddings / speech providers).               |
+| `deepeval set-eval-mode llm\|hybrid\|system_one` | Choose who judges.                                                           |
+| `deepeval set-local-store json\|sqlite`          | Where local runs are saved.                                                  |
+| `deepeval set-confident-region US\|EU`           | Confident AI data region.                                                    |
+| `deepeval set-mode stable\|experimental`         | Opt into unfinished features (may break between releases).                   |
+| `deepeval inspect`                               | Terminal trace viewer (`--list`, `--run-id`, `--folder`).                    |
+| `deepeval diagnose [--json]`                     | Show which config wins and from where (secrets masked).                      |
+| `deepeval generate`                              | Generate synthetic goldens from docs, contexts, scratch or existing goldens. |
+| `deepeval settings -l [filter]`                  | List and filter settings.                                                    |
+| `deepeval gate`                                  | Check against a Confident AI governance policy; non-zero exit on failure.    |
 
 Useful environment variables: `OPENAI_API_KEY`, `CONFIDENT_API_KEY`, `TYPESAFE_API_KEY`, `DEEPEVAL_EVAL_MODE`, `DEEPEVAL_LOCAL_STORE`, `DEEPEVAL_RESULTS_FOLDER`, `DEEPEVAL_DISABLE_DOTENV`, `DEEPEVAL_TELEMETRY_OPT_OUT`, `DEEPEVAL_NO_INSPECT_PROMPT`, `DEEPEVAL_DEFAULT_SAVE`.
 
@@ -774,14 +764,14 @@ A checklist, roughly in order of how often each one bites:
 
 These tools overlap but start from different places. This table sticks to what each tool's own documentation says.
 
-| Dimension | DeepEval | Promptfoo | Braintrust |
-| --- | --- | --- | --- |
-| Starting point | Python library: metrics, datasets, tracing, pytest runner | Config-driven CLI (`promptfooconfig.yaml`) with a broad assertion library | Hosted eval platform with SDKs (TypeScript / Python) |
-| Built-in RAG / hallucination metrics | Yes (`FaithfulnessMetric`, `HallucinationMetric`, contextual metrics) | Via assertions such as model-graded rubrics (e.g. `llm-rubric`) | Via scorers you write or use |
-| CI gate | `deepeval test run` (`assert_test` raises on a failed threshold) | `promptfoo eval` returns a non-zero exit code on failing tests; also has a GitHub Action | `braintrustdata/eval-action` or the `bt eval` CLI. By default non-zero exit means an eval *threw*, and you define score-based pass/fail with a custom `Reporter`. |
-| Configuration | Python | YAML (no code required for standard evals) | Code, plus a web UI |
-| Dashboards / history | Local JSON or SQLite results, terminal `deepeval inspect`, optional HTML/Markdown export; hosted dashboards via Confident AI | Local web viewer (`promptfoo view`); sharing options | Hosted web UI |
-| Custom logic | Subclass `BaseMetric`, or G-Eval / DAG | JS or Python snippets | Custom scorers |
+| Dimension                            | DeepEval                                                                                                                     | Promptfoo                                                                                | Braintrust                                                                                                                                                        |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Starting point                       | Python library: metrics, datasets, tracing, pytest runner                                                                    | Config-driven CLI (`promptfooconfig.yaml`) with a broad assertion library                | Hosted eval platform with SDKs (TypeScript / Python)                                                                                                              |
+| Built-in RAG / hallucination metrics | Yes (`FaithfulnessMetric`, `HallucinationMetric`, contextual metrics)                                                        | Via assertions such as model-graded rubrics (e.g. `llm-rubric`)                          | Via scorers you write or use                                                                                                                                      |
+| CI gate                              | `deepeval test run` (`assert_test` raises on a failed threshold)                                                             | `promptfoo eval` returns a non-zero exit code on failing tests; also has a GitHub Action | `braintrustdata/eval-action` or the `bt eval` CLI. By default non-zero exit means an eval _threw_, and you define score-based pass/fail with a custom `Reporter`. |
+| Configuration                        | Python                                                                                                                       | YAML (no code required for standard evals)                                               | Code, plus a web UI                                                                                                                                               |
+| Dashboards / history                 | Local JSON or SQLite results, terminal `deepeval inspect`, optional HTML/Markdown export; hosted dashboards via Confident AI | Local web viewer (`promptfoo view`); sharing options                                     | Hosted web UI                                                                                                                                                     |
+| Custom logic                         | Subclass `BaseMetric`, or G-Eval / DAG                                                                                       | JS or Python snippets                                                                    | Custom scorers                                                                                                                                                    |
 
 Practical combination, as in the companion posts: pytest as the runner, DeepEval for semantic metrics, Promptfoo when you want a declarative prompt/provider comparison matrix, and a hosted tool such as Braintrust when you want shared history. DeepEval can also log hyperparameters and compare runs on its own, so you are not forced into a second tool for that.
 
@@ -792,7 +782,7 @@ The companion repo includes [`scripts/example_deepeval.py`](https://github.com/w
 ## Further Reading
 
 - [DeepEval documentation](https://deepeval.com/docs/getting-started)
-- [Testing LLM Outputs: The Eval Pyramid](../../ai-outputs-eval/)
+
 - [Braintrust: Eval History, Dashboards and CI Gates](../braintrust/)
 - [Promptfoo: Model Comparison and Red-Teaming](../promptfoo/)
 - [pytest for LLM Evaluation](../pytest/)
