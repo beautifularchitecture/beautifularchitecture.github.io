@@ -1,11 +1,11 @@
 classDiagram
-    %% Transcribed verbatim from the mermaid block in deepeval.md.
-    %%
-    %% Render: npx -p @mermaid-js/mermaid-cli mmdc -i <this file> -o <file>.png \
-    %%   -b white --scale 16
-    %% Scale 16 (not the documented default 8) matches the sibling
-    %% evals-class-diagram render so label size is consistent across posts.
+    %% DeepEval v4.2.8 docs (deepeval.com/docs): evaluation-test-cases, evaluation-multiturn-test-cases,
+    %% evaluation-arena-test-cases, evaluation-datasets, metrics-introduction, metrics-llm-evals
+    %% Not rendered/tested locally. Paste into mermaid.live to check.
+    %% The base class of each concrete metric is NOT stated in the docs; edges follow the original diagram.
     direction LR
+
+    %% ===== 1. Test cases =====
 
     class LLMTestCase {
       +input: str
@@ -15,32 +15,77 @@ classDiagram
       +retrieval_context: list[str or RetrievedContextData]
       +tools_called: list[ToolCall]
       +expected_tools: list[ToolCall]
-      +metadata: dict
+      +expectations: Expectations
+      +expected_labels: dict
+      +token_cost: float
+      +completion_time: float
+      +flaky: bool
+      +name: str
+      +tags: list[str]
     }
     class ConversationalTestCase {
       +turns: list[Turn]
       +scenario: str
       +expected_outcome: str
       +context: list[str]
+      +chatbot_role: str
+      +expectations: Expectations
+      +expected_labels: dict
+      +flaky: bool
+      +name: str
+      +tags: list[str]
+      +voice: bool
     }
     class Turn {
-      +role: Role
+      +role: user or assistant
       +content: str
-      +retrieval_context: list[str]
+      +user_id: str
+      +retrieval_context: list[str or RetrievedContextData]
       +tools_called: list[ToolCall]
-      +completion_time: float
-      +token_cost: float
+      +audio: Audio
+      +latency_ms: float
+      +interrupted: bool
+    }
+    class Audio {
+      +duration
     }
     class ToolCall {
       +name: str
       +description: str
       +reasoning: str
+      +output: Any
+      +type: ToolCallType
       +input_parameters: dict
-      +output: str
+    }
+    class ToolCallType {
+      <<enumeration>>
+      FUNCTION
+      MCP
     }
     class RetrievedContextData {
       +context: str
       +source: str
+    }
+    class MLLMImage {
+      +url: str
+      +dataBase64: str
+      +mimeType: str
+      +local: bool
+      +filename: str
+    }
+    class Expectations {
+      +must: list[str]
+      +must_not: list[str]
+      +model: str or DeepEvalBaseLLM
+      +eval_mode: llm or system_one
+    }
+    class ArenaTestCase {
+      +contestants: list[Contestant]
+    }
+    class Contestant {
+      +name: str
+      +hyperparameters: dict
+      +test_case: LLMTestCase
     }
     class SingleTurnParams {
       <<enumeration>>
@@ -54,13 +99,37 @@ classDiagram
     }
     class MultiTurnParams {
       <<enumeration>>
+      CONTENT
+      TOOLS_CALLED
     }
+
+
+    ConversationalTestCase *-- Turn : ordered turns
+    Turn *-- ToolCall : optional
+    Turn o-- RetrievedContextData : optional
+    Turn o-- Audio : voice only
+    LLMTestCase *-- ToolCall : tools_called, expected_tools
+    LLMTestCase o-- RetrievedContextData : optional
+    LLMTestCase o-- Expectations : optional
+    ConversationalTestCase o-- Expectations : optional
+    ToolCall --> ToolCallType
+    ArenaTestCase *-- Contestant
+    Contestant *-- LLMTestCase
+    LLMTestCase ..> MLLMImage : embedded in text fields
+    ConversationalTestCase ..> MLLMImage : embedded in text fields
+
+    %% ===== 2. Metrics and judge model =====
+
     class BaseMetric {
       <<abstract>>
       +threshold: float
       +score: float
       +reason: str
       +success: bool
+      +strict_mode: bool
+      +async_mode: bool
+      +verbose_mode: bool
+      +flaky: bool
       +measure(test_case) float
       +a_measure(test_case) float
       +is_successful() bool
@@ -74,66 +143,209 @@ classDiagram
     class BaseArenaMetric {
       <<abstract>>
       +measure(test_case) str
-      +a_measure(test_case) str
-      +is_successful() bool
     }
-    class GEval
-    class FaithfulnessMetric
-    class HallucinationMetric
+    class DeepEvalBaseLLM {
+      <<abstract>>
+      +get_model_name() str
+      +load_model()
+      +generate(prompt) str
+      +a_generate(prompt) str
+    }
+    class GEval {
+      +name: str
+      +criteria: str
+      +evaluation_steps: list[str]
+      +evaluation_params: list[SingleTurnParams]
+      +rubric: list[Rubric]
+      +model: str or DeepEvalBaseLLM
+      +evaluation_template: GEvalTemplate
+    }
+    class ConversationalGEval {
+      +name: str
+      +criteria: str
+      +evaluation_steps: list[str]
+      +evaluation_params: list[MultiTurnParams]
+      +rubric: list[Rubric]
+      +model: str or DeepEvalBaseLLM
+    }
+    class ArenaGEval {
+      +name: str
+      +criteria: str
+      +evaluation_params: list[SingleTurnParams]
+    }
+    class JevEval {
+      +name: str
+      +evaluation_params: list[SingleTurnParams]
+      +questions: list[Noul or Score]
+    }
+    class Rubric {
+      +score_range: tuple 0 to 10
+      +expected_outcome: str
+    }
+    class DAGMetric
+    class ConversationalDAGMetric
+
     class AnswerRelevancyMetric
+    class FaithfulnessMetric
     class ContextualRelevancyMetric
-    class ToxicityMetric
-    class BiasMetric
+    class ContextualPrecisionMetric
+    class ContextualRecallMetric
+
     class TaskCompletionMetric
-    class ConversationalGEval
-    class CustomMetric {
+    class StepEfficiencyMetric
+    class PlanAdherenceMetric
+    class PlanQualityMetric
+    class ToolCorrectnessMetric
+    class ArgumentCorrectnessMetric
+
+    class BiasMetric
+    class ToxicityMetric
+    class NonAdviceMetric
+    class MisuseMetric
+    class PIILeakageMetric
+    class RoleViolationMetric
+    class HallucinationMetric
+    class JsonCorrectnessMetric
+    class SummarizationMetric
+    class ImageCoherenceMetric
+
+    class KnowledgeRetentionMetric
+    class RoleAdherenceMetric
+    class ConversationCompletenessMetric
+    class ConversationalRelevancyMetric
+
+    class UserDefinedMetric {
+      <<user-defined>>
       +measure(test_case) float
       +is_successful() bool
     }
+
+
+    BaseMetric <|-- GEval
+    BaseMetric <|-- JevEval
+    BaseMetric <|-- DAGMetric
+    BaseMetric <|-- AnswerRelevancyMetric
+    BaseMetric <|-- FaithfulnessMetric
+    BaseMetric <|-- ContextualRelevancyMetric
+    BaseMetric <|-- ContextualPrecisionMetric
+    BaseMetric <|-- ContextualRecallMetric
+    BaseMetric <|-- TaskCompletionMetric
+    BaseMetric <|-- StepEfficiencyMetric
+    BaseMetric <|-- PlanAdherenceMetric
+    BaseMetric <|-- PlanQualityMetric
+    BaseMetric <|-- ToolCorrectnessMetric
+    BaseMetric <|-- ArgumentCorrectnessMetric
+    BaseMetric <|-- BiasMetric
+    BaseMetric <|-- ToxicityMetric
+    BaseMetric <|-- NonAdviceMetric
+    BaseMetric <|-- MisuseMetric
+    BaseMetric <|-- PIILeakageMetric
+    BaseMetric <|-- RoleViolationMetric
+    BaseMetric <|-- HallucinationMetric
+    BaseMetric <|-- JsonCorrectnessMetric
+    BaseMetric <|-- SummarizationMetric
+    BaseMetric <|-- ImageCoherenceMetric
+    BaseMetric <|-- UserDefinedMetric
+
+    BaseConversationalMetric <|-- ConversationalGEval
+    BaseConversationalMetric <|-- ConversationalDAGMetric
+    BaseConversationalMetric <|-- KnowledgeRetentionMetric
+    BaseConversationalMetric <|-- RoleAdherenceMetric
+    BaseConversationalMetric <|-- ConversationCompletenessMetric
+    BaseConversationalMetric <|-- ConversationalRelevancyMetric
+    BaseArenaMetric <|-- ArenaGEval
+
+    GEval o-- Rubric
+    ConversationalGEval o-- Rubric
+    BaseMetric o-- DeepEvalBaseLLM : model (optional)
+    BaseConversationalMetric o-- DeepEvalBaseLLM : model (optional)
+    BaseMetric ..> LLMTestCase : evaluates
+    BaseMetric ..> SingleTurnParams : declares required fields
+    BaseConversationalMetric ..> ConversationalTestCase : evaluates
+    BaseConversationalMetric ..> MultiTurnParams : declares required fields
+    BaseArenaMetric ..> ArenaTestCase : evaluates
+
+    %% ===== 3. Datasets, generation, run APIs =====
+
     class EvaluationDataset {
       +goldens: list of Golden or ConversationalGolden
       +test_cases: list of LLMTestCase or ConversationalTestCase
-      +add_test_case(test_case) None
+      -_multi_turn: bool
       +add_golden(golden) None
-      +push(alias, ...) None
+      +add_test_case(test_case) None
+      +pull(alias) None
+      +push(alias, finalized) None
+      +save_as(file_type, directory, file_name, include_test_cases) None
+      +add_goldens_from_json_file(file_path) None
+      +add_goldens_from_jsonl_file(file_path) None
+      +add_goldens_from_csv_file(file_path) None
+      +add_test_cases_from_json_file(file_path, ...) None
+      +add_test_cases_from_csv_file(file_path, ...) None
+      +evals_iterator(metrics) iterator
     }
     class Golden {
       +input: str
       +expected_output: str
       +context: list[str]
+      +expected_tools: list[ToolCall]
+      +expected_labels: dict
+      +expectations: Expectations
+      +additional_metadata: dict
+      +comments: str
+      +custom_column_key_values: dict
+      +actual_output: str
       +retrieval_context: list[str]
+      +tools_called: list[ToolCall]
     }
     class ConversationalGolden {
       +scenario: str
       +expected_outcome: str
+      +persona: Persona
+      +context: list[str]
+      +expected_labels: dict
+      +expectations: Expectations
+      +additional_metadata: dict
+      +comments: str
+      +custom_column_key_values: dict
       +turns: list[Turn]
     }
-    class ArenaTestCase {
-      +query: str
-      +response_a: str
-      +response_b: str
+    class Persona
+    class Synthesizer {
+      +generate_goldens_from_docs(document_paths) list[Golden]
+      +generate_goldens_from_contexts(contexts) list[Golden]
+      +generate_goldens_from_scratch() list[Golden]
+      +generate_goldens_from_goldens(goldens) list[Golden]
+    }
+    class ConversationSimulator {
+      +user_intentions: dict
+      +user_profile_items: list[str]
+      +simulate(model_callback, stopping_criteria) list[ConversationalTestCase]
+    }
+    class RunApis {
+      <<module functions>>
+      +evaluate(test_cases, metrics)
+      +assert_test(test_case, metrics)
+      +compare(test_cases, metric)
+      +observe(metrics)
+      +update_current_span(test_case)
+      +log_hyperparameters(model, prompt_template)
     }
 
-    BaseMetric <|-- GEval
-    BaseMetric <|-- FaithfulnessMetric
-    BaseMetric <|-- HallucinationMetric
-    BaseMetric <|-- AnswerRelevancyMetric
-    BaseMetric <|-- ContextualRelevancyMetric
-    BaseMetric <|-- ToxicityMetric
-    BaseMetric <|-- BiasMetric
-    BaseMetric <|-- TaskCompletionMetric
-    BaseMetric <|-- CustomMetric
-    BaseConversationalMetric <|-- ConversationalGEval
-    BaseArenaMetric ..> ArenaTestCase : evaluates
-    BaseMetric ..> LLMTestCase : evaluates
-    BaseConversationalMetric ..> ConversationalTestCase : evaluates
-    BaseMetric ..> SingleTurnParams : declares required fields
-    BaseConversationalMetric ..> MultiTurnParams : declares required fields
-    ConversationalTestCase *-- Turn : ordered turns
-    Turn *-- ToolCall : optional calls
-    LLMTestCase *-- ToolCall : optional calls
-    LLMTestCase *-- RetrievedContextData : optional retrieval items
+
     EvaluationDataset o-- Golden
     EvaluationDataset o-- ConversationalGolden
     EvaluationDataset o-- LLMTestCase
     EvaluationDataset o-- ConversationalTestCase
+    ConversationalGolden o-- Persona
+    ConversationalGolden o-- Turn
+    Golden ..> LLMTestCase : you build one at eval time
+    ConversationalGolden ..> ConversationalTestCase : you build one at eval time
+    Synthesizer ..> Golden : generates
+    ConversationSimulator ..> ConversationalGolden : reads scenario and persona
+    ConversationSimulator ..> ConversationalTestCase : generates turns
+    RunApis ..> BaseMetric : runs
+    RunApis ..> BaseConversationalMetric : runs
+    RunApis ..> BaseArenaMetric : compare
+    RunApis ..> LLMTestCase : scores
+    RunApis ..> ConversationalTestCase : scores
+    RunApis ..> ArenaTestCase : compare
