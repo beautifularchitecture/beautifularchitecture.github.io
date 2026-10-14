@@ -38,7 +38,7 @@ DeepEval is an open-source (Apache-2.0) Python framework for evaluating LLM appl
 
 ## The Mental Model
 
-![Mental model of DeepEval: golden inputs/expected values feed into the app to produce an LLMTestCase, which is scored by metrics with thresholds to yield a score and reason, producing a pass/fail result in CI](../img/deepeval-mental-model.png)
+![Mental model of DeepEval: goldens (single-turn or conversational, held in an EvaluationDataset) feed the app, which produces single-turn, conversational, arena or traced test cases; metrics and classifiers score them into a score plus reason, which becomes a pass/fail result in CI and a Confident AI report](../img/deepeval-mental-model.png)
 
 Every metric exposes the same surface:
 
@@ -161,17 +161,18 @@ Metrics select the fields a judge sees through an enum of evaluation parameters.
 ## Datasets and Goldens
 
 A **Golden** is DeepEval's name for a _pending test case_ ([datasets docs](https://deepeval.com/docs/evaluation-datasets#what-are-goldens)). Goldens represent a more flexible alternative to test cases in the deepeval, and is the preferred way to initialize a dataset. Unlike test cases, goldens:
+
 - Only require input/scenario to initialize
 - Store expected results like expected_output/expected_outcome
 - Serve as templates before becoming fully-formed test cases
-  
+
 Goldens excel in development workflows where you need to:
+
 - Evaluate changes across different iterations of your LLM application
 - Compare performance between model versions
 - Test with inputs that haven't yet been processed by your LLM
 
 Think of goldens as "pending test cases" - they contain all the input data and expected results, but are missing the dynamic elements (actual_output, retrieval_context, tools_called) that will be generated when your LLM processes them.
-
 
 "Pending" means the test case is not complete yet: a golden holds only the parts you know before your app runs — the `input` and the expected results — and omits the dynamic fields (`actual_output`, `retrieval_context`, `tools_called`) that your app produces at run time. Building an `LLMTestCase` from the golden fills those in and turns it into a complete test case. Goldens are the documented preferred way to build a dataset because you can re-run the same set across prompts, models and releases.
 
@@ -212,64 +213,112 @@ Facts worth knowing:
 
 ## The Metric Catalogue
 
-The docs advertise "50+" metrics. The categories below are what the v4.2.8 documentation lists.
+The docs advertise "50+" metrics. Every metric is a subclass of one of three base classes, so the catalogue is easiest to read by starting from the base class and working down to the concrete metrics. The v4.2.8 release exposes the classes below.
 
-### Custom metrics
+| Category    | Base class                                             | `measure()` takes        | Returns      |
+| ----------- | ------------------------------------------------------ | ------------------------ | ------------ |
+| Single-turn | `BaseMetric`                                           | `LLMTestCase`            | score 0-1    |
+| Multi-turn  | `BaseConversationalMetric`                             | `ConversationalTestCase` | score 0-1    |
+| Voice       | `BaseVoiceMetric` (extends `BaseConversationalMetric`) | `ConversationalTestCase` | score 0-1    |
+| Arena       | `BaseArenaMetric`                                      | `ArenaTestCase`          | winner label |
 
-| Metric                | What it is                                                                                                                                                         |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GEval`               | LLM-as-a-judge from your plain-language criteria (research-backed, see below). Single-turn, multi-turn (`ConversationalGEval`) and trace-level. Not deterministic. |
-| `DAGMetric`           | Build a decision tree of LLM-judged nodes for more deterministic, rule-like scoring. Also a conversational variant.                                                |
-| `ArenaGEval`          | G-Eval for comparing outputs head to head.                                                                                                                         |
-| `JevEval`             | Custom criteria expressed as bounded questions and scored by Jev rather than an LLM.                                                                               |
-| `BaseMetric` subclass | 100% your code ("Do it yourself"): ROUGE, regex, anything.                                                                                                         |
+`PromptMixin` is a shared mixin that renders prompts, and `Verdict` is the yes/no enum that QAG metrics use. Neither is a metric.
 
-### RAG metrics
+### Single-turn metrics (`BaseMetric`)
 
-The docs treat the retriever and the generator separately:
+Take an `LLMTestCase` and return a score between 0 and 1.
 
-| Metric                      | Evaluates                                                                              | Needs (checked)                                                  | Style           |
-| --------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | --------------- |
-| `AnswerRelevancyMetric`     | Generator: is the answer on-topic for the input?                                       | `input`, `actual_output`                                         | Referenceless   |
-| `FaithfulnessMetric`        | Generator: is the answer aligned with the retrieved context?                           | `input`, `actual_output`, `retrieval_context`                    | Referenceless   |
-| `ContextualRelevancyMetric` | Retriever: how much of the retrieved context is relevant to the input?                 | `input`, `actual_output`, `retrieval_context`                    | Referenceless   |
-| `ContextualPrecisionMetric` | Retriever: are relevant chunks **ranked** above irrelevant ones?                       | `input`, `actual_output`, `expected_output`, `retrieval_context` | Reference-based |
-| `ContextualRecallMetric`    | Retriever: did it fetch everything needed?                                             | See its page (reference-based, uses `expected_output`)           | Reference-based |
-| `RagasMetric`               | Average of answer relevancy, faithfulness, contextual precision and contextual recall. | —                                                                | —               |
+| Metric                       | What it is                                                                                                                                                                                                                                           | Docs                                                                   |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `GEval`                      | LLM-as-a-judge from plain-language criteria via chain-of-thought evaluation steps. Not deterministic.                                                                                                                                                | [docs](https://deepeval.com/docs/metrics-llm-evals)                    |
+| `DAGMetric`                  | Decision tree of LLM-judged nodes for more deterministic, rule-like scoring.                                                                                                                                                                         | [docs](https://deepeval.com/docs/metrics-dag)                          |
+| `JevEval`                    | Custom criteria expressed as bounded questions and scored by Jev (a System One model) instead of an LLM.                                                                                                                                             | [docs](https://deepeval.com/docs/metrics-jev-eval)                     |
+| `AnswerRelevancyMetric`      | Is the answer on-topic for the input?                                                                                                                                                                                                                | [docs](https://deepeval.com/docs/metrics-answer-relevancy)             |
+| `FaithfulnessMetric`         | Is the answer grounded in the retrieved context?                                                                                                                                                                                                     | [docs](https://deepeval.com/docs/metrics-faithfulness)                 |
+| `ContextualRelevancyMetric`  | How much of the retrieved context is relevant to the input?                                                                                                                                                                                          | [docs](https://deepeval.com/docs/metrics-contextual-relevancy)         |
+| `ContextualPrecisionMetric`  | Are relevant chunks ranked above irrelevant ones?                                                                                                                                                                                                    | [docs](https://deepeval.com/docs/metrics-contextual-precision)         |
+| `ContextualRecallMetric`     | Did retrieval capture everything the expected answer needs?                                                                                                                                                                                          | [docs](https://deepeval.com/docs/metrics-contextual-recall)            |
+| `RagasMetric`                | Average of the RAGAS metrics. Import from `deepeval.metrics.ragas`, which also exposes `RAGASAnswerRelevancyMetric`, `RAGASFaithfulnessMetric`, `RAGASContextualPrecisionMetric`, `RAGASContextualRecallMetric` and `RAGASContextualEntitiesRecall`. | [docs](https://deepeval.com/docs/metrics-ragas)                        |
+| `TaskCompletionMetric`       | Did the agent accomplish the task? Requires tracing.                                                                                                                                                                                                 | [docs](https://deepeval.com/docs/metrics-task-completion)              |
+| `StepEfficiencyMetric`       | Did the agent avoid unnecessary or redundant steps? Requires tracing.                                                                                                                                                                                | [docs](https://deepeval.com/docs/metrics-step-efficiency)              |
+| `PlanAdherenceMetric`        | Did the agent follow its own plan? Requires tracing.                                                                                                                                                                                                 | [docs](https://deepeval.com/docs/metrics-plan-adherence)               |
+| `PlanQualityMetric`          | Was the plan logical, complete and efficient? Requires tracing.                                                                                                                                                                                      | [docs](https://deepeval.com/docs/metrics-plan-quality)                 |
+| `ToolCorrectnessMetric`      | Did the agent choose the right tools? Needs `tools_called` / `expected_tools`.                                                                                                                                                                       | [docs](https://deepeval.com/docs/metrics-tool-correctness)             |
+| `ArgumentCorrectnessMetric`  | Did the agent pass the right arguments to its tools?                                                                                                                                                                                                 | [docs](https://deepeval.com/docs/metrics-argument-correctness)         |
+| `ToolPermissionMetric`       | Deterministic allowlist/denylist check that the agent called only authorized tools.                                                                                                                                                                  | [docs](https://deepeval.com/docs/metrics-tool-permission)              |
+| `AgentLoopDetectionMetric`   | Deterministic detection of an agent stuck in a loop, read from its trace. Requires tracing.                                                                                                                                                          | [docs](https://deepeval.com/docs/metrics-agent-loop-detection)         |
+| `MCPUseMetric`               | Did the agent use its MCP servers effectively?                                                                                                                                                                                                       | [docs](https://deepeval.com/docs/metrics-mcp-use)                      |
+| `BiasMetric`                 | Does the output contain gender, racial or political bias?                                                                                                                                                                                            | [docs](https://deepeval.com/docs/metrics-bias)                         |
+| `ToxicityMetric`             | Does the output contain toxic content?                                                                                                                                                                                                               | [docs](https://deepeval.com/docs/metrics-toxicity)                     |
+| `NonAdviceMetric`            | Does the output give inappropriate professional advice?                                                                                                                                                                                              | [docs](https://deepeval.com/docs/metrics-non-advice)                   |
+| `MisuseMetric`               | Is the specialised-domain chatbot being misused?                                                                                                                                                                                                     | [docs](https://deepeval.com/docs/metrics-misuse)                       |
+| `PIILeakageMetric`           | Does the output leak personal or privacy-sensitive data?                                                                                                                                                                                             | [docs](https://deepeval.com/docs/metrics-pii-leakage)                  |
+| `RoleViolationMetric`        | Does the output break the assigned role or character?                                                                                                                                                                                                | [docs](https://deepeval.com/docs/metrics-role-violation)               |
+| `TextToImageMetric`          | Quality of a generated image (semantic consistency and perceptual quality).                                                                                                                                                                          | [docs](https://deepeval.com/docs/multimodal-metrics-text-to-image)     |
+| `ImageEditingMetric`         | Quality of an edited image.                                                                                                                                                                                                                          | [docs](https://deepeval.com/docs/multimodal-metrics-image-editing)     |
+| `ImageCoherenceMetric`       | Do images align coherently with their accompanying text?                                                                                                                                                                                             | [docs](https://deepeval.com/docs/multimodal-metrics-image-coherence)   |
+| `ImageHelpfulnessMetric`     | Do images help the reader understand the text?                                                                                                                                                                                                       | [docs](https://deepeval.com/docs/multimodal-metrics-image-helpfulness) |
+| `ImageReferenceMetric`       | Does the text accurately refer to or explain the images?                                                                                                                                                                                             | [docs](https://deepeval.com/docs/multimodal-metrics-image-reference)   |
+| `HallucinationMetric`        | Does the output contradict the supplied ground-truth `context`?                                                                                                                                                                                      | [docs](https://deepeval.com/docs/metrics-hallucination)                |
+| `SummarizationMetric`        | Is the summary factually correct and complete?                                                                                                                                                                                                       | [docs](https://deepeval.com/docs/metrics-summarization)                |
+| `PromptAlignmentMetric`      | Does the output follow the instructions in the prompt template?                                                                                                                                                                                      | [docs](https://deepeval.com/docs/metrics-prompt-alignment)             |
+| `ExactMatchMetric`           | Does the output match the expected output exactly?                                                                                                                                                                                                   | [docs](https://deepeval.com/docs/metrics-exact-match)                  |
+| `PatternMatchMetric`         | Does the output fully match a regex (`re.fullmatch`)?                                                                                                                                                                                                | [docs](https://deepeval.com/docs/metrics-pattern-match)                |
+| `JsonCorrectnessMetric`      | Does the output load into your `pydantic` schema?                                                                                                                                                                                                    | [docs](https://deepeval.com/docs/metrics-json-correctness)             |
+| `CitationFaithfulnessMetric` | Do `[N]` citation markers point to the passage that supports the claim? Import from `deepeval.metrics.community`.                                                                                                                                    | [docs](https://deepeval.com/docs/metrics-citation-faithfulness)        |
 
-Diagnostic cheat sheet from the docs: clean context with an off-topic answer points at the generator; noisy context points at the retriever; high relevancy with low faithfulness means a confidently wrong answer that leans on the model's own knowledge rather than the retrieved text.
+### Multi-turn metrics (`BaseConversationalMetric`)
 
-### Agentic metrics
+Take a `ConversationalTestCase` and return a score between 0 and 1.
 
-| Metric                      | Scope                                                                    |
-| --------------------------- | ------------------------------------------------------------------------ |
-| `TaskCompletionMetric`      | Trajectory: did the agent accomplish the task?                           |
-| `StepEfficiencyMetric`      | Trajectory: any unnecessary or redundant steps?                          |
-| `PlanAdherenceMetric`       | Trajectory: did it follow its own plan?                                  |
-| `PlanQualityMetric`         | Trajectory: was the plan logical, complete and efficient?                |
-| `ToolCorrectnessMetric`     | Component: right tools chosen? (needs `tools_called` / `expected_tools`) |
-| `ArgumentCorrectnessMetric` | Component: right arguments passed?                                       |
+| Metric                           | What it is                                                              | Docs                                                                |
+| -------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `ConversationalGEval`            | `GEval` for multi-turn conversations.                                   | [docs](https://deepeval.com/docs/metrics-llm-evals)                 |
+| `ConversationalDAGMetric`        | `DAGMetric` for multi-turn conversations.                               | [docs](https://deepeval.com/docs/metrics-conversational-dag)        |
+| `ConversationalJevEval`          | `JevEval` for multi-turn conversations.                                 | [docs](https://deepeval.com/docs/metrics-jev-eval)                  |
+| `KnowledgeRetentionMetric`       | Does the chatbot retain facts across the conversation?                  | [docs](https://deepeval.com/docs/metrics-knowledge-retention)       |
+| `ConversationCompletenessMetric` | Did the chatbot satisfy the user's needs end to end?                    | [docs](https://deepeval.com/docs/metrics-conversation-completeness) |
+| `RoleAdherenceMetric`            | Does the chatbot stay in its assigned role?                             | [docs](https://deepeval.com/docs/metrics-role-adherence)            |
+| `TurnRelevancyMetric`            | Is each assistant turn relevant to the user?                            | [docs](https://deepeval.com/docs/metrics-turn-relevancy)            |
+| `TurnFaithfulnessMetric`         | Is each assistant turn grounded in the retrieved context?               | [docs](https://deepeval.com/docs/metrics-turn-faithfulness)         |
+| `TurnContextualPrecisionMetric`  | Are relevant retrieved nodes ranked above irrelevant ones per turn?     | [docs](https://deepeval.com/docs/metrics-turn-contextual-precision) |
+| `TurnContextualRecallMetric`     | Does retrieval contain enough to support the expected outcome per turn? | [docs](https://deepeval.com/docs/metrics-turn-contextual-recall)    |
+| `TurnContextualRelevancyMetric`  | Is the retrieved context relevant to the user input per turn?           | [docs](https://deepeval.com/docs/metrics-turn-contextual-relevancy) |
+| `GoalAccuracyMetric`             | Did the agent reach the goal across a conversation?                     | [docs](https://deepeval.com/docs/metrics-goal-accuracy)             |
+| `ToolUseMetric`                  | Tool selection and argument quality across a conversation.              | [docs](https://deepeval.com/docs/metrics-tool-use)                  |
+| `TopicAdherenceMetric`           | Did the agent stay on the defined topics?                               | [docs](https://deepeval.com/docs/metrics-topic-adherence)           |
+| `MCPTaskCompletionMetric`        | Did the MCP-based agent accomplish the task?                            | [docs](https://deepeval.com/docs/metrics-mcp-task-completion)       |
+| `MultiTurnMCPUseMetric`          | MCP server use across a conversation.                                   | [docs](https://deepeval.com/docs/metrics-multi-turn-mcp-use)        |
+| `TranscriptionAccuracyMetric`    | Did the agent's speech-to-text hear the caller correctly?               | [docs](https://deepeval.com/docs/metrics-transcription-accuracy)    |
 
-Trajectory metrics require **tracing** because they judge the complete ordered trace. (The PyPI README also lists Goal Accuracy and Tool Use; the docs introduction counts the six above.)
+### Voice metrics (`BaseVoiceMetric`)
 
-### Multi-turn (conversational) metrics
+A voice sub-base that extends `BaseConversationalMetric`, so these also take a `ConversationalTestCase`.
 
-Work on a `ConversationalTestCase` (a list of `Turn(role, content)`), not an `LLMTestCase`: Knowledge Retention, Conversation Completeness, Turn Relevancy (`TurnRelevancyMetric`), Turn Faithfulness, Role Adherence, and `ConversationalGEval`. Naming has shifted across docs versions: older pages call turn relevancy "Conversation Relevancy".
+| Metric                        | What it is                                                               | Docs                                                              |
+| ----------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `VoiceNaturalnessMetric`      | How naturally does the agent speak?                                      | [docs](https://deepeval.com/docs/metrics-voice-naturalness)       |
+| `TurnTakingNaturalnessMetric` | Are the gaps and overlaps between speakers natural?                      | [docs](https://deepeval.com/docs/metrics-turn-taking-naturalness) |
+| `SpeechIntelligibilityMetric` | How easy is the agent to hear and understand?                            | [docs](https://deepeval.com/docs/metrics-speech-intelligibility)  |
+| `VoiceConsistencyMetric`      | Does the agent sound like the same speaker throughout the call?          | [docs](https://deepeval.com/docs/metrics-voice-consistency)       |
+| `AgentResponsivenessMetric`   | Did the voice agent answer when spoken to?                               | [docs](https://deepeval.com/docs/metrics-agent-responsiveness)    |
+| `AudioIntegrityMetric`        | Did the call audio arrive intact (no dropped, clipped or looping audio)? | [docs](https://deepeval.com/docs/metrics-audio-integrity)         |
+| `VoiceReliabilityMetric`      | Operational summary combining agent responsiveness and audio integrity.  | [docs](https://deepeval.com/docs/metrics-voice-reliability)       |
 
-### Safety metrics
+### Arena metrics (`BaseArenaMetric`)
 
-Bias, Toxicity, Non-Advice, Misuse, PII Leakage, Role Violation. (Deep-dives on Bias and Toxicity below. I did not verify the other four in detail.)
+Take an `ArenaTestCase` and return the winning contestant's label instead of a 0-1 score.
 
-### MCP, multimodal, voice
+| Metric       | What it is                                                                                  | Docs                                                   |
+| ------------ | ------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `ArenaGEval` | G-Eval variant that picks the better of two contestants using blinded randomized positions. | [docs](https://deepeval.com/docs/metrics-arena-g-eval) |
 
-- **MCP:** MCP Task Completion, MCP Use, Multi-Turn MCP Use.
-- **Multimodal:** Text to Image, Image Editing, Image Coherence, Image Helpfulness, Image Reference. These expect `MLLMImage` content.
-- **Voice** metrics exist (the docs mark voice evaluation as beta).
+### Catalogue notes
 
-### Other, and non-LLM
-
-- **Others:** `HallucinationMetric`, `SummarizationMetric`, `PromptAlignmentMetric`, `RagasMetric`.
-- **Non-LLM:** `ExactMatchMetric`, `PatternMatchMetric`, `JsonCorrectnessMetric`.
+- **Custom metrics:** subclass `BaseMetric` (or `BaseConversationalMetric`) to write a fully self-coded metric such as BLEU or ROUGE. See the [custom metrics page](https://deepeval.com/docs/metrics-custom).
+- **Trace metrics** (`TaskCompletionMetric`, `StepEfficiencyMetric`, `PlanAdherenceMetric`, `PlanQualityMetric`, `AgentLoopDetectionMetric`) require **LLM tracing**, because they judge the complete ordered trace rather than a single test case.
+- **RAGAS metrics** are not re-exported from `deepeval.metrics`; import `RagasMetric` (and the five `RAGAS*` classes) from `deepeval.metrics.ragas`.
+- **Community metrics** live under `deepeval.metrics.community`. In the released v4.2.8 package that module exports only `CitationFaithfulnessMetric`; `ToolPermissionMetric` and `AgentLoopDetectionMetric` are still exported from top-level `deepeval.metrics`. The documentation already shows the future `deepeval.metrics.community` import path for all three.
 
 ### How the scores are computed
 

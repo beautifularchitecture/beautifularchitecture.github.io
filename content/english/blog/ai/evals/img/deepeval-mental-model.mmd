@@ -1,15 +1,100 @@
 flowchart LR
-    A["Golden<br>(input + expected)"] --> B["App executes"]
-    B --> C["LLMTestCase<br>(input + actual_output + ...)"]
-    C --> D["Metric(s)<br>with thresholds"]
-    D --> E["Score 0–1<br>+ reason"]
-    E --> F["Pass / Fail"]
-    F --> G["CI"]
+    %% DeepEval v4.2.8 mental model.
+    %% Class names verified against the released deepeval 4.2.8 wheel and deepeval.com/docs.
+    %% Rendered with @mermaid-js/mermaid-cli.
+
+    subgraph GEN["Data generation (optional)"]
+        direction TB
+        SYN["Synthesizer"]
+        SIM["ConversationSimulator"]
+    end
+
+    subgraph DATA["Goldens (inputs)"]
+        direction TB
+        A["Golden<br>input + expected_output"]
+        CG["ConversationalGolden<br>scenario + persona"]
+        ED["EvaluationDataset<br>holds many goldens"]
+    end
+
+    B["App executes<br>LLM / agent / RAG"]
+    OBS["@observe<br>Trace + BaseSpan"]
+
+    subgraph TC["Test cases"]
+        direction TB
+        C["LLMTestCase<br>input + actual_output + ..."]
+        CTC["ConversationalTestCase<br>turns: list[Turn]"]
+        ATC["ArenaTestCase<br>contestants: list[Contestant]"]
+    end
+
+    subgraph MET["Metrics (each carries a threshold)"]
+        direction TB
+        BM["BaseMetric<br>single-turn"]
+        BCM["BaseConversationalMetric<br>multi-turn"]
+        BVM["BaseVoiceMetric<br>voice"]
+        BAM["BaseArenaMetric<br>arena"]
+        CLS["Classifier<br>categorical"]
+    end
+
+    JUDGE["LLM judge<br>DeepEvalBaseLLM"]
+    E["Score 0–1 + reason<br>is_successful()"]
+    F["Pass / Fail"]
+    WIN["Winner label"]
+
+    subgraph RUN["Runners"]
+        direction TB
+        EV["evaluate() / assert_test()"]
+        CLI["deepeval test run"]
+        IT["evals_iterator()"]
+        CMP["compare()"]
+    end
+
+    G["CI"]
+    REP["TestRun JSON<br>+ Confident AI report"]
+
+    SYN --> A
+    SIM --> CG
+    ED -.-> A
+    ED -.-> CG
+    A --> B
+    CG --> B
+    B --> C
+    B --> CTC
+    B -.-> OBS
+    C --> BM
+    CTC --> BCM
+    CTC --> BVM
+    ATC --> BAM
+    C --> CLS
+    OBS -.-> BM
+    BM --> E
+    BCM --> E
+    BVM --> E
+    BAM --> WIN
+    CLS --> LBL["Label from a closed set"]
+    JUDGE -.-> E
+    E --> F
+    F --> G
+    F --> REP
+    EV -.-> BM
+    EV -.-> BCM
+    IT -.-> BM
+    CLI -.-> EV
+    CMP -.-> BAM
 
     style A fill:#2563eb,stroke:#1e40af,color:#ffffff
+    style CG fill:#2563eb,stroke:#1e40af,color:#ffffff
+    style ED fill:#1d4ed8,stroke:#1e40af,color:#ffffff
     style B fill:#16a34a,stroke:#166534,color:#ffffff
     style C fill:#8b5cf6,stroke:#6b21a8,color:#ffffff
-    style D fill:#f59e0b,stroke:#92400e,color:#ffffff
+    style CTC fill:#8b5cf6,stroke:#6b21a8,color:#ffffff
+    style ATC fill:#8b5cf6,stroke:#6b21a8,color:#ffffff
+    style BM fill:#f59e0b,stroke:#92400e,color:#ffffff
+    style BCM fill:#f59e0b,stroke:#92400e,color:#ffffff
+    style BVM fill:#f59e0b,stroke:#92400e,color:#ffffff
+    style BAM fill:#f59e0b,stroke:#92400e,color:#ffffff
+    style CLS fill:#f59e0b,stroke:#92400e,color:#ffffff
     style E fill:#06b6d4,stroke:#155e75,color:#ffffff
+    style WIN fill:#06b6d4,stroke:#155e75,color:#ffffff
     style F fill:#ec4899,stroke:#9d174d,color:#ffffff
     style G fill:#64748b,stroke:#334155,color:#ffffff
+    style REP fill:#64748b,stroke:#334155,color:#ffffff
