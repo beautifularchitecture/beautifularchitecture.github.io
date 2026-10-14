@@ -156,13 +156,24 @@ A single-turn test case represents one atomic interaction. You scope "interactio
 
 Images are supported through `MLLMImage` embedded in `input` / `actual_output` (f-string embedding), and multimodal test cases are detected automatically for metrics that support them.
 
-Metrics select the fields a judge sees through an enum of evaluation parameters. 
-    - `SingleTurnParams` is the single-turn set: `INPUT`, `ACTUAL_OUTPUT`, `EXPECTED_OUTPUT`, `CONTEXT`, `RETRIEVAL_CONTEXT`, `METADATA`, `TAGS`, `TOOLS_CALLED`, `EXPECTED_TOOLS`, and the MCP fields `MCP_SERVERS`, `MCP_TOOLS_CALLED`, `MCP_RESOURCES_CALLED`, `MCP_PROMPTS_CALLED`.
-    - `MultiTurnParams` is the conversational set: `ROLE`, `CONTENT`, `METADATA`, `TAGS`, `SCENARIO`, `EXPECTED_OUTCOME`, `CONTEXT`, `USER_DESCRIPTION`, `RETRIEVAL_CONTEXT`, `CHATBOT_ROLE`, `TOOLS_CALLED`, `MCP_TOOLS`, `MCP_RESOURCES`, `MCP_PROMPTS`. The older names `LLMTestCaseParams` and `TurnParams` still resolve to `SingleTurnParams` and `MultiTurnParams`, but emit a `DeprecationWarning`.
+Metrics select the fields a judge sees through an enum of evaluation parameters. - `SingleTurnParams` is the single-turn set: `INPUT`, `ACTUAL_OUTPUT`, `EXPECTED_OUTPUT`, `CONTEXT`, `RETRIEVAL_CONTEXT`, `METADATA`, `TAGS`, `TOOLS_CALLED`, `EXPECTED_TOOLS`, and the MCP fields `MCP_SERVERS`, `MCP_TOOLS_CALLED`, `MCP_RESOURCES_CALLED`, `MCP_PROMPTS_CALLED`. - `MultiTurnParams` is the conversational set: `ROLE`, `CONTENT`, `METADATA`, `TAGS`, `SCENARIO`, `EXPECTED_OUTCOME`, `CONTEXT`, `USER_DESCRIPTION`, `RETRIEVAL_CONTEXT`, `CHATBOT_ROLE`, `TOOLS_CALLED`, `MCP_TOOLS`, `MCP_RESOURCES`, `MCP_PROMPTS`. The older names `LLMTestCaseParams` and `TurnParams` still resolve to `SingleTurnParams` and `MultiTurnParams`, but emit a `DeprecationWarning`.
 
 ## Datasets and Goldens
 
-A **Golden** is a "pending test case": it needs only an `input` plus expected results, and becomes a full `LLMTestCase` once your app fills in the dynamic fields (`actual_output`, `retrieval_context`, `tools_called`). Goldens are the documented preferred way to build a dataset because you can re-run the same set across prompts, models and releases.
+A **Golden** is DeepEval's name for a _pending test case_ ([datasets docs](https://deepeval.com/docs/evaluation-datasets#what-are-goldens)). Goldens represent a more flexible alternative to test cases in the deepeval, and is the preferred way to initialize a dataset. Unlike test cases, goldens:
+- Only require input/scenario to initialize
+- Store expected results like expected_output/expected_outcome
+- Serve as templates before becoming fully-formed test cases
+  
+Goldens excel in development workflows where you need to:
+- Evaluate changes across different iterations of your LLM application
+- Compare performance between model versions
+- Test with inputs that haven't yet been processed by your LLM
+
+Think of goldens as "pending test cases" - they contain all the input data and expected results, but are missing the dynamic elements (actual_output, retrieval_context, tools_called) that will be generated when your LLM processes them.
+
+
+"Pending" means the test case is not complete yet: a golden holds only the parts you know before your app runs — the `input` and the expected results — and omits the dynamic fields (`actual_output`, `retrieval_context`, `tools_called`) that your app produces at run time. Building an `LLMTestCase` from the golden fills those in and turns it into a complete test case. Goldens are the documented preferred way to build a dataset because you can re-run the same set across prompts, models and releases.
 
 ```python
 from deepeval.dataset import EvaluationDataset, Golden
@@ -172,6 +183,23 @@ dataset = EvaluationDataset(goldens=[
     Golden(input="Do you ship internationally?"),
 ])
 ```
+
+Converting a golden into a test case is a two-part split: the static fields copy straight across, and the dynamic fields come from your app.
+
+```python
+from deepeval.test_case import LLMTestCase
+
+golden = Golden(input="What if these shoes don't fit?", expected_output="30-day full refund.")
+
+test_case = LLMTestCase(
+    input=golden.input,                                 # static: from the golden
+    expected_output=golden.expected_output,             # static: from the golden
+    actual_output=chatbot.run(golden.input),            # dynamic: from your app
+    retrieval_context=retriever.search(golden.input),   # dynamic: from your app
+)
+```
+
+`test_case` now has all five fields, so metrics that need the dynamic ones can run. The golden still has only `input` and `expected_output`, so you can reuse it for the next prompt or model.
 
 Facts worth knowing:
 
@@ -184,7 +212,7 @@ Facts worth knowing:
 
 ## The Metric Catalogue
 
-The docs advertise "50+" metrics. The categories below are what the v4.2.8 documentation lists. Only metrics whose pages I read in full have their required arguments listed; check the individual page before relying on anything else.
+The docs advertise "50+" metrics. The categories below are what the v4.2.8 documentation lists.
 
 ### Custom metrics
 
