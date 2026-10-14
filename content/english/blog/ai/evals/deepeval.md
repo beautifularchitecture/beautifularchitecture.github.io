@@ -132,7 +132,6 @@ deepeval test run test_chatbot.py
 
 Housekeeping you will want to know about on day one:
 
-- **`.env` loading.** DeepEval auto-loads `.env.local`, then `.env`, from the current working directory _at import time_ (precedence: process env → `.env.local` → `.env`). Disable with `DEEPEVAL_DISABLE_DOTENV=1`, which is useful in CI. Point it elsewhere with `ENV_DIR_PATH`.
 - **`deepeval login`** is optional. It connects you to Confident AI (DeepEval's hosted platform). Once logged in, test results sync to it automatically. See "Confident AI and Privacy".
 
 ## Test Cases: `LLMTestCase`
@@ -156,6 +155,10 @@ A single-turn test case represents one atomic interaction. You scope "interactio
 `context` versus `retrieval_context` is the one people mix up: `context` is the _ideal_ knowledge you supply, `retrieval_context` is what the retriever _actually fetched_. Comparing the two is how you assess retrieval.
 
 Images are supported through `MLLMImage` embedded in `input` / `actual_output` (f-string embedding), and multimodal test cases are detected automatically for metrics that support them.
+
+Metrics select the fields a judge sees through an enum of evaluation parameters. 
+    - `SingleTurnParams` is the single-turn set: `INPUT`, `ACTUAL_OUTPUT`, `EXPECTED_OUTPUT`, `CONTEXT`, `RETRIEVAL_CONTEXT`, `METADATA`, `TAGS`, `TOOLS_CALLED`, `EXPECTED_TOOLS`, and the MCP fields `MCP_SERVERS`, `MCP_TOOLS_CALLED`, `MCP_RESOURCES_CALLED`, `MCP_PROMPTS_CALLED`.
+    - `MultiTurnParams` is the conversational set: `ROLE`, `CONTENT`, `METADATA`, `TAGS`, `SCENARIO`, `EXPECTED_OUTCOME`, `CONTEXT`, `USER_DESCRIPTION`, `RETRIEVAL_CONTEXT`, `CHATBOT_ROLE`, `TOOLS_CALLED`, `MCP_TOOLS`, `MCP_RESOURCES`, `MCP_PROMPTS`. The older names `LLMTestCaseParams` and `TurnParams` still resolve to `SingleTurnParams` and `MultiTurnParams`, but emit a `DeprecationWarning`.
 
 ## Datasets and Goldens
 
@@ -305,7 +308,7 @@ For hallucination, **higher is better**: the score is the fraction of context do
 
 ## G-Eval: Your Own Rubric
 
-G-Eval (from the paper "NLG Evaluation using GPT-4 with Better Human Alignment") lets you write criteria in everyday language. The algorithm first turns your criteria into chain-of-thought evaluation steps, then scores the output; DeepEval normalises the score using the judge's output-token probabilities when the model supports it (OpenAI models do; custom models need `a_generate_raw_response` implemented to get the same effect).
+G-Eval (from the paper "NLG Evaluation using GPT-4 with Better Human Alignment", where the `G` stands for GPT, so it is not an initialism) lets you write criteria in everyday language. The algorithm first turns your criteria into chain-of-thought evaluation steps, then scores the output; DeepEval normalises the score using the judge's output-token probabilities when the model supports it (OpenAI models do; custom models need `a_generate_raw_response` implemented to get the same effect).
 
 ```python
 from deepeval.metrics import GEval
@@ -344,6 +347,8 @@ Rules and options:
 - **Trajectory mode:** omit `evaluation_params` and pass the metric to `evals_iterator()` to judge the whole trace (tool choice, arguments, use of retrieved results). On a plain `LLMTestCase` this raises `MissingTestCaseParamsError`.
 
 A tip from writing this post: don't ask an LLM judge to count things. "The answer must be under three sentences" is a deterministic check. Write it as code, and save G-Eval for genuinely subjective criteria (tone, clarity, helpfulness).
+
+A working example of G-Eval keeping two artifacts aligned lives in the [evaligator repo](https://github.com/welldesignedsystem/evaligator/blob/main/zmot/deepeval/test_algorithm.py): the markdown algorithm spec becomes the test case's `expected_output`, the Python implementation becomes its `actual_output`, and the judge scores whether the code implements the documented behaviour.
 
 ## Deterministic, Non-LLM Metrics
 
