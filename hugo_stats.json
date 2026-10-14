@@ -1189,6 +1189,7 @@
       "comparison",
       "comparison-deep-agents-vs-langchain-create_agent-vs-langgraph",
       "comparison-table",
+      "comparison-wrapper-over-deepeval-vs-building-from-scratch",
       "competing-consumers",
       "competitor-references",
       "compiledsubagent-custom-langgraph-graphs",
