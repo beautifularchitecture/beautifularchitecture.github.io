@@ -415,9 +415,241 @@ The audit trail records the active intent's decisions and events for later stage
 
 The audit trail logs every stage start and completion, every approval-gate decision, every question answer, every subagent completion and every error and recovery.
 
+## The Workspace: Spaces and Intents
+
+AI-DLC organises many pieces of work in one place. When you run `aidlc config`, the engine is projected into your harness's own directory and everything AI-DLC produces lives under one neutral `aidlc/` directory at the project root, organised by what you are working on rather than by which harness you run.
+
+- **A workspace** is the folder `aidlc config` installs into. It holds the harness directory, `aidlc/` and your code repos. AI-DLC does not search upward for a Git root.
+- **An intent** is one piece of work, one run of the lifecycle. The engine auto-creates the first intent on your first `/aidlc`.
+- **A space** is one team's world of intents, knowledge and practices, at `aidlc/spaces/<space>/`. Most people work in the single space called `default` and never think about spaces.
+
+The workspace layout:
+
+```text
+my-project/
+├── .claude/                       the engine: tools, hooks, skills, agents
+│                                  (.kiro/ or .codex/ on those harnesses)
+└── aidlc/                         everything AI-DLC, neutral and committed
+    ├── active-space               cursor: which space you are in
+    └── spaces/
+        └── default/
+            ├── memory/            the method: org.md, team.md, project.md, phases/
+            ├── knowledge/         domain knowledge: documents/ and documentkb/
+            ├── codekb/<repo>/     what each repo is
+            └── intents/           the record, one subdir per piece of work
+                ├── intents.json     the registry: every intent with its scope and status
+                ├── 260624-export-bug/
+                │   ├── aidlc-state.md
+                │   ├── audit/
+                │   └── inception/requirements-analysis/requirements.md
+                └── ...
+```
+
+Manage them from the chat surface:
+
+- `/aidlc intent [name]` lists intents in the active space or switches to one. `--all` includes archived intents.
+- `/aidlc intent archive <name>` retires an intent without deleting its record, and `unarchive <name>` brings it back.
+- `/aidlc space [name]` lists spaces or switches to one, and `/aidlc space-create <name>` creates a space from the default space's org rules.
+- `/aidlc knowledge <verb>` indexes and reads your own documents, where the verbs are `onboard`, `sync`, `list`, `show`, `associate`, `dissociate`, `rebind` and `summarize`.
+
+## State and Audit
+
+Each intent keeps two committed records that give full traceability from intent to production.
+
+- **The state file** at `<record>/aidlc-state.md` is the single source of truth for that intent's progress. The engine reads it on every session start to decide what is complete, what is in progress and what is next.
+- **The audit trail** at `<record>/audit/` is the append-only event log, written as per-clone shards that readers merge by timestamp. It records all 118 event types.
+
+The state file carries these sections: Project Information, Scope Configuration, Workspace State, Execution Plan Summary, Runtime State, Phase Progress, Stage Progress, Unit Progress, Current Status and Session Resume Point. Stage Progress tracks each stage with a completion checkbox; Phase Progress marks each phase `Pending`, `Active`, `Verified` or `Skipped`.
+
+The initial project description is stored beside the state file in `project-description.json` as one JSON string, and the state file keeps only a safe single-line preview, so multiline input cannot introduce extra state fields.
+
+Query progress without running a stage:
+
+```text
+/aidlc --status
+```
+
+## Rules and Knowledge
+
+**Rules** are persistent prose instructions that shape how agents work on your project. They live in the active space memory layer at `aidlc/spaces/<active-space>/memory/`, one file per scope:
+
+- `org.md` — framework and organization-wide defaults.
+- `team.md` — your team's affirmed practices.
+- `project.md` — this project's specialization.
+- `phases/<phase>.md` — rules that apply to every stage in a phase.
+
+There is no `scope:` field inside a rule file; the scope comes from the filename. Rules resolve through a five-layer chain: org, then team, then project, then phase, then stage. The model is strict-additive, so every applicable rule appears in the agent's context and nothing is silently dropped.
+
+**The learning loop** turns a one-time correction into a durable rule. When the learnings ritual is on, the framework keeps an observation diary at `<record>/<phase>/<stage>/memory.md` under four headings: Interpretations, Deviations, Tradeoffs and Open questions. Before each approval gate the framework surfaces diary candidates and you confirm which to keep, and the framework writes the kept items into the rule layer for next time.
+
+**Knowledge** is a two-tier system:
+
+- **Tier 1, methodology knowledge** ships with the framework and lives in the harness directory's `knowledge/`, holding shared principles and per-agent methodology.
+- **Tier 2, team knowledge** is yours and lives at `aidlc/knowledge/` in the space, holding `documents/` (your originals) and `documentkb/` (the catalog derived from them).
+
+Agents load the resolved rule chain first, then Tier 1 shared and agent-specific knowledge, then Tier 2 shared and agent-specific knowledge.
+
+## Session Management
+
+A workflow may span multiple harness sessions, because all progress is persisted to disk.
+
+- Run bare `/aidlc` in a new session to resume where the work stopped. `/aidlc --resume` does the same and `/aidlc --resume --stage <name>` jumps to a named stage.
+- Run `/aidlc park` to park the active workflow at the current stage boundary for a later session or another person, and `/aidlc --resume` to bring it back.
+- Ask to redo the current stage, jump to a stage or start fresh in your own words at any time.
+
+When the context window fills, the harness compacts earlier conversation. AI-DLC preserves state across compaction through `aidlc-state.md` and the recovery breadcrumb at `.aidlc-engine/recovery.md`, which the PreCompact hook writes with the last validated stage and timestamp.
+
+## CLI Commands
+
+AI-DLC has two command planes. Chat commands drive a workflow through `/aidlc` (`$aidlc` on Codex CLI); the installed native `aidlc` command initialises projects and provides machine-lifecycle, diagnostic and lifecycle routes. The flags and behaviour are identical across harnesses and only the invocation prefix changes.
+
+Common chat commands:
+
+| Command                                    | Description                                                                               |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `/aidlc [scope]` or `/aidlc [description]` | Start a new workflow, with an explicit scope or a description the agent turns into a plan |
+| `/aidlc compose "<task>"`                  | Force the composer to propose a tailored EXECUTE/SKIP plan                                |
+| `/aidlc`                                   | Resume the open workflow; with no work it asks what you want to build                     |
+| `/aidlc --status`                          | Display a read-only status summary                                                        |
+| `/aidlc --stage <slug>`                    | Jump to a specific stage                                                                  |
+| `/aidlc --stage <slug> --single`           | Run one stage in isolation, without advancing your workflow                               |
+| `/aidlc --phase <name>`                    | Jump to the start of a phase                                                              |
+| `/aidlc --scope <name>`                    | Change the active scope                                                                   |
+| `/aidlc --depth <level>`                   | Override depth (minimal, standard, comprehensive)                                         |
+| `/aidlc --test-strategy <level>`           | Override test strategy (minimal, standard, comprehensive)                                 |
+| `/aidlc --guard-policy <value>`            | Set how far the guards stand aside (strict, relaxed, off)                                 |
+| `/aidlc --sensors <on\|off>`               | Set automatic sensor execution for this intent                                            |
+| `/aidlc --learnings <on\|off>`             | Set the learning diary and gate ceremony for this intent                                  |
+| `/aidlc --plan-approval <on\|off>`         | Set whether each code plan is shown for approval before it is built                       |
+| `/aidlc --collaborators <on\|off>`         | Set whether stages bring in their support agents or run with the lead agent only          |
+| `/aidlc --doctor`                          | Run a health check                                                                        |
+| `/aidlc --doctor --export`                 | Write a small, redacted diagnostic report for sharing                                     |
+| `/aidlc --version` / `/aidlc --help`       | Print the framework version or usage information                                          |
+
+Native commands manage the machine, not an intent: `aidlc config` initialises or refreshes a project, and `aidlc doctor`, `aidlc version`, `aidlc update`, `aidlc use` and `aidlc uninstall` handle diagnostics and the release lifecycle.
+
+## Customization
+
+AI-DLC adapts to a team through per-intent settings and per-project defaults.
+
+- **Scope, depth and test strategy** control which stages run and how much they produce. The scope sets defaults and you override any of them per work.
+- **Guard Policy** (`strict`, `relaxed` or `off`) decides how far the guards stand aside for one piece of work. It was formerly called Change Control.
+- **Five fences** are the guards a Guard Policy lowers: plan approval, review freeze, state transition, reviewer read scope and human presence. Human presence has no per-work switch.
+- **Ceremony toggles** turn individual ceremonies on or off for this intent: `sensors`, `learnings`, `summary-confirmation`, `plan-approval` and `collaborators`.
+- **A per-project default scope** is set with `AWS_AIDLC_DEFAULT_SCOPE` in the `env` block of the harness settings, or recorded with `aidlc config flags --default-scope <scope>`.
+- **Agent models and effort** are set with presets. `aidlc config models --preset balanced --project --yes` records medium effort for the deciding, reviewing and writing-up groups; the other presets are `thorough` and `minimal`, and presets set effort only, never model IDs.
+
+Read or change the active workflow settings in the chat:
+
+```text
+/aidlc config list
+/aidlc config get guard-policy
+/aidlc config set guard-policy relaxed
+```
+
+## Install and Lifecycle
+
+The native release channel installs an `aidlc` command and every harness runtime together. Native installs are per-user: the Unix installer refuses root, does not need `sudo` and writes `$HOME/.local/bin/aidlc`. Windows uses a PowerShell installer that targets the account running it.
+
+- `aidlc config` creates or refreshes a project from the local runtime.
+- `aidlc update` moves the machine to a newer release, and `aidlc use <version>` selects a specific installed version.
+- `aidlc uninstall` removes an install, deleting only verified files and reporting anything it preserves.
+- The copy channel is an alternative manual install from a versioned release that requires Bun but not the native `aidlc` executable.
+
 ## References
 
 - [AI-DLC Workflows repository](https://github.com/awslabs/aidlc-workflows)
 - [AI-DLC Workflows documentation](https://awslabs.github.io/aidlc-workflows/)
 - [AWS AI-DLC blog post](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/)
 - [AI-DLC Method Definition Paper](https://prod.d13rzhkk8cj2z0.amplifyapp.com/)
+
+## Glossary
+
+Canonical definitions for AI-DLC terminology, condensed from the [AI-DLC user guide glossary](https://github.com/awslabs/aidlc-workflows/blob/main/docs/guide/glossary.md).
+
+| Term                                  | Definition                                                                                                                                                                                                                                      |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Agent**                             | One of the 14 shipped personas: 11 domain experts, 2 review-only agents and the composer. The conductor activates each for its stage, review or composition role.                                                                               |
+| **Answer mode**                       | The way you answer a stage's questions: Guide me (interactive), I'll edit the file or Chat. Chosen once and reused by later stages.                                                                                                             |
+| **Approval gate**                     | A decision over completed work (a stage, verified Unit or completed swarm batch). Human-required gates wait for your actual answer; checkpoint-enabled workflows may auto-approve ordinary completion under a recorded grant.                   |
+| **Artifact**                          | A file a stage produces and stores in the intent's record dir. Most are Markdown (for example `requirements.md`), a few are JSON (for example `traceability.json`).                                                                             |
+| **Audit trail**                       | The append-only event log in the intent's record dir at `audit/`, written as per-clone shards that readers merge by timestamp. Records 118 event types for full traceability.                                                                   |
+| **Autonomy mode**                     | The explicit approval preference stored as `Construction Autonomy Mode`: `unset`, `gated` or `autonomous`. It controls ordinary completion questions; Plan Approval, summary confirmation, skeleton approval and failures still need the human. |
+| **Bolt**                              | A planned Construction delivery slice over one or more dependency-linked Units. Distinct from a Unit, its worktree or a swarm batch.                                                                                                            |
+| **Claude Code tool**                  | A built-in Claude Code capability such as Read, Write, Edit, Bash, Glob, Grep, Task or AskUserQuestion.                                                                                                                                         |
+| **CLI tool**                          | An external command-line utility the implementation runs. The native install needs none; the copy channel needs `bun`.                                                                                                                          |
+| **Codex**                             | The OpenAI Codex CLI harness. Invoked with `$aidlc`.                                                                                                                                                                                            |
+| **Command**                           | A user-facing invocation of AI-DLC: `/aidlc` (`$aidlc` on Codex) for workflows, or the native `aidlc` command for project, diagnostic, plugin and machine-lifecycle routes.                                                                     |
+| **Compaction**                        | The harness's automatic summarising of earlier conversation context when the context window fills. AI-DLC preserves state across compaction via `aidlc-state.md` and `.aidlc-engine/recovery.md`.                                               |
+| **Composer**                          | The adaptive agent that proposes tailored stage plans and reshapes pending stages when no stock scope fits.                                                                                                                                     |
+| **Conductor**                         | The `/aidlc` session itself (`SKILL.md`): it calls the Engine for the next move, carries it out, reports the outcome and repeats. It owns execution quality, not routing.                                                                       |
+| **Construction Verification Command** | The intent-level project check reused at every Unit/batch checkpoint. A recorded human receipt binds your Approve to the command before the state setter stores it.                                                                             |
+| **Control loop**                      | The feedforward/feedback pairing of Rules (standing decisions applied before work) and Sensors (deterministic checks fired on outputs) that steers and verifies a stage.                                                                        |
+| **Copy channel**                      | A manual project installation from a versioned release's `aidlc-copy-runtime-X.Y.Z.tar.gz`, copying a complete `runtime/<harness>/` root. Requires Bun but not the native `aidlc` executable.                                                   |
+| **Core**                              | The hand-authored, harness-neutral source of truth at `core/` (engine, stages, agents, rules, scopes, sensors, knowledge, hooks and skills). Every harness distribution is generated from it.                                                   |
+| **Cursor**                            | The Cursor harness. Invoked with `/aidlc`.                                                                                                                                                                                                      |
+| **Depth**                             | One of three detail levels (Minimal, Standard, Comprehensive) controlling how much detail each stage produces. Scopes have default depths; override at any approval gate.                                                                       |
+| **Directive**                         | The typed instruction the Engine emits on each `next` (for example `run-stage`, `ask`, `print`, `done`, `invoke-swarm`) telling the Conductor what to do next.                                                                                  |
+| **Distribution**                      | A generated projection for one harness, produced from the Core by the Packager. Maintainers never hand-edit generated outputs.                                                                                                                  |
+| **Engine**                            | The deterministic orchestration tool that owns all between-stage routing (scope resolution, stage sequencing, jumps, resume, gate status) and emits a typed Directive the Conductor acts on.                                                    |
+| **External tool**                     | A third-party tool or service used by a stage (for example AWS CLI, Maven, npm).                                                                                                                                                                |
+| **Fence**                             | A guard that refuses an action no step of the running workflow calls for. Five exist: plan approval, review freeze, state transition, reviewer read scope and human presence.                                                                   |
+| **Guard Policy**                      | The per-intent setting (`strict`, `relaxed`, `off`) deciding how far the guards stand aside for one piece of work. Formerly called Change Control.                                                                                              |
+| **Guardrail**                         | The prescriptive body sections inside a Rule file (`## Forbidden`, `## Mandated`). The container is a Rule; the guardrail is the prescriptive content within it.                                                                                |
+| **Harness**                           | A CLI distribution of the AI-DLC core (today Claude Code, Kiro CLI, Kiro IDE, Codex CLI, Cursor, opencode and GitHub Copilot).                                                                                                                  |
+| **Hook**                              | A script the harness runs automatically on an event. AI-DLC uses 17 hooks for audit logging, sensor dispatch, runtime-graph compile, statusline sync, state validation, subagent tracking and the guard fences.                                 |
+| **Inline execution**                  | The default execution mode where the orchestrator loads an agent persona and runs the stage directly in conversation.                                                                                                                           |
+| **Intent**                            | A unit of work with its own record dir at `aidlc/spaces/<space>/intents/<YYMMDD>-<label>/`. The engine auto-creates the first intent on your first `/aidlc`.                                                                                    |
+| **Kiro**                              | The Kiro harness (CLI and IDE). Invoked with `/aidlc`.                                                                                                                                                                                          |
+| **Knowledge**                         | Reference material loaded by agents at stage start: methodology knowledge (ships with the framework) and team knowledge (space-level, user-managed).                                                                                            |
+| **Ladder prompt**                     | The explicit "Continue automatically" / "Review each checkpoint" choice offered at Construction entry in eligible checkpoint workflows.                                                                                                         |
+| **Learning loop**                     | The mechanism that turns in-stage corrections into durable practices and Sensors. The orchestrator records observations in `memory.md`; at the approval gate you confirm which to keep.                                                         |
+| **Lifecycle**                         | The AI-DLC methodology as a whole. A single execution of it is a workflow.                                                                                                                                                                      |
+| **Machine lifecycle command**         | A native `aidlc` route that manages per-user releases or configuration without mutating project workflow data.                                                                                                                                  |
+| **Manifest**                          | A harness's `harness/<name>/manifest.ts`, the declarative contract telling the Packager how to project the Core into that harness's Distribution.                                                                                               |
+| **MCP server**                        | An external tool server declared in `.mcp.json` at the project root. AI-DLC ships five: `context7` plus the four AWS servers (`aws-mcp`, `aws-pricing`, `aws-iac`, `aws-serverless`).                                                           |
+| **memory.md**                         | The per-stage observation diary at `<record>/<phase>/<stage>/memory.md`, maintained by the orchestrator. Records interpretations, deviations, tradeoffs and open questions for the learning loop.                                               |
+| **Mob execution**                     | A dispatched mesh (`mode: mob`) in bounded rounds. The lead drafts, mutually blind collaborators write in parallel, then the lead integrates. User Stories (2.4) is the shipped mob.                                                            |
+| **Multi-repo intent**                 | An intent whose work spans more than one sibling code repo, captured at creation via `--repos` or sibling auto-discovery.                                                                                                                       |
+| **Native channel**                    | The recommended per-user install path: a native `aidlc` binary plus version-matched harness runtimes. Its installer and project bootstrap do not require Bun, Node.js or Git.                                                                   |
+| **Offline package**                   | The release asset set transferred intact for installation without network access.                                                                                                                                                               |
+| **opencode**                          | The opencode harness. The engine tree ships at `.aidlc/` and `.opencode/` carries the native shell. Invoked with `/aidlc`.                                                                                                                      |
+| **GitHub Copilot**                    | The GitHub Copilot harness; one install serves both Copilot CLI and VS Code agent mode. Invoked with `/aidlc`.                                                                                                                                  |
+| **Orchestrator**                      | Umbrella term for how a workflow is driven: the deterministic Engine (routing) and the Conductor (`SKILL.md`, execution). Two halves of one orchestration.                                                                                      |
+| **Packager**                          | `scripts/package.ts`, the build that materialises every distribution from the Core plus each Manifest.                                                                                                                                          |
+| **Parallel batch**                    | A runtime group of dependency-ready Units that do not depend on each other and can run concurrently. Not a Bolt-plan grouping.                                                                                                                  |
+| **Phase**                             | One of the 5 major divisions of the lifecycle: Initialization (0), Ideation (1), Inception (2), Construction (3), Operation (4).                                                                                                                |
+| **Phase boundary verification**       | Traceability checks run by the last stage of Ideation, Inception and Construction to catch missing links, orphaned artifacts or inconsistencies before downstream stages build on them. Also called a verification gate.                        |
+| **Pipeline execution**                | A dispatched chain (`mode: pipeline`) whose links run in declared order, each seeing all upstream work. Reverse Engineering (2.1) is the shipped pipeline.                                                                                      |
+| **Plane**                             | One of the three concerns the framework separates: the control plane (stage definitions, Rules, Sensors), the data plane (stage runs, Bolts, audit telemetry) and the management plane (`/aidlc --doctor`, audit queries).                      |
+| **Project pin**                       | The committed `.aidlc-version` file selecting a retained native engine for engine commands.                                                                                                                                                     |
+| **Projection stamp**                  | Generated `tools/data/aidlc-stamp.json` recording a projected tree's framework version, distribution and harness directory, used to detect version skew.                                                                                        |
+| **Record dir**                        | The per-intent directory holding one intent's artifacts, `memory.md` diaries, `aidlc-state.md` and `audit/` shards.                                                                                                                             |
+| **Recovery breadcrumb**               | The hidden file `.aidlc-engine/recovery.md` written by the PreCompact hook, holding the last validated stage and timestamp.                                                                                                                     |
+| **Refresh baseline**                  | Init-owned `tools/data/aidlc-manifest.json` recording hashes of framework-owned files, used by `aidlc config` to classify refresh actions and detect local edits.                                                                               |
+| **Release channel**                   | See Native channel.                                                                                                                                                                                                                             |
+| **Retained version**                  | A complete native binary, release manifest and harness runtimes stored side by side; active, rollback and pinned versions are protected from pruning.                                                                                           |
+| **Reviewer**                          | A quality-gate agent (`aidlc-product-lead-agent` or `aidlc-architecture-reviewer-agent`) invoked after a stage produces its artifacts. It writes one review (READY / NOT-READY plus findings) and never blocks, since the human always decides. |
+| **Root integration**                  | A project-root file contribution (managed block, JSON map, JSON array or whole file) reconciled by `aidlc config`; unrelated project content is preserved.                                                                                      |
+| **Rule**                              | A persistent behavioural rule authored in the active-space memory layer. Rules resolve through a five-layer chain (org, team, project, phase, stage) and are the feedforward half of the control loop.                                          |
+| **Runtime graph**                     | The per-workflow `runtime-graph.json` artefact: a data-plane mirror of the stage graph materialised from the audit log on every approval gate.                                                                                                  |
+| **Scope**                             | One of 11 named configurations (enterprise, feature, mvp, poc, bugfix, refactor, infra, security-patch, classic, workshop, express) determining which stages execute and at what depth.                                                         |
+| **Sensor**                            | A deterministic verification check defined by a manifest in `.claude/sensors/`. Sensors run on matching Write/Edit calls or at an approval gate and record `SENSOR_*` audit rows. The feedback half of the control loop.                        |
+| **Session**                           | A single conversation in your harness in which you run `/aidlc`. A workflow may span multiple sessions via the resume mechanism.                                                                                                                |
+| **Skill**                             | A Markdown file with YAML frontmatter that a harness offers as a command. AI-DLC's orchestrator is implemented as the `aidlc` skill.                                                                                                            |
+| **Space**                             | A per-team area of the workspace at `aidlc/spaces/<space>/` holding its own `memory/`, `knowledge/` and `intents/`. Single-team users only see `spaces/default/`.                                                                               |
+| **Stage**                             | One of the 33 discrete steps in the lifecycle, each with a lead agent and defined inputs/outputs. Numbered by phase (for example 1.1, 2.4, 3.5).                                                                                                |
+| **State file**                        | The persistent per-intent workflow state at `aidlc-state.md`, tracking stage progress, scope, workspace context and session resume info with six-state checkboxes.                                                                              |
+| **Subagent execution**                | A dispatched hub (`mode: subagent`) where the conductor invokes a separate agent context. Code Generation (3.5) is a focused one-agent run; Practices Discovery (2.2) is hub-and-spoke.                                                         |
+| **Swarm**                             | A Construction mode where dependency-ready Units build in parallel batches under an autonomous flow, converging each DAG batch before one Code Generation gate.                                                                                 |
+| **Test strategy**                     | One of three test volume levels (Minimal, Standard, Comprehensive) controlling how many tests are generated and which types. Independent of depth.                                                                                              |
+| **Transaction**                       | A project or machine mutation staged on the destination filesystem, checked against expected live state and committed with atomic renames.                                                                                                      |
+| **Unit of work**                      | An independently implementable piece of the solution, decomposed during Units Generation (2.7). One or more dependency-linked Units supply the scope of a Bolt.                                                                                 |
+| **Utility command**                   | A terminal flag passed to `/aidlc` such as `--status`, `--config`, `--doctor`, `--version`, `--stage`, `--phase` or `--scope`, performing a query, config change or navigation without running a stage.                                         |
+| **Verification gate**                 | See Phase boundary verification.                                                                                                                                                                                                                |
+| **Walk order**                        | The Construction order: unit-major (one Unit through every applicable per-unit stage before the next, the default for new solo Unit work) or stage-major.                                                                                       |
+| **Walking skeleton**                  | The smallest working integrated slice, planned as the first DAG Unit when skeleton-on. It passes the recorded, human-authorized verification command and human approval before later Units begin.                                               |
+| **Workflow**                          | A single end-to-end execution of the AI-DLC lifecycle, scoped to a specific task.                                                                                                                                                               |
+| **Workflow profile**                  | The user-facing name for a scope: a curated lifecycle for a kind of work, such as Classic, Express, Feature or Bugfix.                                                                                                                          |
+| **Workspace**                         | The folder `aidlc config` installs into. It holds the harness folder, `aidlc/` and your code repo(s). AI-DLC does not look upward for a git root.                                                                                               |
+| **Worktree**                          | The git isolation mechanism used for a Unit in swarm execution, with its own directory and `bolt-<id8>_<slug>` branch.                                                                                                                          |
