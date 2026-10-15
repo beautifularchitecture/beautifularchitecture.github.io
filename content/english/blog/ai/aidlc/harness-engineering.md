@@ -54,8 +54,10 @@ Two primitives carry most of the framework, and keeping them straight is the who
 
 Two pieces of machinery move work through the stages, and a harness engineer shapes the data both of them read.
 
-- **The engine** (`core/tools/aidlc-orchestrate.ts`) is the deterministic router. It reads `aidlc-state.md` and the compiled `stage-graph.json`, decides what runs next and emits one typed directive. It is a Bun CLI with exactly six subcommands:
+- **The engine** (`core/tools/aidlc-orchestrate.ts`) is the deterministic router. It reads `aidlc-state.md` and the compiled `stage-graph.json`, decides what runs next and emits one typed directive. The engine is a tool the conductor calls, not a chat command you type: you drive a workflow with `/aidlc`, and only `park` and `team-board` have `/aidlc` wrappers. It is a Bun CLI with exactly six subcommands:
   - `next` — route to the next move and emit one typed directive.
+    - A move is one next step the engine decides: the transition from the current state to the next action, such as running a stage, asking a question or presenting a gate.
+    - A directive is typed. It is the engine's single JSON output per `next`, and it carries a `kind` drawn from a fixed set. `aidlc-directive.ts` defines eleven kinds, of which the engine emits nine today: `run-stage`, `ask`, `print`, `done`, `error`, `parked`, `notice`, `load-steering` and `invoke-swarm`. The two it does not emit yet are `dispatch-subagent` and `present-gate`. Each kind carries only the fields it needs, and the conductor acts by the `kind`. Every directive is validated against the frozen contract before it is printed, so a malformed directive exits non-zero rather than emitting a lie the conductor would act on.
   - `report` — commit the transition after the conductor acted on a directive.
   - `park` — pause the workflow at a clean inter-stage boundary.
   - `continue` — internal steering transport.
@@ -63,6 +65,54 @@ Two pieces of machinery move work through the stages, and a harness engineer sha
   - `wait` — the bounded, read-only wait for dispatched work.
 - **The conductor** (`skills/aidlc/SKILL.md`) is a thin forwarding loop. It carries each directive out before asking the engine for the next move.
 - Routing lives in the engine. Your stage files, scopes and rules are the inputs that steer it.
+
+Expand the section below to see the shape of one directive. The engine prints exactly one of these per `next`.
+
+<details>
+<summary>A trimmed <code>run-stage</code> directive</summary>
+
+```json
+{
+  "kind": "run-stage",
+  "stage": "requirements-analysis",
+  "phase": "inception",
+  "lead_agent": "aidlc-architect-agent",
+  "support_agents": [],
+  "mode": "inline",
+  "gate": true,
+  "inline_context_paths": [
+    "aidlc/spaces/default/agents/aidlc-architect-agent.md",
+    "aidlc/spaces/default/knowledge/requirements.md"
+  ],
+  "rules_in_context": ["aidlc/spaces/default/rules/requirements.md"],
+  "rules_content": [
+    { "path": "aidlc/spaces/default/rules/requirements.md", "text": "..." }
+  ],
+  "sensors_applicable": ["requirements-traceability"],
+  "ceremony": {
+    "sensors": "on",
+    "learnings": "on",
+    "summary_confirmation": "on",
+    "plan_approval": "on",
+    "collaborators": "on"
+  },
+  "answer_mode": {
+    "mode": null,
+    "ask": true,
+    "reused_from": null,
+    "notice": "..."
+  },
+  "memory_path": "aidlc/spaces/default/intents/261014-checkout/stages/requirements-analysis.md",
+  "consumes": [],
+  "produces": [
+    "aidlc/spaces/default/intents/261014-checkout/artifacts/requirements.md"
+  ],
+  "stage_file": "aidlc/aidlc-stages/requirements-analysis.md",
+  "next_stage": "user-stories"
+}
+```
+
+</details>
 
 Everything else a harness engineer configures hangs off these two.
 
