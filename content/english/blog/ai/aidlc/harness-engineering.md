@@ -44,6 +44,27 @@ Editing the source is only half the loop. The other half is regeneration.
 - Never hand-edit `dist/<harness>/` trees. They are generated outputs, ignored and never committed.
 - Never hand-edit `stage-graph.json`. It is a build artifact. Edit the YAML and recompile.
 
+## The mental model: stages are what, agents are who
+
+Two primitives carry most of the framework, and keeping them straight is the whole job.
+
+- **A stage is _what_ happens.** It is a unit of work and a node of the workflow graph. It declares the artifacts it consumes and produces, the agent that leads it, and how it executes.
+- **An agent is _who_ does the work.** It is a persona with a domain, a tool allowlist and a model tier. Agents are loaded _into_ stages.
+- **A stage names its lead agent; an agent never names its stages.** The link is one-directional: a stage points at an agent (`lead_agent: aidlc-architect-agent`), but an agent file contains no list of stages. The asymmetry is deliberate. It lets you move a stage to a different agent by editing the stage, and add a new agent by dropping an agent file, without either change disturbing the other. Here "work" means the stage's task, the unit of work the stage represents, not a person: reassigning work changes which agent performs that task.
+
+Two pieces of machinery move work through the stages, and a harness engineer shapes the data both of them read.
+
+- **The engine** (`core/tools/aidlc-orchestrate.ts`) is the deterministic router. It reads `aidlc-state.md` and the compiled `stage-graph.json`, decides what runs next and emits one typed directive.
+- **The conductor** (`skills/aidlc/SKILL.md`) is a thin forwarding loop. It carries each directive out before asking the engine for the next move.
+- Routing lives in the engine. Your stage files, scopes and rules are the inputs that steer it.
+
+Everything else a harness engineer configures hangs off these two.
+
+- **Scopes** decide _which_ stages run for a given kind of work.
+- **Rules** are standing decisions that travel into every workflow.
+- **Sensors** are deterministic checks bound to stages.
+- **Knowledge** is the domain context agents load before they work.
+
 ## Possible changes, in point form
 
 Each point names the change and the exact file you edit to make it. All paths are relative to the repository root for framework source, except where noted.
