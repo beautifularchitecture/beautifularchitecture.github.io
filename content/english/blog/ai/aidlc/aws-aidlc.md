@@ -33,15 +33,15 @@ Most stages run inline, where the conductor adopts the agent's perspective and w
 
 ### Key numbers
 
-| Metric                              | Value                                                            | What it means                                                                                                                                                                                                                                                                                                                                                                                    |
-| ----------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [Phases](#the-5-phases)             | 5 (Initialization, Ideation, Inception, Construction, Operation) | - **Initialization**: bootstrap the workspace (automatic, no approval gates)<br/>- **Ideation**: validate the initiative (intent, feasibility, scope, team, approval)<br/>- **Inception**: elaborate requirements, design and the delivery plan<br/>- **Construction**: design, implement and test in reviewable slices<br/>- **Operation**: deploy, operate and feed learnings back to Ideation |
-| [Stages](#the-33-stages)            | 33                                                               | - The discrete steps spread across the 5 phases<br/>- Each stage declares its inputs, steps, outputs and lead agent<br/>- A scope runs a subset of the 33 in the same numbered order                                                                                                                                                                                                             |
-| [Agents](#the-14-agents)            | 14 total: 11 domain experts, 2 reviewers and the composer        | - **11 domain experts**: product, design, delivery, architect, AWS platform, compliance, devsecops, developer, quality, pipeline-deploy and operations<br/>- **2 reviewers**: product lead and architecture reviewer<br/>- **1 composer**: proposes tailored plans and reshapes pending stages                                                                                                   |
-| [Scopes](#workflow-profiles-scopes) | 11 (enterprise through express, plus workshop)                   | - 11 named workflow profiles: enterprise, feature, mvp, poc, bugfix, refactor, infra, security-patch, classic, workshop and express<br/>- Each scope selects which stages run, the depth and the test strategy<br/>- The composer can also propose a plan from your words                                                                                                                        |
-| Depth levels                        | 3 (Minimal, Standard, Comprehensive)                             | - How much detail each stage produces<br/>- Chosen by the scope and overridable per work<br/>- The three levels are Minimal, Standard and Comprehensive                                                                                                                                                                                                                                          |
-| Test strategy levels                | 3 (Minimal, Standard, Comprehensive)                             | - How many tests are generated<br/>- Chosen by the scope and overridable per work<br/>- The three levels are Minimal, Standard and Comprehensive                                                                                                                                                                                                                                                 |
-| Audit event types                   | 118                                                              | - The categories of traceability events AI-DLC logs to the intent's `audit/` shards<br/>- Records gate approvals, decisions and agent activity                                                                                                                                                                                                                                                   |
+| Metric                                        | Value                                                            | What it means                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [Phases](#the-5-phases)                       | 5 (Initialization, Ideation, Inception, Construction, Operation) | - **Initialization**: bootstrap the workspace (automatic, no approval gates)<br/>- **Ideation**: validate the initiative (intent, feasibility, scope, team, approval)<br/>- **Inception**: elaborate requirements, design and the delivery plan<br/>- **Construction**: design, implement and test in reviewable slices<br/>- **Operation**: deploy, operate and feed learnings back to Ideation |
+| [Stages](#the-33-stages)                      | 33                                                               | - The discrete steps spread across the 5 phases<br/>- Each stage declares its inputs, steps, outputs and lead agent<br/>- A scope runs a subset of the 33 in the same numbered order                                                                                                                                                                                                             |
+| [Agents](#the-14-agents)                      | 14 total: 11 domain experts, 2 reviewers and the composer        | - **11 domain experts**: product, design, delivery, architect, AWS platform, compliance, devsecops, developer, quality, pipeline-deploy and operations<br/>- **2 reviewers**: product lead and architecture reviewer<br/>- **1 composer**: proposes tailored plans and reshapes pending stages                                                                                                   |
+| [Scopes](#workflow-profiles-scopes)           | 11 (enterprise through express, plus workshop)                   | - 11 named workflow profiles: enterprise, feature, mvp, poc, bugfix, refactor, infra, security-patch, classic, workshop and express<br/>- Each scope selects which stages run, the depth and the test strategy<br/>- The composer can also propose a plan from your words                                                                                                                        |
+| [Depth levels](#depth-levels)                 | 3 (Minimal, Standard, Comprehensive)                             | - How much detail each stage produces<br/>- Chosen by the scope and overridable per work<br/>- The three levels are Minimal, Standard and Comprehensive                                                                                                                                                                                                                                          |
+| [Test strategy levels](#test-strategy-levels) | 3 (Minimal, Standard, Comprehensive)                             | - How many tests are generated<br/>- Chosen by the scope and overridable per work<br/>- The three levels are Minimal, Standard and Comprehensive                                                                                                                                                                                                                                                 |
+| [Audit event types](#audit-event-types)       | 118                                                              | - The categories of traceability events AI-DLC logs to the intent's `audit/` shards<br/>- Records gate approvals, decisions and agent activity                                                                                                                                                                                                                                                   |
 
 ## Setup
 
@@ -164,6 +164,26 @@ AI-DLC does not force every task through the same lifecycle. A **workflow profil
 | Workshop         | A facilitated training or group delivery session                 | 26 / 33 | Standard      | Minimal       | `/aidlc workshop`       |
 
 **Depth** controls how much detail each stage produces and **test strategy** controls how many tests are generated; both default from the profile and can be overridden. Stage counts describe the static route: a stage marked conditional can still self-skip when its condition does not apply, such as Reverse Engineering in a greenfield project.
+
+##### Depth Levels
+
+Depth controls the detail level of the artifacts a stage produces. The scope sets a default depth, and you can override it with `/aidlc --depth <level>` or at any approval gate.
+
+| Depth             | Artifact detail                                                                                                                    | When to use                                   |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| **Minimal**       | Core essentials only: short documents, key decisions and minimal supporting analysis                                               | Quick fixes, patches and proofs of concept    |
+| **Standard**      | Balanced detail: complete requirements, architecture decisions with rationale and thorough test plans                              | Most features and MVPs                        |
+| **Comprehensive** | Full enterprise detail: exhaustive requirements, compliance matrices, detailed NFR specifications and complete audit documentation | Regulated features and enterprise deployments |
+
+##### Test Strategy Levels
+
+Test strategy controls how many tests are generated and which test types are included. It is independent of depth, so a Standard-depth workflow can run with Minimal testing. Override it with `/aidlc --test-strategy <level>`.
+
+| Test strategy     | Model                                                                             | Volume                                                                                                          | Best for                                                                 |
+| ----------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Minimal**       | Nyquist: the minimum tests needed to verify every requirement                     | 1 test per requirement plus a happy-path unit test per component, roughly 5-15 tests for a typical project      | Workshops, training sessions, proofs of concept and quick bugfixes       |
+| **Standard**      | Per-component: balanced coverage that validates the boundaries between components | 5-8 tests per component (unit and integration), with E2E, performance and security only when NFRs call for them | Most features and MVPs                                                   |
+| **Comprehensive** | Full coverage: thorough coverage across all test types                            | 10-15 tests per component across unit, integration, E2E, performance and security where NFRs exist              | Enterprise features and regulated systems needing test-coverage evidence |
 
 ##### The 5 phases
 
@@ -360,6 +380,40 @@ When a stage gathers your input, it writes its questions to a `{stage}-questions
 - **Chat** lets you discuss freely while the agent extracts the decisions into the file.
 
 You choose the mode once per piece of work; later stages reuse that choice and say so in one line. All three modes converge on the questions file as the canonical record of decisions.
+
+##### Audit Event Types
+
+The audit trail records the active intent's decisions and events for later stages and recovery. AI-DLC defines **118 event types** across 25 categories, written as plain Markdown shards under the intent's `audit/` directory.
+
+| Category                         | Count | Representative events                                                          |
+| -------------------------------- | ----: | ------------------------------------------------------------------------------ |
+| Workflow Lifecycle               |     7 | `WORKFLOW_STARTED`, `WORKFLOW_COMPLETED`, `WORKFLOW_PARKED`                    |
+| Phase Lifecycle                  |     4 | `PHASE_STARTED`, `PHASE_COMPLETED`, `PHASE_VERIFIED`                           |
+| Stage Lifecycle                  |     6 | `STAGE_STARTED`, `STAGE_AWAITING_APPROVAL`, `STAGE_COMPLETED`                  |
+| Session                          |     6 | `SESSION_STARTED`, `HUMAN_TURN`, `SESSION_ENDED`                               |
+| Initialization                   |     3 | `WORKSPACE_SCAFFOLDED`, `WORKSPACE_SCANNED`, `WORKSPACE_INITIALISED`           |
+| Navigation                       |     9 | `SCOPE_CHANGED`, `DEPTH_CHANGED`, `RECOMPOSED`                                 |
+| Guard Policy                     |     5 | `GUARD_POLICY_SET`, `CHANGE_ACCEPTED`, `GUARD_STOOD_ASIDE`                     |
+| Ceremony                         |     1 | `CEREMONY_SET`                                                                 |
+| Interaction                      |    17 | `GATE_APPROVED`, `GATE_REJECTED`, `QUESTION_ANSWERED`                          |
+| Unit Configuration and Lifecycle |     9 | `UNIT_STARTED`, `UNIT_COMPLETED`, `UNIT_MERGED`                                |
+| Artifact                         |     3 | `ARTIFACT_CREATED`, `ARTIFACT_UPDATED`, `ARTIFACT_REUSED`                      |
+| Subagent                         |     3 | `SUBAGENT_COMPLETED`                                                           |
+| Reviewer Enforcement             |     2 | `REVIEWER_SCOPE_BLOCKED`, `REVIEW_FREEZE_BLOCKED`                              |
+| Plan Approval                    |     2 | `PLAN_APPROVAL_BLOCKED`, `GUARD_DISABLED`                                      |
+| Documents                        |     3 | `DOCUMENT_INDEXED`, `DOCUMENT_UPDATED`, `DOCUMENT_REMOVED`                     |
+| Utility                          |     1 | `HEALTH_CHECKED`                                                               |
+| Error/Recovery                   |     3 | `ERROR_LOGGED`, `RECOVERY_COMPLETED`, `COORDINATION_STOOD_ASIDE`               |
+| Construction Bolt                |     4 | `BOLT_STARTED`, `BOLT_COMPLETED`, `AUTONOMY_MODE_SET`                          |
+| Worktree                         |     7 | `WORKTREE_CREATED`, `WORKTREE_MERGED`, `STATE_FORKED`                          |
+| Practices                        |     4 | `PRACTICES_DISCOVERED`, `PRACTICES_AFFIRMED`, `PRACTICES_OVERRIDE`             |
+| Merge Dispatch                   |     3 | `MERGE_DISPATCH_INVOKED`, `MERGE_DISPATCH_RETURNED`, `MERGE_DISPATCH_FALLBACK` |
+| Sensors                          |     5 | `SENSOR_FIRED`, `SENSOR_PASSED`, `SENSOR_FAILED`                               |
+| Learning Loop                    |     3 | `MEMORY_EMPTY`, `RULE_LEARNED`, `SENSOR_PROPOSED`                              |
+| Swarm                            |     7 | `SWARM_STARTED`, `SWARM_COMPLETED`, `SWARM_DEGRADED`                           |
+| Commit Provenance                |     1 | `SOURCE_COMMITTED`                                                             |
+
+The audit trail logs every stage start and completion, every approval-gate decision, every question answer, every subagent completion and every error and recovery.
 
 ## References
 
