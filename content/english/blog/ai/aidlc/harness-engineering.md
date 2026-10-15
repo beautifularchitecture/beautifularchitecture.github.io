@@ -54,7 +54,13 @@ Two primitives carry most of the framework, and keeping them straight is the who
 
 Two pieces of machinery move work through the stages, and a harness engineer shapes the data both of them read.
 
-- **The engine** (`core/tools/aidlc-orchestrate.ts`) is the deterministic router. It reads `aidlc-state.md` and the compiled `stage-graph.json`, decides what runs next and emits one typed directive.
+- **The engine** (`core/tools/aidlc-orchestrate.ts`) is the deterministic router. It reads `aidlc-state.md` and the compiled `stage-graph.json`, decides what runs next and emits one typed directive. It is a Bun CLI with exactly six subcommands:
+  - `next` — route to the next move and emit one typed directive.
+  - `report` — commit the transition after the conductor acted on a directive.
+  - `park` — pause the workflow at a clean inter-stage boundary.
+  - `continue` — internal steering transport.
+  - `team-board` — the read-only Team Construction query.
+  - `wait` — the bounded, read-only wait for dispatched work.
 - **The conductor** (`skills/aidlc/SKILL.md`) is a thin forwarding loop. It carries each directive out before asking the engine for the next move.
 - Routing lives in the engine. Your stage files, scopes and rules are the inputs that steer it.
 
