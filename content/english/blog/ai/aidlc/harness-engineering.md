@@ -248,129 +248,314 @@ Keep the two separate: the stage *definition* is the file format you edit; the s
 
 ## 5. Adding a Stage
 
-### 5.1 Plan First
+A new stage is the most structural change a harness engineer makes — you introduce a new step into the methodology. The recipe is end-to-end: pick a phase, author the file, wire the dependency edges, compile the graph, and confirm the stage lands where you expect.
 
-1. **Phase** — Pick correct phase.
-2. **Artifacts** — Define `consumes` (prereqs) and `produces` (new/updated). Use namespaced like `artifact.plan`, `plan.tasks`.
-3. **Lead agent** — Pick existing or add one (§6).
-4. **Scopes** — Add to relevant scope slugs.
-5. **Gate/sensors** — Need human approval or deterministic checks?
-6. **Avoid producer conflicts** — Only one stage produces a consumed artifact.
+**Is a new stage the right move?** A new stage earns its place when it produces an artifact no existing stage produces, or consumes one in a way no existing stage covers. If you only want to change *what an existing stage does* (reword its steps, retarget its lead agent, attach a sensor), edit that stage file in place — no new node needed. Adding a stage is pure **data work**: a Markdown file with YAML frontmatter, then a recompiled JSON artifact. No TypeScript.
 
-### 5.2 Author the File
+### 5.1 Step 1 — Decide the Phase
 
-Create `core/aidlc-common/stages/<phase>/<slug>.md`. Match stem to `slug`.
+Stage files live under `core/aidlc-common/stages/<phase>/<slug>.md`. The phase is the directory:
 
-```yaml
----
-title: "Risk Review"
-slug: risk-review
-phase: inception
-lead_agent: aidlc-architect-agent
-scopes:
-  - feature
-  - enterprise
-consumes:
-  - artifact.plan
-produces:
-  - artifact.risk-review
-gate: approval
-sensors:
-  - sensor: aidlc-required-sections
-    on: gate
-    binding: advisory
----
+```text
+core/aidlc-common/stages/
+├── initialization/
+├── ideation/
+├── inception/
+├── construction/
+└── operation/
 ```
 
-Write clear body: purpose, inputs/outputs, execution steps, acceptance criteria, guardrails.
+The phase is not cosmetic: it determines which `phases/<phase>.md` rule layer attaches to the stage at compile time (a construction stage inherits the construction rule, an inception stage the inception rule; initialization has no phase rule file). Put the stage where its work actually happens in the lifecycle.
 
-### 5.3 Wire & Validate
+### 5.2 Step 2 — Create the File with Required Frontmatter
 
-1. `bun scripts/package.ts` — regenerate
-2. `aidlc engine graph compile` — validate slug match, edges, producer uniqueness, sensor refs
-3. Verify stage appears in intended scopes (`/aidlc --doctor` or status)
-4. Run relevant tests if needed
+Drop a new `<slug>.md` in the chosen phase directory. The slug is the filename stem and the stage's identity everywhere else — in `requires_stage` edges, scope mappings, and the audit log. Pick it carefully; renaming later ripples.
 
-### 5.4 Tips
+The frontmatter fields that carry the structural weight:
 
-- Keep `produces` minimal (only what downstream needs).
-- Use stable artifact names.
-- Start sensors advisory; block only when unambiguously wrong.
-- Write for the specialist agent with concrete acceptance criteria.
+| Field | What it does |
+|---|---|
+| `requires_stage` | The dependency edges — which stages must precede this one |
+| `consumes` | The artifacts this stage reads, each with a `required` boolean |
+| `produces` | The artifacts this stage writes (its forward edges) |
+| `lead_agent` | The persona that owns the stage |
+| `support_agents` | Optional perspectives the conductor loads after the lead; pipeline chains require unique agents |
+| `mode` | `inline`, `subagent`, `pipeline`, `mob`, or the reserved `agent-team` |
+| `for_each` | Optional — names an artifact whose instances drive iteration |
+| `summary_confirmation` | Optional — `required` for stages that always collect file-backed answers, `if-present` for conditional question flows |
+| `reviewer` / `review_artifact` | Optional pair — the review agent and the required Markdown `produces` entry the review is about (its review record is keyed to that artifact) |
+
+A complete small stage — a glossary step after Requirements Analysis that runs only under `feature` — looks like this (it compiles as it stands):
+
+```markdown
+---
+slug: glossary-capture
+phase: inception
+execution: CONDITIONAL
+condition: Execute when the requirements use domain terms the team must agree on. Skip when every term is already defined.
+lead_agent: aidlc-product-agent
+support_agents: []
+mode: inline
+produces:
+  - glossary
+consumes:
+  - artifact: requirements
+    required: true
+requires_stage:
+  - requirements-analysis
+sensors:
+  - required-sections
+scopes:
+  - feature
+inputs: <record>/inception/requirements-analysis/requirements.md
+outputs: glossary.md (under this stage's record dir, engine-resolved)
+---
+
+# Glossary Capture
+
+Collect the domain terms the requirements use and agree one meaning for each.
+
+## Steps
+
+1. Read `<record>/inception/requirements-analysis/requirements.md` and list every domain term it uses.
+2. For each term, write one plain definition and the requirement IDs that use it.
+3. Write `glossary.md` with `## Terms` and `## Open Terms` sections.
+4. Follow stage-protocol.md for the approval gate.
+
+## Sensors
+
+This stage's output is a markdown artefact under `<record>/inception/glossary-capture/`.
+
+Imports: `required-sections`.
+
+## Learn
+
+When `directive.protocol_modules` lists `learnings`, follow
+`stage-protocol-learnings.md`: keep the diary at `directive.memory_path` while
+working and run the ritual before the approval gate. When the module is absent,
+skip both the diary and the ritual.
+```
+
+The body opens with `## Steps` (the imperative prose the lead agent follows), then `## Sensors` (output location, exact frontmatter imports, upstream targets), then `## Learn` (points to `stage-protocol-learnings.md` §13 only when the module is listed).
+
+### 5.3 Step 3 — Wire the Dependency Edges
+
+This is where the stage slots into the workflow. Three fields do the wiring, and they must agree:
+
+- **`requires_stage`** — the edges. Two kinds: a *semantic data dependency* ("I consume artifact X, which stage Y produces" → add `Y`) and a *presentation-order edge* (two stages in one phase with no data dependency but a fixed order). Author the order edge explicitly rather than relying on the compiler's alphabetical tiebreak.
+- **`consumes`** — the artifacts the stage reads. Each entry carries a `required` boolean, scoped *to the active plan*: `required: true` means "if the producing stage runs in this scope, the consume must be satisfied" — not "the producer always runs." A brownfield-only consume takes `conditional_on: brownfield`; an unconditional consume omits the field entirely.
+- **`produces`** — the forward edges. Every consumed artifact must resolve to exactly one producer across `produces` and `optional_produces`; the compiler rejects duplicates and names both producer files. Reusing an artifact name is valid only when no stage consumes it.
+
+Get these consistent and the compiler places the stage automatically; you never hand-edit `stage-graph.json` to position it.
+
+### 5.4 Step 4 — Regenerate the Harnesses
+
+The YAML you authored in `core/` is authoritative. Run the packager to materialize the ignored local `dist/<harness>/` (Bun copy) and `dist-release/<harness>/` (native), copying your new stage into both channels and recompiling each graph:
+
+```bash
+bun scripts/package.ts            # materialize both channels for every harness
+bun scripts/package.ts --check    # build twice and byte-compare
+```
+
+The runtime reads `<harness-dir>/tools/data/stage-graph.json` (e.g. `.claude/tools/data/stage-graph.json` in an installed Claude tree). If iterating on an installed tree, recompile directly:
+
+```bash
+aidlc engine graph compile
+```
+
+Never hand-edit `stage-graph.json`; a hand-edit is overwritten on the next compile.
+
+### 5.5 Step 5 — Verify It Appears, and in Which Scopes
+
+```bash
+aidlc engine graph topo                      # topological order — your slug should appear
+aidlc engine graph producers <artifact>      # who produces an artifact
+aidlc engine graph consumers <artifact>      # who consumes it
+aidlc engine graph scope <scope-name>        # stages on a scope's path
+aidlc engine graph validate-scope <scope>    # dependency sanity for a scope
+```
+
+Two behaviors to note:
+
+- A new stage takes the next free number in its phase, after the stages already there; no existing stage is renumbered. An edge from an earlier stage *to* the new one is refused at compile (dependencies must be lower-numbered).
+- A brand-new stage does **not** automatically run in any scope. Its frontmatter `scopes:` list names every scope it runs under; a stage that names no scope is `SKIP` everywhere. Authoring the body makes it *exist*; the `scopes:` tag makes it *run*.
+
+### 5.6 The Runner Is Opt-In Sugar
+
+The extensibility contract: **to add a stage, you write a stage file.** Once it compiles, it runs on its own with no registration:
+
+```bash
+aidlc engine orchestrate next --stage <your-slug> --single
+```
+
+The `--single` mode runs that one stage in isolation (emits a `run-stage` directive, conductor runs it, synthetic-id lifecycle in the audit log) and **never touches the main workflow's Current Stage**, so it can't derail an in-flight workflow. Every shipped runnable stage also gets a thin runner skill at `skills/aidlc-<slug>/SKILL.md` so it's typeable as `/aidlc-<slug>` — a generator emits one per compiled stage, so runners can't drift from stages. Regenerate them after adding/removing a stage:
+
+```bash
+aidlc engine gen runners          # regenerate every runner dir
+aidlc engine gen runners --check  # CI drift guard
+```
+
+Delete every runner and every stage still runs via `/aidlc --stage <slug> --single`.
+
+### 5.7 What Validates Automatically vs. What You Check
+
+**Automatic:**
+- **Graph placement** — once you compile, `requires_stage`/`consumes`/`produces` resolve into the graph (topological order, producer/consumer lookups, cycle detection).
+- **Compile-time field validation** — `lead_agent`/`support_agents` are checked against the actual agents files; a typo fails the compile (`lead_agent "<name>" has no matching .claude/agents/*.md`) rather than 404-ing at run time. The reserved `orchestrator` slug is exempt. Pipeline stages reject duplicate chain identities.
+- **Drift checks** — `bun scripts/package.ts --check` builds twice and byte-compares; `aidlc engine graph compile --check` exits `1` and prints `stage-graph.json is out of date...` when a stage was edited without recompiling.
+- **Phase rule attachment** — the `phases/<phase>.md` rule layer attaches at compile time from the directory.
+
+**Check yourself:**
+- **Scope participation** — the compiler places the stage but doesn't decide which scopes run it. Add each scope name to the stage's `scopes:` list (then recompile so the transpose updates `scope-grid.json`).
+- **Body prose** — only frontmatter is parsed; the `## Steps` body is read only by the lead agent.
+- **Prose-to-edge consistency** — `requires_stage` and the `## Steps` prose can drift; keep them in sync by hand.
+- **`required` semantics under your scopes** — a `required: true` consume is moot in a scope that skips the producer; confirm the body handles the absence gracefully.
+- **Documentation** — if the new stage changes a hand-enumerated count/table, update the docs in the same change.
+
+### 5.8 The Boundary Case: Data Work vs. Code Work
+
+Authoring the file and recompiling is data work — Markdown, YAML, JSON, no `.ts`. The line you must not cross silently: if making your stage work requires the graph *compiler* to behave differently (a frontmatter key it doesn't recognize, a new edge type, a new traversal rule), that's a change to the code that reads the data and belongs in the Developer Reference. The reserved-key namespace (`on_failure`, `blocks_on`, `timeout`, `retry`) exists so future extensions land predictably; until a consumer ships, the schema rejects them. `when:` is different: the schema accepts and checks it, but nothing acts on it yet, so a stage with `when:` runs under its `scopes:` as if it weren't there.
 
 ## 6. Adding an Agent
 
-An **agent** is a persona: expertise, tool allowlist, model, behavior.
+An **agent** is the *who* of the framework — a persona with a domain, a tool allowlist, and a tier. The 14 shipped agents comprise 11 domain experts (product, design, delivery, architecture, AWS platform, compliance, DevSecOps, development, quality, pipeline-deploy, operations), two review-only agents (`aidlc-product-lead-agent`, `aidlc-architecture-reviewer-agent`), and the adaptive-workflows composer (`aidlc-composer-agent`). When your team needs a domain the framework doesn't cover — a data-governance reviewer or a mobile specialist, say — add a persona by dropping a single Markdown file into `core/agents/`. No TypeScript.
 
-### 6.1 Location
+The one thing to internalize is the two-step truth: dropping the file makes the agent **visible**; wiring it into a stage makes it **active**. Both steps are required, or you get an agent that exists and never runs.
 
-`core/agents/<name>-agent.md`. Convention: `aidlc-<role>-agent.md`.
+### 6.1 What a persona file is, and where it lives
 
-### 6.2 Structure
+Every agent is one flat file at `core/agents/<slug>-agent.md`: YAML frontmatter on top, a Markdown body below. The shipped files all carry the `aidlc-` prefix (`aidlc-architect-agent.md`, `aidlc-developer-agent.md`); a file you add is yours and need not use that prefix.
+
+Treat the shipped 14 as framework files: in an installed project, a local edit to one stops the next `aidlc config` refresh until you move your copy away or take the shipped one with `--force`:
+
+```text
+$ aidlc config --harness claude --yes
+error: 1 config conflict(s): .claude/agents/aidlc-architect-agent.md (locally modified or unowned)
+fix: to keep your version, move .claude/agents/aidlc-architect-agent.md somewhere else and run the same command again; to take the shipped version over it, run it again with --force.
+```
+
+Customize *what an existing agent knows* through team knowledge ([§10](#10-team-knowledge)) rather than editing the file. A genuinely new persona — a new file, owned by you — is a different move, and survives upgrades.
+
+Only the frontmatter is machine-read. The body is prose the agent reads about itself when it activates — its responsibilities, collaboration, memory focus, and working principles — and you write it to match the structure of the shipped files. The packager adds the mandatory delegated knowledge preflight to every harness projection.
+
+### 6.2 The frontmatter, from a real agent
+
+Here is the frontmatter from a real agent, authored at `core/agents/aidlc-architect-agent.md`:
 
 ```yaml
 ---
-name: aidlc-product-agent
-title: "Product Agent"
-description: "Translates user intent into clear requirements and product decisions"
-tools: ["read", "write", "grep", "glob"]
-model: inherit
+name: aidlc-architect-agent
+display_name: Architect Agent
+examples:
+  - tech-stack.md
+  - infrastructure-preferences.md
+description: >
+  Solutions architect responsible for domain design, contract design, NFR patterns, and component decomposition.
+  Leads Feasibility, Domain Design, Units Generation, Contract Design, Functional Design, NFR Requirements, and NFR Design stages,
+  and serves as the dispatched final link of the Reverse Engineering pipeline.
+disallowedTools: Task
+tier: judgment
 ---
 ```
 
-Body: role, responsibilities, principles, inputs/outputs, guardrails, collaboration posture.
+### 6.3 The fields, and the calls you make
 
-### 6.3 Key Fields
+| Field | Required | What it does |
+|---|---|---|
+| `name` | Yes | Must match the filename stem. The parser keys off it, and a mismatch is the easiest way to author an agent that never resolves. The loader rejects duplicate agent `name` values across files and names both files in the error. |
+| `display_name` | Yes | The human-readable label the statusline renders (the architect shows as "Architect Agent"). |
+| `description` | Yes | A short summary of the persona's domain and the stages it leads. |
+| `examples` | Yes | Suggested knowledge filenames documented in the agent→examples table. They are *suggestions surfaced to the user*; the runtime never loads them and the engine never writes them to disk. |
+| `disallowedTools` | Yes | **Must include `Task`** — not optional (see below). |
+| `tier` | Yes | The kind of work; the packager projects it into per-harness model/effort keys (see below). |
+| `tools:` | Optional | A tool allowlist that narrows the persona. Omit it to inherit the full session toolset. |
+| `maxTurns:` | Optional | Caps the agent's turn budget. |
 
-| Field | Purpose |
-|---|---|
-| `name` | Machine key; unique; align with filename stem |
-| `title` | Display name |
-| `description` | Short summary |
-| `tools` | Tool allowlist (least privilege) |
-| `model` | Usually `inherit` to follow harness defaults |
+Four of these carry real judgment. Here is what each decides.
 
-### 6.4 When to Add
+**`disallowedTools` must include `Task`.** Agents run as delegated workers; the conductor (the live `/aidlc` session) performs the `Task` call when the engine's `run-stage` directive carries `mode: subagent`. Allowing `Task` would let an agent spawn its own subagents, cascading the delegation chains the framework is built to prevent. Every shipped agent disallows `Task`, and so must yours. The Kiro projections remove this Claude-only frontmatter key and enforce the same no-nested-delegation boundary through Kiro's native agent tool configuration; any other `disallowedTools` value fails packaging or is drop-logged during plugin compose.
 
-- Need domain expertise not covered (data, security, legal, platform-specific)
-- Distinct tool posture/decision style for certain stages
-- Specialist reviewer with distinct scope
+**`tier` names the kind of work.** You never author raw `model:` or `effort:` in core agent frontmatter — those are projection OUTPUTS in the ignored local `dist/<harness>/` tree and versioned release runtime, derived from the tier table in `core/tools/aidlc-tiers.ts`. Pick:
 
-Avoid adding just to split steps—often a stage edit is cleaner.
+- **`judgment`** — for any persona whose work is multi-constraint reasoning that cascades downstream: interpreting ambiguous intent, weighing architectural trade-offs under dense context. A judgment agent inherits the session's model AND effort unless an explicit model policy overrides it.
+- **`balanced`** — for reviewer-shaped personas that judge novel input against explicit criteria.
+- **`templated`** — only when the output is dominantly pattern-following and the methodology is already encoded in the agent's knowledge files, as with delivery plans, CI/CD YAML, and runbook scaffolding.
 
-### 6.5 Bind to Stages
+With no recorded policy, the `balanced` reviewer tier uses Sonnet at `medium` effort on Claude Code; on Codex and opencode it inherits the session model and applies medium reasoning effort. `judgment` and `templated` inherit session model and effort. When in doubt, use `judgment`: the projection table (and a project's `tier_cap`) can always step cost down later, but a persona authored too low silently under-reasons.
 
-Set `lead_agent: <your-agent-name>` in target stage(s). Then regenerate + compile.
+**`tools:` narrows the persona — rarely needed.** None of the 14 shipped agents declare a `tools:` allowlist, so each one reaches every tool the session provides — `Read`, `Edit`, `Write`, `Glob`, `Grep`, `AskUserQuestion`, `Bash`, `WebSearch`, and the inherited MCP tools alike. Listing `tools:` narrows the persona to exactly the tools it names, and it drops the inherited MCP tools unless you also name the fully-qualified `mcp__<server>__<tool>` ids. Reach for it only when a domain genuinely needs a smaller surface; most personas are best left to inherit everything.
 
-### 6.6 Design Principles
+**`maxTurns:` caps the turn budget.** Binding on Claude Code, projected to opencode's native `steps:` key, and inert (persona-prose-only) on Codex CLI, Cursor, GitHub Copilot, and both Kiro surfaces, which expose no per-agent cap key. The two review-only agents ship it today.
 
-- **Single domain focus** — One clear expertise.
-- **Human judgement first** — Present options/tradeoffs/recommendations; don't guess human intent.
-- **Least-privilege tools** — Only what genuinely needed.
-- **Determinism boundaries** — Keep checks in sensors/hooks, not agent discretion.
-- **Reusable** — Write to work across stages where sensible.
+### 6.4 MCP servers are inherited, not granted per agent
 
-### 6.7 Validation
+The five MCP servers declared in the project-root `.mcp.json` are provisioned to the session, and every agent inherits all of them automatically — there is no per-agent grant to author. To keep a persona *away* from a server, narrow its `tools:` allowlist to a fully-qualified `mcp__<server>__<tool>` list that omits that server (a bare `mcp__<server>` token is a no-op, not a server-level grant). The inheritance and restriction model is exercised by the `t110` registry-integrity test.
 
-Filename stem must align with `name`. Duplicates are loader errors naming both. Referencing non-existent `lead_agent` fails graph validation.
+### 6.5 Visible is not active: the two-step truth
+
+Dropping the file makes the agent *visible*; wiring it into a stage makes it *active*. Both steps are required.
+
+- **Discovery makes it visible.** `loadAgents()` in `aidlc-lib.ts` reads every persona `.md` file in `.claude/agents/` (one named `aidlc-*` or carrying `display_name`, `examples`, `tier`, or `plugin`) on the next invocation and derives the metadata map. No code edit, no registration step — the file's presence is the registration. From this point the statusline can render its display name, and the team can add standards under its space-level `aidlc/knowledge/<slug>-agent/` directory.
+- **Stage binding makes it active.** A stage names its lead and support agents by slug in its frontmatter `lead_agent` / `support_agents` fields (compiled into `stage-graph.json`). Until some stage references your slug, no `run-stage` directive names it, so the conductor never delegates to the persona.
+
+This mirrors the framework's core asymmetry — a stage names its agent; an agent never names its stages. So the agent file alone is inert by design. To put your new persona to work, edit the stage that should use it.
+
+Each agent also pairs with a knowledge directory you author at `core/knowledge/aidlc-<slug>-agent/` (framework methodology) and an optional team overlay at the space level, `aidlc/knowledge/<slug>-agent/` (your standards). The space-level `aidlc/knowledge/` directory is free-form and empty at bootstrap; the team creates the per-agent subdirectory when it has content — the engine does not scaffold it.
+
+### 6.6 The steps, end to end
+
+1. **Create the agent file** — `core/agents/<slug>-agent.md` with the required frontmatter: `name`, `display_name`, `examples`, `description`, `disallowedTools` (including `Task`), `tier`. An optional `tools:` allowlist narrows the persona; omit it to inherit the full session toolset. An optional `maxTurns: <n>` caps the turn budget. Write the body to match the shipped files' structure (Core Responsibilities, Collaboration, optional Memory Focus, Key Principles).
+2. **Add knowledge files** under `core/knowledge/aidlc-<slug>-agent/` for the methodology the persona should load on activation.
+3. **Wire it into stages** — add the slug to the `lead_agent` / `support_agents` frontmatter of each stage file (`core/aidlc-common/stages/<phase>/<slug>.md`) where it leads or supports, then regenerate with `bun scripts/package.ts` (or, in an installed tree, `aidlc engine graph compile`) so `stage-graph.json` regenerates. Never hand-edit `stage-graph.json`. This is the step that makes it active.
+4. **Document the team-knowledge directory** — note that a team adds its standards under the space-level `aidlc/knowledge/<slug>-agent/`. The engine does not create this directory; the team creates it when it has content.
+5. **Update the hand-maintained doc tables** — the Phase Participation matrix and the agent→examples table do not regenerate themselves.
+
+```mermaid
+flowchart LR
+    F["core/agents/<br/>aidlc-data-governance-agent.md"] -->|loadAgents discovers| V["Visible<br/>(statusline, knowledge dir)"]
+    V -->|stage names slug in<br/>lead_agent / support_agents| A["Active<br/>(run-stage delegates)"]
+    A -->|regenerate| G["stage-graph.json"]
+```
+
+### 6.7 What validates automatically vs. what you check
+
+**Automatic:**
+
+- `loadAgents()` discovers any new persona `.md` file on next invocation — no code edit, no registration. A persona is a file named `aidlc-*` or one whose frontmatter carries `display_name`, `examples`, `tier`, or `plugin`; any other file there is the host's own agent and is left alone.
+- The parser throws if a persona's `name` or `display_name` is missing, naming the file, the missing field, and (for a file not named `aidlc-*`) the key that made it a persona.
+- Agents are returned alphabetically sorted by slug, so discovery order is identical on every platform.
+- Intent creation creates the empty space-level `aidlc/knowledge/` directory; it does not seed per-agent subdirectories or READMEs.
+- The statusline renders the display name from the derived metadata.
+
+**Check yourself:**
+
+- **Stage-graph participation.** `stage-graph.json` references agents by slug; add an agent without wiring it there and it exists but never runs. Discovery and activation are separate steps.
+- **Knowledge-file existence.** `examples` are suggested filenames documented in the agent→examples table — nothing creates or checks them. You place the real content under `aidlc/knowledge/<slug>-agent/`.
+- **The hand-maintained doc tables.** The Phase Participation matrix and the agent→examples table are edited by hand. Update them in the same change that adds the agent.
+- **The agent file's body.** Only the frontmatter is parsed; the body prose is read by the agent itself when it activates, so write it carefully to match the shipped 14.
+
+A genuinely new persona is a file you own; a new stage's `lead_agent` reference to it is checked at compile time, so a typo fails the compile (`lead_agent "<name>" has no matching .claude/agents/*.md`) rather than 404-ing at run time.
 
 ## 7. Scopes
 
-A **scope** decides which stages run for a work type. Each scope is a curated execute/skip view plus workflow defaults (depth, test strategy, review cap, ceremonies, guard posture).
+A **scope** is the dial that decides *which* of the framework's 33 stages run for a given kind of work, and which sit out. A bugfix doesn't need market research or environment provisioning, but it still runs the deployment pipeline and execution stages; a regulated enterprise feature needs the full lifecycle. Rather than asking the user to hand-pick stages every time, AI-DLC ships **eleven named scopes** — each one a curated EXECUTE/SKIP verdict over the full stage set, paired with workflow defaults such as depth, test strategy, and an optional review ceiling. Pick the scope and the rest cascades.
 
-### 7.1 Two-Part Definition
+The eleven shipped scopes are `classic`, `enterprise`, `feature`, `mvp`, `poc`, `workshop`, `bugfix`, `refactor`, `security-patch`, `infra`, and `express`. The incremental scopes (`bugfix`, `refactor`, `security-patch`) and `poc`/`infra`/`express` never run `units-generation`, so they run Construction single-pass with nothing for the swarm to fan out across.
 
-1. **Scope file** — `core/scopes/aidlc-<name>.md` defines identity, metadata, defaults.
-2. **Stage membership** — Each stage's `scopes:` lists which scopes include it.
+For a harness engineer, a scope is pure data, authored the same way every other primitive is — as a file. Adding or tuning a scope requires no TypeScript.
 
-### 7.2 Scope File
+### 7.1 Two-part definition
+
+A scope is authored in two places, and the split is the whole idea: the scope's *identity* lives in its own file, and its *membership* (which stages run under it) lives transposed onto the stages.
+
+1. **The scope file** — `core/scopes/aidlc-<name>.md`. One file per scope, mirroring `core/sensors/`. The `feature` scope's frontmatter looks like this:
 
 ```yaml
 ---
 name: feature
 depth: Standard
 keywords: []
-description: "Full lifecycle for new features at practical depth"
+description: Full lifecycle for new features, practical depth
 skeleton: on
 runner: true
 guard_policy: off
@@ -380,63 +565,129 @@ summary_confirmation: on
 plan_approval: on
 collaborators: off
 ---
+
 # feature scope
 
-Description...
+The full-lifecycle scope for new feature work at practical depth. ...
 ```
 
-### 7.3 Key Fields
-
-| Field | Required | Purpose |
-|---|---|---|
-| `name` | Yes | Scope key |
-| `depth` | Yes | `Minimal`, `Standard`, or `Comprehensive` |
-| `testStrategy` | No | Overrides test volume; defaults to match depth |
-| `review_cap` | No | `adversarial`, `advisory`, or `none`; can only lower |
-| `keywords` | No | Hints for freeform `/aidlc <text>` |
-| `description` | No | One-liner for `/aidlc --help` |
-| `skeleton` | No | `on` opts into walking-skeleton when scope-dependent |
-| `existing_code` | No | `true` if targets existing code (affects project detection) |
-| `runner` | No | `true` includes in default scope-runner set |
-| `freeform_default` | No | `true` nominates fallback; at most one enabled |
-| `guard_policy` | No | `strict`, `relaxed`, or `off` (memory can override) |
-| `sensors`/`learnings`/`summary_confirmation` | No | Ceremonies on/off (defaults on) |
-| `plan_approval` | No | Require approval before code plan generation |
-| `collaborators` | No | `off` runs lead-only (empty effective support agents) |
-
-### 7.4 Membership on Stages
+2. **The membership tag** — each stage's `scopes:` frontmatter, in `core/aidlc-common/stages/<phase>/<slug>.md`:
 
 ```yaml
 scopes:
-  - feature
-  - bugfix
   - enterprise
+  - feature
+  - mvp
 ```
 
-If active scope is listed, stage executes.
+A stage that names a scope is `EXECUTE` under it; absence is `SKIP`. Packaging *transposes* every stage's `scopes:` list into the compiled EXECUTE/SKIP grid at `<harness-dir>/tools/data/scope-grid.json`. The grid is an ignored generated projection that the runtime reads; you never hand-edit or commit it. The 3 initialization stages name every scope (they always run).
 
-### 7.5 Resolution Order
+### 7.2 The scope frontmatter fields
 
-1. Global kill switches (`AIDLC_DISABLE_*`)
-2. Valid per-intent flags (`/aidlc --sensors off`, etc.)
-3. Memory layer (`org/team/project.md`) — can lock (e.g. `guard_policy: strict`)
-4. Scope defaults
-5. Built-ins
+| Field | Required | What it does |
+|---|---|---|
+| `name` | Yes | The scope name. Core files use `aidlc-<name>.md`; plugin scope files use a stem equal to `name`. |
+| `depth` | Yes | The default detail level — `Minimal`, `Standard`, or `Comprehensive`. |
+| `testStrategy` | No | Overrides test volume independent of depth. Defaults to matching `depth`. |
+| `review_cap` | No | Maximum review class under this scope: `adversarial`, `advisory`, or `none`. Absence means no scope-level lowering. A cap can lower but never raise a stage's `review_class`; a per-work `--review` level replaces the cap for that piece of work; autonomous swarm reviews retain the stage's declared class. |
+| `keywords` | No | Hint words the agent reads when it proposes a plan for `/aidlc <freeform text>` (no tool matches them). Flat string lists may use block (`- item`) or flow (`[item, item]`) form; an empty list opts out. |
+| `description` | No | The one-liner rendered in `/aidlc --help`. |
+| `skeleton` | No | `on` opts the scope into the walking-skeleton ceremony when practices are scope-dependent; `off` or absence opts out. |
+| `existing_code` | No | `true` marks a scope that changes code that already exists, so a new project's custom plan runs on another scope when one fits; `false` or absence means the scope suits new work too. Any other value is rejected. |
+| `runner` | No | `true` includes the scope in the default generated scope-runner set. |
+| `freeform_default` | No | `true` nominates this scope as the selection-aware fallback when the preferred core default (`classic`) is not enabled. |
+| `guard_policy` | No | The scope's Guard Policy default — `strict`, `relaxed`, or `off`. Absence means off, so a plugin or composed scope that wants strict declares it. Shipped defaults are strict on `enterprise` and off on the rest. |
+| `sensors` | No | `on` or `off`; controls sensor execution and sensor gate checks. Absence means on. |
+| `learnings` | No | `on` or `off`; controls the stage learnings read/write ritual. Absence means on. |
+| `summary_confirmation` | No | `on` or `off`; controls the separate pre-output summary confirmation, not stage approval. Absence means on. Distinct from a stage's `required` / `if-present` declaration. |
+| `plan_approval` | No | `on` or `off`; whether the person is asked to approve each code plan before Code Generation builds it. `off` builds the plan as written after one line naming it and records `PLAN_APPROVAL_SKIPPED`. Absence means on. Shipped defaults are off on `express` and `poc` and on elsewhere. Only the person turns it off. |
+| `collaborators` | No | `on` or `off`; whether a stage runs with its support agents (collaborators) or lead-only. `off` makes the engine hand every stage an empty effective `support_agents`, so on every topology the lead runs alone — no mutually-blind subagent spokes, no mob round, and a pipeline's lead becomes its sole and final link (it authors the artifacts the chain would otherwise split). The stage's authored `support_agents` list is untouched, so flipping back on re-enables the full ensemble. Absence means on. Shipped defaults are on on `enterprise` and off on the other ten. |
 
-**Memory strict wins**: `Mode: strict` in memory overrides scope defaults and blocks chat/flag flips naming the source file.
+The loader rejects duplicate scope `name` values across files and names both files in the error. Invalid ceremony values are rejected with the file, key, and the two allowed values.
 
-### 7.6 Add or Tune
+### 7.3 The ceremony defaults, scope by scope
 
-**Add:** create scope file → add scope name to stages that should run under it → regenerate → `aidlc engine graph compile` → verify.
+Every shipped scope declares all five ceremony keys explicitly rather than leaning on the default:
 
-**Tune:** change defaults in scope file or adjust stage `scopes:` lists. Commit in `core/`.
+- `classic` declares sensors, learnings, and plan approval on and summary confirmation off. Its gated flow also caps reviews to one advisory pass and disables walking-skeleton ceremony, while explicit autonomy keeps the single pre-merge review.
+- `bugfix` declares sensors and plan approval on, learnings and summary confirmation off.
+- `express` declares all four of those off; `poc` declares plan approval off and the other three on.
+- The other seven declare those four on.
+- `collaborators` is on only on `enterprise` and off on every other scope.
 
-### 7.7 Validation
+Each ceremony has a per-intent override and a global kill switch:
 
-- Duplicate `name` across scope files → loader error naming both.
-- >1 `freeform_default: true` among enabled → compile error naming claimants.
-- Invalid enums → rejected with file/key + allowed values.
-- Unknown scope refs in stages don't hard-fail but simply exclude those stages—compile/inspect to be sure.
+| Ceremony | Per-intent override | Global kill switch |
+|---|---|---|
+| Sensors | `/aidlc --sensors on\|off` | `AIDLC_DISABLE_SENSORS=1` |
+| Learnings | `/aidlc --learnings on\|off` | `AIDLC_DISABLE_LEARNINGS=1` |
+| Summary confirmation | `/aidlc --summary-confirmation on\|off` | `AIDLC_DISABLE_SUMMARY_CONFIRMATION=1` |
+| Plan approval | `/aidlc --plan-approval on\|off` | `AIDLC_DISABLE_PLAN_APPROVAL_GUARD=1` |
+| Collaborators | `/aidlc --collaborators on\|off` | `AIDLC_DISABLE_COLLABORATORS=1` |
+
+Resolution is kill switch (`1`) → valid intent line → scope default → on.
+
+### 7.4 The judgment calls: depth, skeleton, existing code, guard policy
+
+**Depth and test strategy are independent.** Depth controls how much detail each stage's artifacts carry; test strategy controls how many tests get generated. Most shipped scopes leave `testStrategy` off so it inherits from `depth` — `classic` is Standard/Standard and `express` is Minimal/Minimal. `workshop` demonstrates the explicit split with Standard depth and Minimal testing. If your scope wants a split, declare both.
+
+**Walking-skeleton default.** The optional `skeleton:` field controls the scope-dependent walking-skeleton stance. `skeleton: on` means that when the team's `## Walking Skeleton` practices resolve to `scope-dependent`, Construction opens with the walking-skeleton ceremony for this scope. `skeleton: off` means the first Bolt runs as a regular Bolt. Absence defaults to off.
+
+**Scopes for existing code.** The optional `existing_code: true` field marks a scope that changes code that already exists (`bugfix`, `refactor`, and `security-patch` ship with it). A plan the composer tailors for a new project does not run on such a scope when a scope meant for new work fits, so new work is not recorded as a fix; and creating work on one in a folder that scans as a new project drops its Reverse Engineering and prints a note that the scope usually targets existing code.
+
+**Freeform default.** `freeform_default: true` lets an install nominate the scope used when the internal `classic` default is unavailable after plugin selection. The nomination is checked before the sole-enabled-plugin fallback, so a plugin with several scopes can choose its lean default instead of accepting the alphabetically first scope. At most one **enabled** scope may declare it; graph compilation fails and names every claimant when the selected core/plugin set contains more than one.
+
+**Guard Policy default.** `guard_policy` is the value a new intent on this scope starts with, written to its state file at creation as `- **Guard Policy**: <value> (from scope <name>)`. It decides two things:
+
+- **What happens when an input changes after a human approved or confirmed something** (a plan edited after approval, a reviewed document edited after its review, an output saved without the current summary confirmation). `strict` reopens that approval; `relaxed` and `off` record the change once, tell the human in one line, and continue. Workspace source that moved after a plan was approved is recorded and continued under every value.
+- **Which authority fences hold.** `strict` lowers none; `relaxed` lowers `plan-approval` and `review-freeze`; `off` lowers those two plus `state-transition` and `reviewer-scope`. `human-presence` is never lowered by the word.
+
+The human can change it for one intent by typing `/aidlc --guard-policy <value>` or by asking in their own words; either way the agent runs the setter, and lowering it to `relaxed` or `off` takes a message from the person since the last decision. To hold a value for everyone on the repo, do not edit eleven scope files: declare it once in memory (`## Guard Policy` with `Mode: strict` in `org.md`, `team.md`, or `project.md`). A memory `strict` wins over every scope default and refuses chat or flag flips by naming the file.
+
+`change_control` is the retired spelling of this key, read for one release and never written; a scope file naming both keys with different values is rejected naming the file and both values.
+
+### 7.5 How scopes relate to stages
+
+A scope and a stage point at each other from opposite ends. A **stage** declares its own identity — its phase, its lead agent, the artifacts it consumes and produces, and the scopes it runs under (its `scopes:` list). A **scope** declares its identity, routing metadata, and workflow defaults in its own `.md` file, with no per-stage membership inside it; membership lives on the stages. The binding between them is the scope name.
+
+That separation is the same data-versus-code line the rest of this guide rests on. The scope file is data about *identity*; the stage's `scopes:` list is data about *membership*; the compiled grid is the transpose of the two.
+
+### 7.6 Adding a team scope
+
+Suppose your team wants a `hotfix` scope — leaner than `bugfix`, for the urgent production patch where you want a regression test and a deploy, nothing else. The change is a new scope file, a `scopes:` tag on each stage that should run, and regenerated local projections.
+
+1. **Drop `core/scopes/aidlc-hotfix.md`.** Copy `aidlc-bugfix.md` (the closest existing scope) and edit the frontmatter: set `name: hotfix`, pick `depth`, add `keywords` as hints the agent reads when proposing a plan for freeform text (`[hotfix, urgent]`), a `description` for the help text, `skeleton: on|off`, keep `existing_code: true` from `aidlc-bugfix.md` since a hotfix changes code that already exists, `freeform_default: true` only if this is the selected install's unique fallback nomination, `testStrategy` only if it should diverge from `depth`, and `review_cap` only if the scope should lower stage reviews. Write a short prose body explaining the intent. Set `sensors`, `learnings`, and `summary_confirmation` to `off` only for ceremonies the scope should omit; absent keys stay on.
+2. **Tag the stages that should run under `hotfix`.** In each stage you want `EXECUTE` (under `core/aidlc-common/stages/<phase>/`), add `hotfix` to its frontmatter `scopes:` list. A stage you don't tag is `SKIP` for the scope. The 3 initialization stages must include it (they always run).
+3. **Regenerate.** Run `bun scripts/package.ts` to rebuild the ignored harness projections, including `scope-grid.json` and the compiled scope table. Run `bun scripts/package.ts --check` to confirm two independent source-only builds are byte-identical.
+4. **Verify the scope resolves and is accepted.** Run `/aidlc --doctor`. Then confirm an init under the new scope produces a state file with the right `Scope:` line, and that it's accepted as an env default and as a mid-workflow `--scope` change.
+5. **Check the plan's hints** (only if you populated `keywords`; the agent reads them in the plan proposal step, no tool matches them).
+6. **Update the scope-aware docs and add a routing test.** Several docs enumerate scopes by hand — the User Guide's scope reference and routing table, the customization chapter's valid-values list, and the orchestrator reference's scope-to-stage mapping. Update them in the same change.
+7. **(Optional) Generate a typeable runner.** A scope is fully usable via `/aidlc --scope <name>` the moment its file lands; no runner is needed. If you want a one-word command (`/aidlc-hotfix`), add `runner: true` to the scope frontmatter and run `aidlc engine gen runner-scopes`; `aidlc engine gen runner-scopes --all` emits `skills/aidlc-<scope>/SKILL.md` for every scope file regardless of that flag.
+
+### 7.7 Tuning an existing scope
+
+Tuning is a smaller edit, but it lands on the stage, not the scope. Two changes come up often:
+
+- **Flip a stage in or out.** Add or remove the scope name from a stage's `scopes:` list. This is how you'd add `mvp` to `observability-setup`'s `scopes:` because your team always wires monitoring even for a first cut. One tag, then regenerate with `bun scripts/package.ts` and run `--doctor`.
+- **Change a default depth, test strategy, or review ceiling.** Adjust `depth`, add/remove `testStrategy`, or add/remove `review_cap` in the scope's frontmatter. The first two recalibrate artifact and test volume; `review_cap` lowers stage review classes without ever raising them.
+- **Change a ceremony default.** Set `sensors`, `learnings`, `summary_confirmation`, `plan_approval`, or `collaborators` to `on` or `off` in the scope file. Existing intent lines retain their choice; a scope change refreshes scope-sourced lines but preserves per-intent overrides. Apart from `plan_approval: off` and `collaborators: off`, no ceremony switch removes stage approval, human-turn authority, audit, team write protection, or the reviewer.
+
+A note on layering: tuning the shipped scopes edits framework-shipped files directly. That's legitimate for a fork that wants different defaults, but a framework upgrade may want to reconcile them. Adding a net-new scope file alongside the shipped eleven is the cleaner path when you want a team-specific behavior without touching the defaults everyone else relies on.
+
+### 7.8 What validates automatically vs. what you check
+
+**Automatic:** the valid-scope list is derived from `scopes/*.md` presence at runtime through `validScopes()`, so a new file is valid everywhere at once — `init`, `--scope` change, env-default resolution, and `doctor` all consult the same helper. Error messages list your scope in alphabetical order with no change. Packaging always derives the grid from the current stage YAML, so stale local generated bytes are not release inputs.
+
+**Check yourself:**
+
+- **A `scopes:` tag with a typo'd scope name still parses.** A stage naming `hotfx` instead of `hotfix` compiles cleanly — it just produces a grid column nobody asks for. But a mistyped tag on a stage silently drops that stage from the real scope. `/aidlc --doctor` and a per-scope test are the guardrails.
+- **A stale local projection can mislead manual inspection.** If you edit a stage's `scopes:` and keep using an old ignored `dist/` tree, that local runtime still contains the old grid. Regenerate before local runtime checks.
+- **Per-scope phase-sequence coverage.** The shipped phase-sequence test iterates a hardcoded list of the known scope names; add your scope to it in the same change.
+- **The hand-maintained docs.** The User Guide's stage-by-scope matrix and scope routing table are checked against the compiled grid (`t244-scope-matrix-doc-sync`), so a new scope fails that test until its column and row are there.
+
+### 7.9 Where saved scopes come from (runtime, not authored)
+
+The transpose above is the mechanism for *authored* scopes. A scope saved at runtime from a composed plan (`scope save`) has no stage declaring it, so it cannot be transposed: its durable definition lives in the user's own tree at `aidlc/scopes/<name>.md` and compile projects it into the harness grid. You do not author those. A composed plan the person does not save writes no scope at all: it runs on a stock scope with its own stage changes recorded in that piece of work's state.
 
 ## 8. Rules and the Learning Loop
 
