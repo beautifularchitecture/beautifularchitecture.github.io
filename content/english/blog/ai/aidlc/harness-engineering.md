@@ -289,6 +289,18 @@ stage-graph.json is out of date. Run `aidlc engine graph compile` to regenerate.
 
 **The rule: do not hand-edit `stage-graph.json`.** Edit the YAML, recompile. A hand-edit either gets clobbered by the next compile or trips the drift check.
 
+<details>
+<summary>Which command should I run?</summary>
+
+These commands are for different environments; you do not normally run both:
+
+- **When editing AIDLC itself:** the AIDLC source repository is the repository where AIDLC is developed and maintained, rather than a project that uses an installed copy. Editing stage frontmatter under `core/` is harness engineering; running `bun scripts/package.ts` from that repository's root is the developer/build step that packages the change and compiles the graph into each generated harness tree.
+- **When working in a project with AIDLC already installed:** run `aidlc engine graph compile` from that project only when its local stage files or plugin composition have changed and its graph needs updating. Run `aidlc engine graph compile --check` to check for an outdated graph without regenerating it.
+
+In short: harness engineering changes AIDLC's source; the packaging script builds those changes. Compile local changes in an installed project separately—the installed-project command is not an extra step after packaging.
+
+</details>
+
 ### 4.6 What a Stage *Contains* versus What It *Does*
 
 This section is about what a stage file *contains* — its format ([Stage Definition](https://github.com/awslabs/aidlc-workflows/blob/main/docs/reference/15-stage-definition.md)). A companion contract covers what a stage *does* at runtime: the approval gate, the question flow, the state checkboxes, the completion message. That behavioural contract is the same for every stage regardless of domain, and it lives in [Stage Protocol](https://github.com/awslabs/aidlc-workflows/blob/main/docs/reference/04-stage-protocol.md). When a stage body says "follow stage-protocol.md for approval gates," that's the contract it points at.
