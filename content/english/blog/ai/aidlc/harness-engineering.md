@@ -691,172 +691,352 @@ The transpose above is the mechanism for *authored* scopes. A scope saved at run
 
 ## 8. Rules and the Learning Loop
 
-**Rules** are standing "how" decisions that apply to every workflow. They encode conventions, constraints, preferences. **Knowledge** (§10) is "what" (context). **Sensors** (§9) are deterministic checks.
+**Rules** are the standing decisions your team carries into every workflow — the "always do it this way" you would otherwise re-explain at the start of each run. As a harness engineer you author them in two ways: by editing a rule file directly, or by letting the **learning loop** promote an in-workflow correction into a durable rule for you.
 
-### 8.1 Where Rules Live
+Rules are the **feedforward** half of the control loop — prose the agent reads *before* it works. [Sensors](#9-sensors) are the **feedback** half — deterministic checks that fire *after* a write. A rule can name a sensor as its companion; the two halves are designed to pair. **Knowledge** ([§10](#10-team-knowledge)) is "what" (context an agent weighs); rules are "how" (decisions the framework enforces).
 
-Runtime space memory:
+### 8.1 The five layers, and which file you edit
 
-```
-aidlc/spaces/<space>/memory/
-├── org.md      # Org/framework defaults
-├── team.md     # Team affirmed practices
-└── project.md  # Project overrides
-```
+Rules live as Markdown files under `core/memory/` (the authored source for the space memory layer), one file per scope. There is no `scope:` frontmatter field — this implementation derives scope from the filename, so the file you pick *is* the scope you author at:
 
-Framework baseline patterns live in `core/memory/`. Phase guidance in `core/memory/phases/<phase>.md`. Space memory is team/project editable and takes precedence in practice (project > team > org on conflicts).
+| You want a rule that applies to… | Edit | Scope |
+|---|---|---|
+| every project at your organization | `org.md` | org (framework default) |
+| every project your team runs | `team.md` | team |
+| this one project | `project.md` | project |
+| every stage in one phase | `phases/<phase>.md` | phase |
 
-### 8.2 Authoring Rules
+The four phase files are `phases/ideation.md`, `phases/inception.md`, `phases/construction.md`, and `phases/operation.md` (initialization is bootstrap-only and ships no rule file). A fifth layer — per-stage rules (`aidlc-stage-<slug>.md`) — is reserved for a future release; you cannot author one yet.
 
-Write clear, actionable Markdown. Prefer concrete over vague.
+Two judgment calls drive which file you reach for:
+
+- **`org.md` is framework-shipped.** It carries the defaults every project inherits — trunk-based development, the walking-skeleton policy, the testing posture per scope. Treat it as upstream. Most harness engineers leave it alone and author at team or project.
+- **Project scope is for durable deviation, not for everything.** Reach for `project.md` only when *this* project stably departs from team-wide practice — a monorepo that rebases where the team squashes, a legacy project that skips the test floor. If the rule would help every project your team runs, it belongs in `team.md`.
+
+Each file is plain prose under topical headings — `## Way of Working`, `## Testing Posture`, `## Deployment`, `## Code Style`, and so on. You add a rule by adding a bullet under the heading it belongs to.
+
+At runtime the authored `core/memory/` files are the source for the space memory layer. The team/project files you edit live in the project at `aidlc/spaces/<space>/memory/` — space memory is team/project editable and takes effect next step, with no rebuild needed. Layer precedence on conflicts: project > team > org.
+
+### 8.2 Holding Guard Policy for the whole repo
+
+One heading in these files is read as a structured setting rather than prose: `## Guard Policy`. It decides how far the guards stand aside for work in this space, in two respects — the same two respects a scope's `guard_policy` decides ([§7.4](#74-the-judgment-calls-depth-skeleton-existing-code-guard-policy)):
+
+- **When an input changes after a human approved or confirmed something:** `strict` reopens that approval; `relaxed` and `off` record the change once, tell the human in one line, and continue. Workspace source that moved after a plan was approved is recorded and continued under every value.
+- **Which authority fences hold:** `strict` lowers none; `relaxed` lowers `plan-approval` and `review-freeze`; `off` lowers those two plus `state-transition` and `reviewer-scope`. `human-presence` is never lowered by the word.
+
+By default each intent takes its scope's value. To hold `strict` for everyone, put one line under the heading in `team.md` (or `org.md`, or `project.md` for one project):
 
 ```markdown
-## Coding Standards
-- Always use TypeScript strict mode
-- Prefer named exports over default exports
-- Never log secrets or keys
+## Guard Policy
 
-## Review Expectations
-- All public APIs must have docstrings
-- Breaking changes require explicit justification
+Mode: strict
 ```
 
-### 8.3 Learning Loop: Corrections → Rules or Sensors
+A `Mode: strict` in any layer wins over the scope default and over the intent's own line; a chat or flag flip to `relaxed` or `off` is then refused with a sentence naming this file. `Mode: relaxed` and `Mode: off` set the policy for every intent whose value came from its scope, the narrowest layer that declares one winning (`project.md`, then `team.md`, then `org.md`); a value the person set for one intent keeps it. Leaving the section empty changes nothing. Any other value is a validation error naming the file and the three allowed values. The line is read with the same `Field: value` grammar as `## Testing Posture`, commented-out lines included: a `Mode:` inside an HTML comment declares nothing.
 
-1. **Detect** — Human corrects/rejects.
-2. **Capture** — What's wrong, why, correct form.
-3. **Propose** — Promote to **rule** ("always do") or **sensor** (deterministic check).
-4. **Confirm** — Human approves writing to memory or adding sensor.
-5. **Apply** — Future runs see it.
+A layer holding `strict` also refuses `/aidlc config set guard.<fence> off`, naming the memory file in the refusal, and forces any fence lowered earlier back on while that line stands. A machine-wide kill switch still takes precedence; turning a fence `on` remains allowed.
 
-This teaches AI-DLC your team's preferences over time without hardcoding.
+The retired heading `## Change Control` is still read for one release, so a space whose memory files predate the rename keeps working; a section under the new heading wins when a file carries both.
 
-### 8.4 Guard Policy in Rules
+### 8.3 Strict-additive: layers stack, none silently overrides
 
-`## Guard Policy` with `Mode: strict|relaxed|off` in memory:
+The chain resolves through four layers today, with a fifth reserved:
 
-- `strict` — Wins over scope defaults; blocks chat/flag flips (names file).
-- `relaxed`/`off` — Replaces scope defaults for that layer.
+```text
+org -> team -> project -> phase      (stage: reserved, not authorable yet)
+```
+
+The model is **strict-additive**. Every applicable rule appears in the agent's context at once — nothing is dropped or suppressed at runtime. Org defaults, team practices, and project specialization concatenate; the matching phase rule attaches because the stage already declares its `phase:` in frontmatter. Which files apply to each stage is baked into its graph node when the graph is compiled, and the runtime never re-walks the chain; the selected files' current text is read before each stage delivery.
+
+What this means for you as an author: there is no `overrides:` block and no `enforcement:` keyword to set. A narrower layer does not quietly win over a broader one. Instead, every layer you write is present in the agent's view simultaneously. State a rule positively at the scope where it should apply, and trust it to stack with the layers above rather than reaching for a switch to suppress them.
+
+#### Conflicts are checked before learning writes, not resolved at runtime
+
+Because nothing overrides at runtime, a rule that *contradicts* a broader-scope rule would be a problem the resolver could not untangle. The learning-loop protocol addresses that by asking the orchestrator to run a section-level LLM check before a selection reaches the deterministic writer. When a team- or project-scope learning is being added under a given `## Heading`, the orchestrator compares the proposed text against `org.md`'s same heading. If it finds a contradiction, it surfaces the org sentence and offers three choices — **revise**, **skip**, or **escalate** to the org-rule owner. Only conflict-clear or user-escalated selections proceed. Project-tier writes check against org only, since team-versus-project differences are legitimate project specialization, not a policy violation.
+
+The deterministic `aidlc-learnings.ts persist` writer does not read `org.md` or independently enforce this comparison; it accepts the selections it receives. The check is an audit aid, not an enforcement boundary. Two read-only `/aidlc --doctor` rows surface state after the fact: a **rule-drift** row flags headings where team or project content overlaps a populated org heading (a candidate contradiction for a human to verify), and a **paired-coverage** row reports how many rules name a sensor that actually resolves. Both are advisory and never change the exit code.
+
+### 8.4 Operating the learning loop
+
+The other way a rule gets authored is that you never open a file — you correct an agent during a workflow, confirm the correction at a gate, and the framework writes it for you. That is the learning loop. Most stage runs add nothing, which is healthy; the loop fires only when something during the stage is worth keeping.
+
+1. **The diary records during the stage.** The conductor keeps an observation log at `<record>/<phase>/<stage>/memory.md` (under the intent's record dir, `aidlc/spaces/<space>/intents/<YYMMDD>-<label>/`), with entries under four headings — Interpretations, Deviations, Tradeoffs, Open questions. It is auto-created and maintained for you; never hand-edit it. The language model writes the diary, and the orchestrator later performs the admission comparison.
+2. **The gate surfaces candidates.** Before the approval gate the learning gate reads `memory.md` and shows each Interpretation, Deviation and Tradeoff entry verbatim as a candidate (each entry is one line; Open questions are never offered), then always asks "Anything to add for next time?", where you can add a note in your own words and pick which of the four headings it belongs under.
+3. **You confirm what to keep, and it writes.** A confirmed learning lands as a dated entry — you never pick a file path; the heading determines the destination.
+
+#### Where a kept learning lands
+
+A confirmed learning *is* a practice: it lands in the same space memory files practices-discovery affirms (`aidlc/spaces/<active-space>/memory/team.md` / `memory/project.md`) — there is no separate `*-learnings.md` surface. The gate routes it by topical heading:
+
+| Heading at the gate | Lands in | Audit event |
+|---|---|---|
+| Interpretation / Deviation / Tradeoff | `aidlc/spaces/<active-space>/memory/project.md` (default) | `RULE_LEARNED` |
+| same, promoted one click | `aidlc/spaces/<active-space>/memory/team.md` | `RULE_LEARNED` |
+| Open question | nothing — research items don't promote | — |
+
+The default scope is **project**, the narrowest. A one-click "promote to team" affordance widens a learning to `memory/team.md` when the lesson applies beyond this project. There is no widen-to-org path — org practices are framework-shipped or organization-authored through a separate process, so the loop never writes at org scope. The learning loop and practices-discovery write into these same files by two different lifecycles: the loop appends one dated entry at a time, practices-discovery affirms whole sections.
+
+#### When the learning is a check, not a rule (`SENSOR_PROPOSED`)
+
+Sometimes the thing worth keeping is a *recurring manual check* — you keep eyeing a stage's output for the same gap. When you confirm that kind of learning at the gate, the framework treats it as a sensor binding rather than a rule. It does a two-write install atomically: it scaffolds a sensor manifest under `.claude/sensors/` and appends the new sensor's id to the originating stage's `sensors:` import list, leaving a `SENSOR_PROPOSED` audit row. That is the one sanctioned edit to a stage file outside a framework release — only the import list grows; the stage body is never touched. From there you flesh out the manifest by hand using [Sensors](#9-sensors) — the loop scaffolds the binding; you author the check.
+
+### 8.5 Learnings apply from the next stage delivery
+
+A learning captured at a gate lands in an already-selected rule file (`project.md` or `team.md`), and the engine re-reads the selected files' text before each stage delivery. So the rule reaches the agent at the next applicable stage of the current run, and every later workflow. What waits is the selection itself: a brand-new rule file enters the directory walk, and a new Sensor binds, only when the stage graph is next compiled.
+
+The same holds when you author by hand: editing `team.md` mid-workflow reaches the next stage delivery of the run in progress (it does not retroactively change stages already run). Sensor configuration is different from rule text: part of it lives in the compiled graph and part is read again at fire time. To make a Sensor edit — a new Sensor or a change to an already-bound one — take effect predictably, recompile the stage graph. One exception no recompile can reach: on a native install the bundled Sensors' workers are selected by id, so editing a bundled manifest's `command` runs nothing different — a changed check there needs its own Sensor id.
+
+### 8.6 Quick decision guide
+
+- "Always do X" → a **rule** in space memory (`aidlc/spaces/<active-space>/memory/`), where the framework holds the agent to it.
+- "Here's X context" → **knowledge** under `aidlc/knowledge/` ([§10](#10-team-knowledge)).
+- "Verify X objectively" → a **sensor** ([§9](#9-sensors)).
+- If a check is deterministic, prefer a sensor over a prose rule.
+- Use `project.md` for one-off constraints, `team.md` for cross-project practice.
+- Be explicit about "never" vs "avoid" and about conflict resolution.
 - One owner per rule; avoid unintentional duplication.
-
-### 8.5 Editing Safely
-
-- Space memory (`aidlc/spaces/.../memory/`) for team/project rules—no rebuild needed.
-- Use `project.md` for one-off constraints, `team.md` cross-project.
-- If checkable deterministically, consider a **sensor** instead of prose rule.
-- Be explicit about "never" vs "avoid" and conflict resolution.
-
-### 8.6 Effects
-
-Space memory edits take effect next step. `core/memory/phases/*.md` is framework source—edit in `core/` and regenerate if shipping changes. Layer precedence: project > team > org.
 
 ## 9. Sensors
 
-**Sensors** are deterministic checks bound to stages. They verify objective criteria and return **advisory** or **blocking** results. Run on matching writes or at approval gates.
+A **sensor** is a deterministic check that fires automatically on matching writes or at the stage's approval gate. Where a rule is prose the agent reads, a sensor is code that runs — the feedback half of the control loop to the rules' feedforward half. A rule says "user stories follow Given/When/Then"; a sensor verifies, byte for byte, that the required headings are present in the file the agent just wrote.
 
-### 9.1 Location
+### 9.1 What a sensor is
 
-`core/sensors/<id>.md`
+A sensor manifest is a Markdown file with YAML frontmatter, dropped under `core/sensors/`. The frontmatter is a pure **capability descriptor** — it says what the check is and how to invoke it. It says nothing about which stages use it. That binding lives on the stage side, which is the central idea of this section.
 
-Shipped examples: `aidlc-required-sections`, `aidlc-claim-sources`, `aidlc-upstream-coverage`, `aidlc-traceability`, `aidlc-linter`, `aidlc-type-check`.
+Three properties define the runtime behavior:
 
-### 9.2 Manifest
+- **`fire_on: write` runs during authoring.** The `PostToolUse` hook runs each matching sensor after a Write or Edit. This is the default when `fire_on` is omitted.
+- **`fire_on: gate` runs once per deliverable.** Immediately before `gate-start` opens its state transaction, the state tool fires each gate-bound sensor once for every existing declared deliverable path (`upstream-coverage` and `claim-sources`, which read the whole stage's output, once per output folder). A gate the engine approves itself under Construction autonomy fires only blocking sensors, since advisory evidence has no reader there.
+- **Severity controls gate enforcement.** `advisory` outcomes are recorded and the gate still opens. A `blocking` binding requires a verified pass: findings, unavailable tools, script/dispatcher errors, malformed verdicts, and timeouts stop gate entry. An override is a separate logged human decision, not a bare flag, and is forbidden in autonomous mode. Blocking enforcement applies only to `fire_on: gate` in this release; a write-fired sensor may declare `blocking`, but its result remains advisory.
+
+Each fire leaves a row in the intent's `audit/` shards. The event names — exact casing matters when you grep the log — are **`SENSOR_FIRED`** when a sensor starts, **`SENSOR_PASSED`** when it clears, and **`SENSOR_FAILED`** when it finds a gap. A failed row links to a detail file under `<record>/.aidlc-engine/sensors/<stage-slug>/` that names the specific gap: the missing headings, the unreferenced upstream artifact, the lint error.
+
+### 9.2 The six sensors that ship
+
+Six manifests ship under `sensors/`, each prefixed `aidlc-`:
+
+| Manifest | Dispatch | Checks |
+|---|---|---|
+| `aidlc-claim-sources.md` | Gate | Every Intent Capture claim carries a resolvable source tag; registered description, scope, and memory values match authoritative inputs; retained assumptions exactly match explicit human confirmation |
+| `aidlc-required-sections.md` | Gate | The output carries the required H2 headings — a generic content-shape check. Timestamp run records (`*-timestamp.md`) always pass |
+| `aidlc-upstream-coverage.md` | Gate | The stage's deliverables (evaluated as a set) reference each upstream artifact the stage declares it requires (`required: true`) or marks `cited: true`, by slug, wikilink, or the producing stage's directory path |
+| `aidlc-traceability.md` | Write: `**/traceability.json` | Validates stable upstream IDs, statuses, deterministic targets, and derived business-rule orphans |
+| `aidlc-linter.md` | Write: `.ts` / `.js` | Wraps your configured linter (ESLint by default) |
+| `aidlc-type-check.md` | Write: `.ts` / `.tsx` | Wraps your configured type-checker (`tsc` by default) |
+
+All six are gated by a `matches:` glob: the provenance check and two document-shape checks scope to the artifact tree (the shipped manifests carry `**/{aidlc-docs,intents}/**`, with the legacy `aidlc-docs/` arm kept for a pre-migration project), traceability scopes to `**/traceability.json`, and the two code-quality checks to their language globs (`**/*.{ts,js}`, `**/*.{ts,tsx}`). Read `aidlc-required-sections.md` end to end before authoring your own — it is the smallest of the six and shows the whole shape, frontmatter plus prose body.
+
+### 9.3 How binding works: pull authoring
+
+A manifest carries **no stage-targeting field**. There is no `applies_to:` — the framework deliberately removed it. A stage decides what fires on its outputs by naming the sensor in its own frontmatter:
 
 ```yaml
+# core/aidlc-common/stages/construction/ci-pipeline.md (frontmatter, other keys left out)
 ---
-id: aidlc-required-sections
-title: "Required Sections Check"
-description: "Verifies required sections exist in key artifacts"
-applies_to: ["artifact.spec", "artifact.plan"]
-on: gate
-binding: advisory  # or blocking
----
-# aidlc-required-sections
-
-## Check Logic
 ...
-
-## Failure Message
-...
-
-## Remediation
-...
-```
-
-### 9.3 Bind to Stages
-
-```yaml
 sensors:
-  - sensor: aidlc-required-sections
-    on: gate
-    binding: advisory
-  - sensor: aidlc-linter
-    on: write
-    binding: blocking
+  - required-sections
+  - upstream-coverage
+  - linter
+  - type-check
+...
+---
 ```
 
-- `sensor` — references sensor `id`
-- `on` — `gate`, `write`, or other supported events
-- `binding` — `advisory` (warn, proceed) or `blocking` (must pass)
+This is **pull authoring**, and it is the same direction as every other binding in the harness model: the consumer (the stage) names the capability (the sensor), never the reverse. The `sensors:` list holds **bare ids** — `linter`, not `aidlc-linter` — because the id matches the manifest's frontmatter `id:` field, which equals the filename stem with the `aidlc-` prefix stripped.
 
-### 9.4 Add a New Sensor
+The payoff is locality of reference. Open a stage file and you see exactly which checks fire when that stage runs — you do not have to scan every manifest hunting for one that claims to target this stage.
 
-1. **Design deterministically** — regex, file presence, counts, command output. No LLM.
-2. **Create manifest** — `core/sensors/<id>.md` with frontmatter + logic/fail/remediation.
-3. **Bind to stages** — Add to relevant stage(s) only.
-4. **Regenerate + compile** — `bun scripts/package.ts` → `aidlc engine graph compile`.
-5. **Test** — Verify advisory vs blocking behavior.
+When the graph compiles, the resolver walks `sensors/`, indexes every manifest by id, and for each stage looks up each declared import, throwing loudly at compile time if an id has no manifest, rather than failing silently when the stage runs. Which sensors a stage imports is baked onto its graph node, and so is each manifest's `matches`, which the write hook uses to decide whether a sensor fires. The dispatcher reads the manifest again each time a sensor fires, so a changed `command` or `timeout_seconds` applies from the next fire, while a changed `matches` and a new import wait for the next compile. Recompile after any sensor edit for predictable behaviour. On a native install the six shipped sensors' workers are picked by id, so editing a shipped manifest's `command` runs nothing different; a different check needs its own id.
 
-### 9.5 Guidelines
+### 9.4 Authoring a new sensor
 
-- **Deterministic only** — If needs semantic judgment, use rule/gate.
-- **Clear failures** — Name exact issue + how to fix (file/section/command).
-- **Least blocking** — Start advisory; promote to blocking only if correctness non-negotiable.
-- **Scoped binding** — Only where `applies_to` artifacts appear.
-- **Idempotent** — Safe to run multiple times.
-- **One owner** — Don't duplicate same invariant.
+Adding a sensor is two writes: the manifest, then the binding.
 
-### 9.6 Validation
+**1. Drop a manifest at `core/sensors/aidlc-<id>.md`.** The filename stem (minus the `aidlc-` prefix) must equal the frontmatter `id:`. The `aidlc-` filename prefix is mandatory for every sensor, custom ones included — the compile resolver discovers manifests with `SENSOR_FILE_REGEX = /^aidlc-([a-z][a-z0-9-]*)\.md$/` and silently skips any file without the prefix, so it is never discovered and never binds to a stage.
 
-Filename/id consistency compile-time hard error. Unknown sensor ref in stage fails validation. Invalid `binding`/`on` rejected.
+The frontmatter has five required fields and a handful of optional ones:
+
+| Field | Required | What it is |
+|---|---|---|
+| `id` | Yes | kebab-case; equals the filename stem minus `aidlc-` |
+| `kind` | Yes | `deterministic` is the only accepted value today |
+| `command` | Yes | the canonical invocation prefix the dispatcher runs |
+| `default_severity` | Yes | `advisory` or `blocking`; blocking is enforced only for gate dispatch |
+| `description` | Yes | one-line human description |
+| `category` | No | free-form label (the shipped manifests use `document-shape`, `code-quality`) |
+| `fire_on` | No | `write` or `gate`; defaults to `write` |
+| `matches` | No | write-path filter; for gate dispatch, an omitted glob accepts every declared deliverable |
+| `input_schema` | No | declares the `file_path`/`output_path` key the dispatcher appends |
+| `output_schema` | No | declares the worker's JSON contract |
+| `timeout_seconds` | No | bounds the worker's run |
+
+The `command:` is a **prefix**, not the full argv. The dispatcher appends the runtime context at fire time: always `--stage <slug>`, then the file flag the manifest's `input_schema` declares. A sensor that declares a `file_path` key gets `--file-path <path>` (the code sensors, such as `linter` and `type-check`); one that declares other keys gets `--output-path <path>` (the document sensors). A code sensor you add must declare `file_path` under `input_schema:`, or its script receives `--output-path`.
+
+**2. Bind it by adding the id to a stage's `sensors:` list.** A manifest sitting in the directory does nothing until a stage imports it. Open the stage you want the check to fire on, add the bare id to its frontmatter `sensors:` list, and the binding takes effect at the next compile. To run a sensor on several stages, add the id to each one — strict-additive, no override layer to reason about. To stop a sensor firing on a stage, remove the id from that stage. The manifest never changes; only the import lists do.
+
+#### A complete example
+
+A gate sensor that fails while a document still says TBD. The manifest, `aidlc-no-tbd.md` in the sensors folder:
+
+```markdown
+---
+id: no-tbd
+kind: deterministic
+command: bun .claude/tools/aidlc-sensor-no-tbd.ts
+default_severity: advisory
+description: The document has no TBD left in it
+category: document-shape
+fire_on: gate
+matches: "**/intents/**"
+input_schema:
+  output_path: string
+  stage_slug: string
+output_schema:
+  pass: boolean
+  findings: string[]
+  findings_count: number
+timeout_seconds: 60
+---
+
+# no-tbd
+
+Fails when a stage output still says TBD, listing each line that does.
+```
+
+and its worker, `aidlc-sensor-no-tbd.ts` in the tools folder. A worker exports `main(argv)` (the native engine imports the file and calls it; the last line runs it under Bun), reads the path after `--output-path`, and prints one JSON line with `pass`, its findings, and `findings_count`, the number the audit row records (without it the row says 0); it exits 0 whatever it finds:
+
+```ts
+// no-tbd sensor: print {"pass", "findings", "findings_count"} for the file after --output-path.
+import { readFileSync } from "node:fs";
+
+export function main(argv: string[]): void {
+  const file = argv[argv.indexOf("--output-path") + 1];
+  const lines = readFileSync(file, "utf-8").split("\n");
+  const findings = lines.flatMap((line, i) => (/\bTBD\b/.test(line) ? [`line ${i + 1}: ${line.trim()}`] : []));
+  console.log(JSON.stringify({ pass: findings.length === 0, findings, findings_count: findings.length }));
+}
+
+if (import.meta.main) main(process.argv.slice(2));
+```
+
+Add `no-tbd` to a stage's `sensors:` list and recompile. In an installed Claude Code tree, the engine describes it and fires it by hand against a file with a TBD line:
+
+```text
+$ aidlc engine sensor describe no-tbd
+id: no-tbd
+kind: deterministic
+command: bun .claude/tools/aidlc-sensor-no-tbd.ts
+default_severity: advisory
+description: The document has no TBD left in it
+category: document-shape
+matches: **/intents/**
+timeout_seconds: 60
+path: .claude/sensors/aidlc-no-tbd.md
+
+$ aidlc engine sensor fire no-tbd --stage glossary-capture --output-path aidlc/spaces/default/intents/261013-lab/inception/glossary-capture/glossary.md
+{"fire_id":"cd665332","sensor_id":"no-tbd","stage":"glossary-capture","output_path":".../glossary.md","result":"failed","detail_path":"aidlc/spaces/default/intents/.aidlc-engine/sensors/glossary-capture/no-tbd-cd665332.md"}
+```
+
+The detail file lists the finding the worker printed, and the audit shard gets a `SENSOR_FAILED` row naming the fire id, sensor id, stage slug, output path, detail path, and findings count. After the line is fixed, the next fire reports `"result":"passed"` and the earlier detail file is removed. A worker that exits non-zero is recorded as a pass with a note such as `"note":"script-error: exit-1"`, so check that note when a new sensor never fails.
+
+### 9.5 Judgment calls: `fire_on`, `matches`, and `default_severity`
+
+Most of the manifest is mechanical. Two fields carry the real authoring judgment.
+
+**`fire_on` — when is the useful checking boundary?** Use `write` for fast, incremental feedback where repeated checks are useful. Use `gate` for whole-deliverable or cross-file checks that should run once against the final stage output. Omission means `write`.
+
+**`matches` — what shape of file should this analyze?** For `fire_on: write`, this glob is the fire filter and is effectively required: the hook fires only when the written path matches, and an entry with no `matches` never fires. For `fire_on: gate`, the state tool applies the same capability check to each existing declared deliverable and dispatches only matching files; omitting `matches` accepts every one. The code-quality sensors set it to code globs so they fire only on code writes and stay quiet on prose; the document-shape sensors scope to the artifact tree so they fire on any markdown artifact a stage writes. Decide the file shape your check is meaningful for, and write the narrowest glob that covers it. An empty `matches: ""` is rejected at parse time.
+
+**`default_severity` — signal or enforcement.** `advisory` records outcomes and continues. `blocking` stops a gate-fired sensor unless the dispatcher returns a verified pass; findings, unavailable evaluation, malformed output, and timeout all refuse. The operator may fix the issue or explicitly select `Override blocking sensors` from the logged two-choice prompt, then retry with the flag and exact `--user-input`. Autonomous mode cannot override. Blocking on write-fired sensors is accepted by the schema but remains advisory in this release.
+
+### 9.6 When the learning loop installs a sensor for you
+
+You do not always author sensors by hand. The learning gate can install one when you confirm a sensor proposal during a workflow — you decide a deterministic check should fire on a stage's output, tick it at the gate, and the framework does the same two-write install you would do manually: it scaffolds a **project-tier** manifest at your project's `.claude/sensors/aidlc-<id>.md` (never the shipped framework distribution) and appends the new id to the originating stage's `sensors:` import list, atomically. That gate-confirmed path emits a **`SENSOR_PROPOSED`** audit row, so no binding is ever installed silently. The hand-authored path and the loop-installed path produce the same artifacts — a manifest plus an import-list entry. The difference is who initiates.
+
+### 9.7 Guidelines and validation
+
+- **Deterministic only** — regex, file presence, counts, command output. If it needs semantic judgment, use a rule or a gate instead.
+- **Clear failures** — name the exact issue and how to fix it (file/section/command).
+- **Least blocking** — start advisory; promote to blocking only when correctness is non-negotiable.
+- **Scoped binding** — only where the sensor's `matches` artifacts appear.
+- **Idempotent** — safe to run multiple times.
+- **One owner** — don't duplicate the same invariant in a sensor and a hook.
+
+Filename/id consistency is a compile-time hard error. An unknown sensor ref in a stage fails validation. Invalid `kind`, `fire_on`, or `default_severity` values are rejected with the file and allowed values.
 
 ## 10. Team Knowledge
 
-**Knowledge** is domain/project "what" context agents load before working. Lives at **space level** (`aidlc/knowledge/`) in your project—never overwritten by framework.
+**Knowledge** is the domain context an agent reads before it works: your coding standards, your architecture preferences, your domain glossary, the patterns your team has settled on. It is the one part of the harness you shape by adding files an agent reads, rather than constraints the framework enforces.
 
-### 10.1 Location
+If you've read [§8 Rules and the Learning Loop](#8-rules-and-the-learning-loop), keep the distinction in mind throughout: rules are standing decisions the framework enforces; knowledge is reference material an agent weighs while it works. Both shape agent behavior, but they sit on different planes and load differently.
 
-```text
-aidlc/knowledge/
-└── <agent>-agent/
-    ├── README.md
-    ├── domain.md
-    ├── conventions.md
-    └── ... (your docs)
+### 10.1 Two tiers: framework knowledge and yours
+
+AI-DLC's knowledge is split into two tiers, and only one of them is yours to edit.
+
+**Tier 1 — methodology knowledge** ships with this implementation under `.claude/knowledge/`. It holds the methodology references each agent uses to run a stage — `aidlc-architect-agent/architecture-guide.md`, `aidlc-developer-agent/code-generation-guide.md`, and the cross-agent material in `aidlc-shared/`. **Leave it alone.** These are AI-DLC's files: a local edit to one stops the next `aidlc config` refresh with a conflict until you move it away or take the shipped file back with `--force`. A file you add there is kept, but it sits among AI-DLC's own files; put your own material in Tier 2.
+
+**Tier 2 — team knowledge** is yours. It lives at the space level under `aidlc/knowledge/` (shorthand for `aidlc/spaces/<space>/knowledge/`), a sibling of the space's `memory/`, `codekb/`, and `intents/` — so it accumulates across every intent in the space rather than being trapped in one intent's record. It holds your company-specific standards, policies, and conventions. The framework never overwrites it; the engine just creates the empty `aidlc/knowledge/` directory on the first `/aidlc` and leaves the contents to you. This is the directory you populate. (Standing practices the framework should *enforce* — rather than reference material an agent weighs — live in the space's memory layer at `aidlc/spaces/<active-space>/memory/` instead.)
+
+The two-tier split is the same data-versus-code line the rest of this guide rests on, applied to knowledge: the framework owns its methodology, you own your context, and an upgrade can replace one without touching the other.
+
+### 10.2 Team-wide versus agent-specific placement
+
+Tier 2 follows the agent layout by convention: an `aidlc-shared/` directory plus one directory per agent, all under the space-level `aidlc/knowledge/`. Where you drop a file decides which agents load it.
+
+| Placement | Loaded by | Use it for |
+|---|---|---|
+| `aidlc/knowledge/aidlc-shared/` | **every** agent, on every stage | cross-cutting standards — naming conventions, commit format, the project's domain glossary |
+| `aidlc/knowledge/<agent>-agent/` | **only** that agent, whenever it works on a stage: as the lead, as a supporting agent on an inline stage, or dispatched on its own | domain context for one role — architecture patterns for the architect, security policy for devsecops |
+
+The directory name must match the agent slug exactly — `aidlc-architect-agent/`, not `architect/`. A typo in the directory name is the most common reason a file is silently ignored: the framework walks the agent's own directory by name, finds nothing, and moves on without an error. The engine does not create these subdirectories for you — `aidlc/knowledge/` is empty at bootstrap, so you create each directory yourself with the exact slug.
+
+Reach for `aidlc-shared/` only when a standard genuinely applies across all 14 agents. A pattern that matters to the architect and no one else belongs in `aidlc-architect-agent/`, where it adds context to architecture stages without diluting every other agent's window.
+
+### 10.3 How an agent loads knowledge
+
+You don't register a knowledge file or wire it anywhere. Its presence in the right directory is the registration. When a stage begins, the conductor loads context in a fixed six-step order, and your Tier 2 files come in at steps 4 and 5:
+
+```mermaid
+flowchart TD
+    S1["1. Rules — aidlc/spaces/&lt;active-space&gt;/memory/"] --> S2["2. Tier 1 shared methodology — .claude/knowledge/aidlc-shared/"]
+    S2 --> S3["3. Tier 1 agent methodology — .claude/knowledge/&lt;agent&gt;-agent/"]
+    S3 --> S4["4. Tier 2 team shared — aidlc/knowledge/aidlc-shared/"]
+    S4 --> S5["5. Tier 2 team agent-specific — aidlc/knowledge/&lt;agent&gt;-agent/"]
+    S5 --> S6["6. Prior stage artifacts — declared consumes"]
 ```
 
-Each dir named after agent (e.g. `aidlc-product-agent/`, `aidlc-architect-agent/`, `aidlc-developer-agent/`). Cross-agent shared material under `aidlc-shared/` where referenced.
+Steps 4 and 5 only fire if the directories exist and contain files, which is why a project with no team knowledge simply skips them. On inline stages and for a mob stage's lead, the agent reads your Tier 2 files right after its persona and before the Tier 1 methodology, and when the list of files is too long, Tier 1 files are left out before yours. Because the load happens at every stage start, editing a file takes effect on the next `/aidlc` run with no cache to clear and no restart. Removing a file is just as direct — delete it, and subsequent runs stop seeing it. There is no registry to keep in sync.
 
-### 10.2 What to Put
+One consequence worth internalizing: agents read knowledge files **literally and at equal weight**. An outdated or contradictory file actively misleads an agent — it carries the same authority as a current one. Treat the Tier 2 tree like code that needs pruning; a short review during retro keeps it honest.
 
-- **Domain facts** — Business rules, terminology, entities, workflows
-- **Project context** — Architecture, modules, data models, integration points
-- **Constraints** — Compliance, SLAs, security boundaries, third-party limits
-- **Patterns/examples** — Preferred implementations, anti-patterns, real code snippets
-- **Style guides** — API design, naming specific to this codebase
-- **References** — Links to ADRs, runbooks, internal docs
+### 10.4 Knowledge or a rule?
 
-Don't put "always do" in knowledge—put in memory rules. Knowledge is reference/context.
+The most common harness-engineer mistake is reaching for knowledge when the intent is a rule, or the reverse. They are not interchangeable, and the loading order above shows why: rules resolve first as a strict-additive chain the framework compiles ahead of the run; knowledge is reference material the agent weighs during the stage.
 
-### 10.3 Authoring
+A useful test: **if a human reviewer would reject a stage's output when the instruction is violated, it belongs in a rule.** If they'd use it as background when reviewing, it's knowledge.
 
-1. Create per-agent dirs in project: `mkdir -p aidlc/knowledge/aidlc-developer-agent`
-2. Write clear Markdown (agents read it). Use headings, tables, lists.
-3. Be concrete—include file paths, module names from your codebase.
-4. Organize logically (`api-design.md`, `database.md`, `testing.md`).
-5. Commit to repo—it's team context.
+| Reach for knowledge when… | Reach for a rule when… |
+|---|---|
+| You're supplying reference material the agent should consult | You're stating a behavioral decision the agent must follow |
+| "These are the patterns we use" | "Never do X" / "Always do Y" |
+| The content is informative and contextual | The content is prescriptive and non-negotiable |
+| It can be long-form prose, tables, or diagrams | It should be short, imperative, one line each |
+| Example: API Gateway standards, a domain glossary | Example: "Never log PII", "All data access goes through the repository layer" |
 
-Example:
+So a document describing how your team designs APIs is knowledge: drop it in `aidlc/knowledge/aidlc-architect-agent/`. A non-negotiable like "every architecture decision must record at least two alternatives" is a rule: it belongs in the space memory layer, where the framework will hold the agent to it.
+
+### 10.5 Where the Tier 2 tree comes from
+
+The team builds it. On the first `/aidlc` the engine creates a single empty directory — `aidlc/knowledge/` — and stops there. It does not scaffold a tree, create per-agent subdirectories, or seed any READMEs. The Tier 2 layout (`aidlc-shared/` plus one directory per agent) is the convention the personas look for, not a structure the engine writes; you create the directories you have content for. Because the loader walks each agent's own directory by name, create them with the exact slug the loader expects (`aidlc-architect-agent/`, not `architect/`) — a typo'd name is silently skipped with no error.
+
+There's no naming convention inside a directory: any `.md` file is loaded. Descriptive, one-topic-per-file names (`api-gateway-standards.md`, not `architecture.md`) aren't required by the loader, but they make the quarterly prune far easier. If you want a starting README for a directory, Tier 1 ships an optional template you can copy in by hand.
+
+A note on the boundary with the rest of this guide: the agent directories you populate here are the same ones an agent declares in its persona file. When you [add an agent](#6-adding-an-agent), its Tier 2 knowledge directory is `aidlc/knowledge/<new-agent-slug>/` — a directory the team creates, loaded at the same steps 4 and 5. The mental model holds: the stage names the agent and the agent reads the knowledge, and you shape all of it by editing data rather than writing code.
+
+**Authoring, in short:** create per-agent dirs in the project (`mkdir -p aidlc/knowledge/aidlc-developer-agent`), write clear Markdown (use headings, tables, lists), be concrete with file paths and module names from your codebase, organize logically (`api-design.md`, `database.md`, `testing.md`), and commit to the repo — it's team context. For example:
 
 ```markdown
 ## Module Boundaries
@@ -872,137 +1052,265 @@ Example:
 - Integration under `tests/integration/`
 ```
 
-### 10.4 Usage
+Don't put "always do" in knowledge — that's a memory rule. Knowledge is reference/context. Keep it DRY (summarize and link to existing docs/ADRs), focus on what agents need for *your* codebase, update it when architecture changes, and respect the per-agent split — product doesn't need deep implementation details; developer does.
 
-Lead agent (and collaborators if enabled) loads their knowledge dir before executing stage instructions. Changes take effect next stage run.
+### 10.6 Spaces: knowledge for more than one team
 
-### 10.5 Knowledge vs Rules vs Stage Body
+Everything above assumes one team. When **more than one team shares a project**, AI-DLC keeps each team's method, knowledge, and record in its own **space** — a `aidlc/spaces/<name>/` of identical shape (`memory/`, `knowledge/`, `codekb/`, `intents/`). The `aidlc/knowledge/` shorthand you've been using throughout this section is really `aidlc/spaces/<active-space>/knowledge/`; with a single team that active space is always `default` and the distinction never surfaces.
 
-| Type | Location | Purpose | When | Editable |
-|---|---|---|---|---|
-| **Stage body** | `core/aidlc-common/stages/*/*.md` | Step-by-step for that stage | Stage runs | Harness engineer (core) |
-| **Rules** | `aidlc/spaces/*/memory/{org,team,project}.md` | Standing "how" | Composed runtime | Team (space) |
-| **Knowledge** | `aidlc/knowledge/<agent>-agent/` | Domain/project "what" | Agent loads pre-stage | Team/project (space) |
+What this means for the knowledge and rules you author:
 
-### 10.6 Best Practices
+- **Team knowledge is per-space.** The `aidlc/knowledge/aidlc-<agent>-agent/` files you populate live inside one space. A second team gets its own empty `knowledge/` tree to fill — your files do not leak across the boundary, and theirs do not dilute your agents' context.
+- **The method layer is per-space too.** The rules in `aidlc/spaces/<active-space>/memory/` (`org.md` → `team.md` → `project.md`) resolve within the active space. A new space is seeded from the framework baseline — `org.md` copied in, fresh empty `team.md` / `project.md` — so a new team starts from the framework's defaults and earns its own practices rather than inheriting another team's.
+- **You don't author spaces in `core/`.** A space is runtime team data, created with `/aidlc space create <name>` in an installed project — the same data-not-code line that separates team knowledge from framework source. There is nothing to add to `core/` or regenerate to support multiple teams; the capability ships in the engine.
 
-- Keep knowledge DRY—summarize and link to existing docs/ADRs.
-- Focus on what agents need for *your* codebase.
-- Update when architecture changes.
-- Respect per-agent split—product doesn't need deep impl details; developer does.
+A space simply scopes *whose* data — so two teams can run AI-DLC in one project without their context, practices, or records colliding.
 
 ## 11. Construction and the Swarm
 
-Construction is where approved spec/plan becomes code. Control **autonomy posture**: how independently agents generate, whether to split into parallel Units (Bolts), and swarm behavior.
+Construction is where AI-DLC builds the thing — where the per-Unit stages run, and where the **swarm** can fan that work out across many Units at once. The throughline is the same one the rest of this guide carries: you reshape Construction by editing **data** under `core/` — a rule, a stage, a sensor's check command — and never by editing code. What makes Construction feel different is that two of its most visible behaviours (the autonomy grant, the swarm driver) are governed by concerns that are deliberately *not* data files, and recognising that keeps you from authoring a setting that does not exist.
 
-### 11.1 Autonomy Posture
+### 11.1 Three concerns, three owners
 
-Set in memory rules (`team.md`/`project.md`):
+The framework splits every decision by what kind of thing it is: determinism belongs in a tool, knowledge belongs to an agent, and judgment belongs to a human. Construction's swarm is that split made concrete.
 
-- **Guided** — Small sequential units, frequent checks
-- **Pragmatic** — Balanced with gates
-- **Autonomous swarm** — Split into independent Units, generate in parallel where safe, integrate later
+| Concern in Construction | Owner | Where it lives |
+|---|---|---|
+| The team's autonomy **posture** (a standing default) | you, the harness engineer | a rule in `core/memory/{team,project}.md` (data) |
+| What Units **can** parallelise | you, the harness engineer | the `units-generation` stage and its dependency DAG (data) |
+| The **convergence check** the swarm trusts | you, the harness engineer | your project's own build/test command + a protected spec (data + project config) |
+| The actual autonomy **grant** for this project | the human | an explicit offer or on-demand request at runtime |
+| The swarm **driver** selection | the operator | the `AIDLC_USE_SWARM` environment variable |
+| The convergence **verdict**, merge-back, and audit | a tool | `aidlc-swarm.ts` (code → Developer Reference) |
 
-### 11.2 Units, Bolts, Swarm
+The three rows marked "you" are the body of this section. The other three are covered because you need to understand the runtime your data shapes, but you author none of them.
 
-- **Unit** — A self-contained piece of planned work.
-- **Bolt** — Implementation of a Unit.
-- **Swarm** — Parallel execution of independent Bolts.
+### 11.2 The autonomy posture — your real lever, written as a rule
 
-Flow: `units-generation` (or related) deconstructs plan → identify independent Units → run independent Bolts in parallel → integrate → verify (tests/lint/typecheck) → gates apply.
+The standing recommendation lives under `## Walking Skeleton` in `core/memory/org.md`, refined by `team.md` and `project.md`. New source-producing solo Unit workflows record three independent settings:
 
-### 11.3 Configure Posture
+| Setting | New-workflow default | Meaning |
+|---|---|---|
+| `Construction Checkpoints` | `enabled` | Verify and approve completed solo Units using current evidence |
+| `Construction Iteration` | `unit-major` | Finish one Unit's applicable stages before the next |
+| `Construction Execution` | `serial` | Build serially; explicit swarm execution requires stage-major |
 
-Example memory:
+`Construction Verification Command` is a separate intent-level Runtime State field, with no automatic default. Delivery Planning proposes a real project check and records a human approval receipt before the typed setter writes it. A greenfield project without a runnable check may defer to the first checkpoint. The same command is reused for all Unit/batch checkpoints; choosing or changing it requires the recorded-command flow, never generic `state set` or an autonomy grant. Before presenting the command, write it to `<record>/verification-command.txt` with the harness's file-write tool (Write/edit), never a shell `echo` or heredoc — repo-derived command text must never be interpolated into a shell line, where substitutions could run before approval. Use `--command-file verification-command.txt` for `log decision`, `log answer`, and `state set-construction-verification-command`; both log calls find their own session, so pass no `--session`. The canonical command is a nonblank single line of at most 1024 characters; control characters and display-spoofing characters are refused. Record the human's **Approve** / **Request Changes** reply; only **Approve** authorizes the receipt.
+
+Checkpoint policy requires solo ownership, an actual non-empty Unit DAG, and an included source-producing per-unit stage. Design-only and no-Unit work keep their existing stage flow. Under skeleton-on, plan the first DAG Unit as the smallest working integrated slice: it completes all applicable per-unit design stages and Code Generation, passes a real end-to-end check, and receives human skeleton approval before later Units start, even with stage-major selected. A first design-stage review alone is not a working skeleton.
+
+Under skeleton-off, the engine offers **Continue automatically** / **Review each checkpoint** at Construction entry. Under skeleton-on, it offers the choice after the real skeleton checkpoint. The conductor follows `offer_autonomy`, records the human's choice through `bolt set-autonomy`, and asks no repeated ladder once a choice is known. On-demand grant/revoke requests remain available. Autonomy changes ordinary completion approvals; it never supplies a human Plan Approval, verification command selection, or an enabled summary confirmation, or makes a failed check pass. Summary confirmation applies only when `directive.ceremony.summary_confirmation === "on"`.
+
+To choose swarm execution, explicitly select stage-major and then `Construction Execution: swarm`. Guided (`gated`) and automatic (`autonomous`) batch completion are both supported; granting autonomy does not change order or execution. Unit-major remains serial and refuses a contradictory swarm setting. Team-owned work keeps `unit_gate` and its own per-stage or unit-end approval rhythm.
+
+You shape the recommendation through the rule layers from [§8](#8-rules-and-the-learning-loop). The human still selects the actual grant. For example, a team can recommend:
 
 ```markdown
-## Construction Posture
-- Autonomy: pragmatic  # guided | pragmatic | autonomous
-- Max parallel units: 3
-- Prefer vertical slices over horizontal layers
-- Each unit must be independently testable
+## Walking Skeleton
+
+Until our integrated checks have proved reliable, recommend **Review each
+checkpoint**. Review the working first slice and each ordinary completed Unit
+or swarm batch before proceeding. Plan Approval, verification command selection,
+and any enabled summary confirmation remain human decisions even when we later select
+**Continue automatically**.
 ```
 
-Keys vary by team convention—keep declarative in memory.
+For a trusted project, the same heading can recommend **Continue automatically** after the skeleton is verified. The rule supplies guidance, never a recorded autonomy grant or a silent switch to swarm execution.
 
-### 11.4 Shape Parallelism via `units-generation`
+### 11.3 Checkpoint and approval evidence
 
-Tune `core/aidlc-common/stages/construction/units-generation.md` body to define:
+When `run-stage` carries `construction_checkpoint`, the Unit body and reviews have already run; a `rereview` field names the one re-check of code or documents changed since their review, run first without asking (under Guard Policy `strict` only; under `relaxed` and `off` the change is accepted and the approval stands). With `command_authorized: false`, ask the verification-command question and complete the human decision/answer/setter flow before any `verify`, then re-run `next`. Otherwise run `bolt checkpoint --action verify --unit <unit> --kind <unit|skeleton>`; it executes the recorded, human-authorized command, not text selected at verify time. Approve only current verified evidence and show "Verified with `<full command>` (exit 0)" in the approval question. A skeleton always needs the human; ordinary Units follow `human_required`.
 
-- How plan splits into Units
-- Independence vs dependencies (serial where coupled)
-- Acceptance criteria per Unit
-- Max parallelism constraints
+Only after `verify` reports `verified: true` and the current checkpoint has `ready: true`, open the human Unit/skeleton approval question with `aidlc engine bolt checkpoint --action ask --unit "<unit>" --kind <unit|skeleton>`; `ask` refuses an unready or unverified checkpoint. For a human batch question, run `aidlc engine bolt swarm-checkpoint --action ask --batch <N> --units "<Units>"`. Consent is one-shot and bound to the current checkpoint fingerprint, verification proof ID, and authorized command digest. Re-running `verify` or swarm `finalize` withdraws every open checkpoint question and captured checkpoint response for this intent, in any session. Automatic approval (`human_required: false`) needs no `ask`; human rejection always needs the verified question-and-answer flow. Approval/rejection returns to `next`, never approves the whole Code Generation stage for one Unit or batch.
 
-**Guided:** few larger Units, mostly sequential. **Autonomous:** small vertical slices, minimal cross-deps to maximize parallelism. **Constrained:** serialize where shared state/migrations couple.
+Version-3 checkpoint proofs store the command's SHA-256 and complete canonical command as the display label, alongside output byte counts and digests rather than raw output. The verifier records a tool-owned `CHECKPOINT_VERIFICATION_RECORDED` receipt alongside the proof file, and approval requires that receipt; a hand-written proof file cannot verify a Unit. On a checkout with no proof file at all (a fresh clone, another machine), that receipt stands in for the proof of a Unit already approved whose evidence is unchanged, so nothing runs again.
 
-### 11.5 Collaboration vs Lead-Only
+Plan Approval remains individually bound even when its presentation is grouped. When several Units' plans are ready together, `next` asks about them in one engine question, and the agent records the person's choice per Unit (`log answer --checkpoint plan-approval --units`), each approval bound to that Unit's own plan: "approve all" approves every Unit, and a change naming one Unit sends only that Unit back.
 
-`collaborators` setting (scope/intent) controls ensemble vs lead-only. `collaborators: off` → empty effective support agents; lead runs alone. Reviewers independent. Parallel Bolts follow same setting.
+After a partial landing, `next` names the remaining Units and valid prepared workers retain the original group's approval and worktrees. Delegated workers use their verified parent intent's live fence, so lowering or raising it applies to already prepared workers on their next check. Failure still stops for the human Retry/Abort decision, and a checkpoint Request Changes starts a fresh revision. Recovery of interrupted setup reuses current approval rather than replacing the receipt bound to the worker.
 
-### 11.6 Guards, Sensors, Verification
+### 11.4 Shaping what can run in parallel — the Bolt-DAG
 
-Swarm respects:
+The swarm fans work out across Units, so the question "what can run at once?" is decided upstream, in inception, by the `units-generation` stage. That stage produces `unit-of-work-dependency.md` (`core/aidlc-common/stages/inception/units-generation.md` declares `produces: unit-of-work-dependency`), and inside that artifact a required fenced `yaml` edge block lists every Unit with its `depends_on` list.
 
-- **Plan approval** — Code plans approved before generation unless explicitly off with proper recording
-- **Sensors** — linter, type-check, traceability, required sections etc (can block)
-- **Guard Policy** — How strictly guards re-check on changes
-- **Gates** — Human judgement where `gate: approval` set
+The compiler reads that block into the `bolt_dag` node of `runtime-graph.json`. The node is present **only when** the edge block is well-formed and acyclic; an absent, malformed, or cyclic block omits the node entirely. The `bolt_dag` node also carries `batches` — topological levels where every Unit's dependencies are satisfied by prior levels, so a batch's Units have no edge between them and can fan out together.
 
-Autonomy shifts *when* humans judge, not *if*.
+There are five **per-Unit** Construction stages, each declaring `for_each: unit-of-work` in its frontmatter:
 
-### 11.7 Best Practices
+| Stage | Runs |
+|---|---|
+| `nfr-requirements` | once per Unit |
+| `functional-design` | once per Unit |
+| `nfr-design` | once per Unit |
+| `infrastructure-design` | once per Unit |
+| `code-generation` | once per Unit |
 
-- **Design for independence** — Vertical Units with clear contracts.
-- **Define per-Unit done** — Concrete acceptance (tests, artifacts).
-- **Start conservative** — Pragmatic first; increase parallelism after sensors/verification prove reliable.
-- **Traceability** — Link Units to plan/spec (use `aidlc-traceability`).
-- **Integration discipline** — Swarm pieces must integrate cleanly; integration stage verifies whole system.
+For the four design stages the per-Unit coverage is further **kind-filtered**: each Unit's `kind` selects, via the stage's `produces_kinds` map, which of its produces artifacts that Unit actually owes. The engine prunes both the run-stage directive's produces paths and the coverage check to that set, so a `spec` Unit is complete for infrastructure-design without a deployment doc and a `packaging` Unit is complete for functional-design with zero files. An untagged Unit keeps the full matrix. (The remaining two Construction stages, `build-and-test` and `ci-pipeline`, run once at the end across everything, so they are not part of the per-Unit fan-out.)
+
+```mermaid
+flowchart LR
+    UG["units-generation (inception)<br/>produces unit-of-work-dependency.md"] --> EB["fenced yaml edge block<br/>(depends_on per Unit)"]
+    EB --> BD["bolt_dag node<br/>+ topological batches"]
+    BD --> B1["Batch 1 (Independent Units)"]
+    BD --> B2["Batch 2 (after deps)"]
+    B1 --> W["Code Generation swarm<br/>per-Unit subagents"]
+    B2 --> W
+    W --> REF["Referee: check command exit 0"]
+    REF --> MB["worktree merge"]
+```
+
+**This parallel surface exists only for the scopes where `units-generation` runs** — `enterprise`, `feature`, `mvp`, `classic`, and `workshop`. The incremental scopes (`bugfix`, `refactor`, `security-patch`) and `poc`/`infra`/`express` never run `units-generation`, so they produce no edge block, carry no `bolt_dag`, and run Construction single-pass with nothing for the swarm to fan out across. Zero-Unit runs keep ordinary stage execution; on-demand approval preferences do not create a DAG or a swarm.
+
+The harness lever here is indirect but real: **you shape what parallelises by shaping the dependency structure `units-generation` captures.** If you author team guidance that favours coarse Units with few cross-dependencies, more Units land in the same batch and run concurrently. Tight, deeply-chained dependencies serialise the work into many small batches. You influence this through the `units-generation` stage prose and the rules the architect agent reads while decomposing — the decomposition itself is a knowledge call the agent makes with the human, and the topology it writes is what the compiler turns into batches. The compile and parse that turn the edge block into `bolt_dag` is code, not something you author.
+
+### 11.5 Wiring convergence — your project's own check is the trusted signal
+
+A Code Generation swarm does not bypass planning. Before `prepare`, every emitted Unit must have a current human-approved plan containing the structured Testing Contract, unit-scoped test instructions, and matching approval fingerprint. Before initial protected prepare, the approved parent application source must also be committed and reproducible. The tool validates all Units read-only before creating the first worktree, under both legacy autonomy and new checkpoint policy. Commit only with explicit authorization; neither prepare nor an autonomy grant commits for you.
+
+A swarm worker can claim its Unit converged. The framework never takes that claim on faith. The authoritative signal is your project's **own check command**, run by the referee: exit `0` means genuinely converged, any other exit means not yet. This is the single most important thing a harness engineer ensures for autonomous Construction — that the project actually *has* a real check command and a protected spec, so the swarm has something trustworthy to converge against.
+
+Two surfaces carry the signal:
+
+- **The check command.** Whatever proves your Unit is done — `npm test`, `pytest`, a build-and-lint script, your CI's local equivalent. The referee runs it per Unit during the loop and again at finalize. A green exit is the only thing that lets a Unit's work merge.
+- **A protected spec file.** The referee can anti-tamper compare a designated `--test-file` against its forked-git baseline, so a worker cannot quietly weaken the test that defines "done" to make a red check go green. Under a relaxed or off Guard Policy a changed protected file is reported in `change_notices` instead of failing the Unit.
+
+Your harness contribution is making both real and meaningful. A check that always passes, or a spec that is empty, hands the swarm a rubber stamp. The `## Testing Posture` rule in `org.md` already combines the selected Test Strategy with additive per-scope floors (for example, `mvp`/`feature` add 80% coverage); authoring a stricter structured methodology/order at `team.md` is how you change execution cadence without discarding those floors.
+
+A sensor complements the check on the prose side. The `required-sections` and `upstream-coverage` sensors that `units-generation` already imports verify the artifacts' shape and coverage at the gate; you can author a project-specific convergence or required-sections sensor with the muscle from [§9](#9-sensors) and bind it to the Construction stages whose output you keep eyeing for the same gap. Those two fire at the gate and are advisory; a sensor you add fires on each write or at the gate, as its `fire_on` says, and a blocking gate sensor stops the gate until its findings are fixed or a person overrides it. The project check command is the hard convergence gate. They work the two halves: the sensor watches the artifacts' shape, the check decides whether the Unit may merge.
+
+### 11.6 The driver seam — `AIDLC_USE_SWARM`
+
+How the swarm physically fans out is selected by an environment variable, and it is worth being plain that this is an **operator knob**. It is not a data file, and it is not in `settings.json` (it is read conductor-side at fan-out time). You do not author it; you understand it so you know the runtime your data shapes.
+
+| `AIDLC_USE_SWARM` | Driver | Behaviour |
+|---|---|---|
+| unset or not `"1"` | subagent floor | The conductor issues N parallel `Task` calls in one message, one per Unit. |
+| `"1"` | inline Dynamic Workflow | The conductor authors a `Workflow` whose JS owns the per-Unit pipeline and the iteration cap. |
+| `"1"` but Workflow tool unavailable | loud-degrade to the floor | The conductor falls back to the floor and passes `--degraded-from ultracode` so the referee emits `SWARM_DEGRADED`. |
+
+Both drivers run each Unit's Code Generation (the one per-Unit stage that runs as a subagent, which is what the swarm dispatches; the per-Unit design stages are not part of the swarm) and converge against the same project check. The difference is purely how the parallel work is dispatched. The runaway backstop lives in the harness's **Stop-hook ceiling** (`core/hooks/aidlc-continue-workflow.ts`, exposed as `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`), outside the swarm tool itself. On this autonomous-Construction path the default ceiling is **8 blocks** (the interactive default is 2; an explicit `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP` overrides both).
+
+One judgment never moves with the driver: a failure **always halts and re-engages the human**, regardless of autonomy mode, per `aidlc-common/protocols/stage-protocol-construction.md` ("Halt-and-ask on failure"). When the referee's `finalize` returns its exit-2 envelope, the conductor takes the baton back to a human. Hands-off mode removes the happy-path gates while keeping the failure halt loud.
+
+### 11.7 Collaboration vs lead-only
+
+The `collaborators` setting (scope/intent, [§7](#7-scopes)) controls ensemble vs lead-only for every stage, including within a Bolt. `collaborators: off` hands each stage an empty effective support-agents list, so the lead runs alone; the reviewer mechanism is independent and unaffected. Parallel Bolts follow the same setting.
+
+### 11.8 Where it becomes a code change
+
+The line is clean. Everything above — the autonomy posture rule, the Unit decomposition that produces the edge block, the project check command and protected spec, the complementary sensor — is data you author under `core/` or your project config. You shape Construction without touching code.
+
+The swarm's machinery is code, and shaping it is the Developer Reference's territory:
+
+- **The referee** `aidlc-swarm.ts` — the stateless `prepare` / `check` / `finalize` subcommands. Protected Code Generation prepare, for legacy autonomy and new checkpoints alike, first validates every Unit's approved Testing Contract, fingerprint, and committed parent source; only then does it fork worktrees. `--resume-existing` keeps the rejected revision whether its child survives or must be recreated after verified native source landing. The remaining commands run the verdict, re-verify every claimed Unit before merge (the lying-conductor guard), snapshot and land reviewed record artifacts plus the bound source manifest, serialise AIDLC metadata merge-back, and emit the six referee-owned `SWARM_*` events. The conductor then invokes `aidlc-worktree merge` for each converged Unit; that separate immutable source landing emits `SWARM_SOURCE_MERGED`.
+- **The engine** `aidlc-orchestrate.ts` — the deterministic router with exactly six subcommands: `next`, `continue`, `report`, `park`, `team-board`, and `wait`. It decides when a Construction batch is eligible for the swarm.
+- **The Bolt-DAG parser** — the compile step that reads the edge block into `runtime-graph.json`.
+
+The seven `SWARM_*` audit events (six from the referee, plus `SWARM_SOURCE_MERGED` from the source landing) are catalogued in the Developer Reference's State and Audit chapter.
 
 ## 12. Porting to a New Harness
 
-AI-DLC runs from single `core/`. To add a new harness, add thin surface in `harness/<name>/`—**no `core/` edits**. Packager emits `dist/<name>/`.
+AI-DLC ships from **one core, many harnesses** — today Claude Code, Kiro CLI, Kiro IDE, Codex CLI, Cursor, opencode, and GitHub Copilot, and the set is open. The hand-authored source is a harness-neutral `core/` plus a thin `harness/<name>/` surface per CLI; the packager (`scripts/package.ts`) materializes each ignored local Bun copy tree under `dist/<harness>/` and its native counterpart under `dist-release/<harness>/`. Adding another harness is **one directory and one manifest row** — the engine, methodology, projection ownership, and harness-dir/rules resolution take no `core/` edits at all. The two optional exceptions are a per-harness `--doctor` arm (Step 2) and your tool's binding subsections in the protocol modules (end of Step 4).
 
-### 12.1 Required Files
+> Three senses of "harness" in this repo: **`harness/`** (top-level — the per-CLI distribution surfaces this section is about), **`docs/harness-engineering/`** (this guide), and **`tests/harness/`** (the test-suite helper library). Unrelated; only the first is a distribution.
 
-In `harness/<name>/`:
+### 12.1 The shape
 
-- `manifest.ts` — Maps `core/` → harness layout; handles `{{HARNESS_DIR}}` token substitution
-- Orchestrator skill: `skills/aidlc/SKILL.md`
-- `emit.ts` — Per-shell emissions for shell-based harnesses (Codex/opencode/Copilot)
-- Any other harness-specific files
+```text
+core/                      # harness-neutral source — not edited to add a harness (save the optional --doctor arm)
+harness/
+  claude/  manifest.ts · skills/aidlc/ · onboarding.fills.ts · settings.json
+  kiro/    manifest.ts · skills/aidlc/ · agents/*.json · hooks/aidlc-kiro-adapter.ts · settings/cli.json · onboarding.fills.ts
+  codex/   manifest.ts · emit.ts · skills/aidlc/ · hooks/aidlc-codex-adapter.ts
+  opencode/ manifest.ts · emit.ts · skills/aidlc/ · command/ · plugin/
+  copilot/ manifest.ts · emit.ts · skills/aidlc/ · hooks/aidlc-copilot-adapter.ts
+scripts/
+  package.ts               # bun scripts/package.ts [<name>] [--check]
+  manifest-types.ts        # the HarnessManifest contract every manifest implements
+dist/<name>/               # GENERATED Bun-invocation channel
+dist-release/<name>/       # GENERATED native-aidlc channel
+```
 
-Use existing harnesses as reference.
+`core/` prose names the harness directory with `{{HARNESS_DIR}}`, calls the framework through `{{INVOKE}}`, and uses `{{TOOL_PREFIX}}` where a generated prefix is required. The packager substitutes the declared directory plus one of two invocation policies:
 
-### 12.2 Manifest Contract
+| Channel | `{{INVOKE}}` | `{{TOOL_PREFIX}}` |
+|---|---|---|
+| `dist/` | `bun <harness-dir>/tools/aidlc.ts` | `bun <harness-dir>/tools/` |
+| `dist-release/` | `aidlc` | `aidlc ` |
 
-`manifest.ts` defines projection rules (file mappings, transforms, substitutions). Keep minimal/declarative. See `harness/claude/manifest.ts`, `harness/codex/manifest.ts`, `harness/opencode/manifest.ts`.
+The transform applies to Markdown and structured command surfaces (`.json`/`.toml`/`.hook`), and to invocation tokens in TypeScript; it is not a general source rewrite. The runtime `harnessDir()` seam in `core/tools/aidlc-lib.ts` still derives the directory from the shipped layout (open-set: the tool's own path, not a hardcoded list), so the same authored tool sources run in every tree. The acceptance gate is **generator determinism**: `package.ts --check` builds both channels and every plugin projection twice in independent temporary roots, then byte-compares the complete outputs.
 
-### 12.3 Emit Layer
+The packager **discovers** harnesses by scanning `harness/` for a `manifest.ts`, so a new dir is built by the default `bun scripts/package.ts` and `--check` with no edit to the packager itself — the literal meaning of "one directory and one manifest row, zero shared-code edits."
 
-For shell-emitting harnesses, `emit.ts` produces harness-native runtime from neutral core.
+### 12.2 Step 1 — the manifest (the declarative 80%)
 
-### 12.4 Workflow
+Create `harness/<name>/manifest.ts` exporting a `HarnessManifest` (`scripts/manifest-types.ts`). The fields:
 
-1. **Create**: `mkdir -p harness/<newname>`
-2. **Copy reference**: Start from closest similar harness
-3. **Write `manifest.ts`**: Map `core/` → target; handle `{{HARNESS_DIR}}`
-4. **Add skill + emit**: Add `skills/aidlc/SKILL.md` and `emit.ts` if needed
-5. **Update packaging**: Ensure `scripts/package.ts` includes/handles this harness per convention
-6. **Regenerate**: `bun scripts/package.ts` → produces `dist/<newname>/`
-7. **Verify determinism**: `bun scripts/package.ts --check`
-8. **Spot-check**: Inspect emitted files in `dist/<newname>/`
-9. **Test**: Run relevant tests
+| Field | Purpose |
+|---|---|
+| `name` / `harnessDir` | The dir the token substitutes to (e.g. `.foo`). |
+| `productName` / `configNextStep` | User-facing projection metadata consumed by lifecycle and `aidlc config`; keep host commands exact. |
+| `choiceName` / `choiceNote` (optional) | What the `aidlc config` menus show instead of `productName`, and beside it. Plain ASCII text only: an ASCII letter or digit first, then letters, digits, spaces and `.,()+-`; name 1–15 chars, note 1–60. The packager refuses non-conforming text. |
+| `firstRunSteps` / `editorTerminalApp` / `hookActivation` (optional) | Only for a host whose first run needs steps the others do not. `firstRunSteps` replaces the two next-step lines that end `aidlc config`. `editorTerminalApp` is the `TERM_PROGRAM` value the editor's terminal sets, making this harness the wizard's default there. `hookActivation` is for a host that may run no hooks until the person acts, and its texts name only the person's own step, in the host's own words. |
+| `directiveMaxBytes` (optional) | For a host that keeps less of one shell result than the engine's 28 KiB directive cap. Size it below the host's cut with room for the trailing newline. Only Copilot declares it (19,000 bytes, for VS Code's 20,000-character terminal result). In a project with several harnesses the smallest declared limit wins. |
+| `agentFinishRecorded` (optional) | `{ env: [...] }`, only for a host whose own stop event runs the `log-subagent` hook before the agent that dispatched a helper sees the result. Only Claude Code declares it. |
+| `statusLine` (optional) | Only for a host with a status line AI-DLC can show its progress in, in that host's own shape (Claude Code: `{ type, command }`; Codex: `{ items }`). Emitted into `tools/data/harness.json`, never into a settings file the host reads. |
+| `rootIntegrations` | Every project-root file emitted by the normal projection, each with an explicit init merge policy (`managed-block`, `json-map`, `json-array`, `whole-file`, `jsonc-settings`, or `json-entries`). `json-entries` is for a team's own JSON config (opencode's `opencode.json`); `jsonc-settings` is for an editor's own JSONC settings (Copilot's `.vscode/settings.json`). `shared: "union"` combines managed-block line sets across installed harnesses; `shared: "identical"` declares byte-identical content any declaring harness may own. |
+| `nativeRootIntegrations` (optional) | Release-channel-only root files, such as a trust seed, with the same merge contract plus an authored `src`. |
+| `tierFlavor` | Selects the existing Claude/Codex/Kiro/OpenCode agent model/effort projection shape. Manifest data, never inferred from `name`. |
+| `kiroLayout` (Kiro rows only) | `agent-v1` (JSON agents carrying their hooks) or `kas` (Markdown agents and standalone `.kiro/hooks/*.json`). |
+| `coreDirs: DirMap[]` | Which `core/<src>` dirs project into `<harnessDir>/<dst>`. Rename or drop dirs here (Kiro `rules → steering`; Codex `rules → aidlc-rules` and drops `skills/`). |
+| `harnessFiles: FileMap[]` | Authored surfaces copied verbatim from `harness/<name>/<src>` into each channel. `projectRoot: true` lands a file beside the harness dir (e.g. `AGENTS.md`). |
+| `orchestratorSkillPath` (optional) | Project-root-relative path to the assembled orchestrator `SKILL.md`. Defaults to `<harnessDir>/skills/aidlc/SKILL.md`. |
+| `frontmatterAdditions` (optional) | Per-file YAML lines appended to a core-projected `.md`'s frontmatter during projection, for a harness-NATIVE field (kiro-ide injects `tools: [...]` into its delegation-target agent files). |
+| `nativeReplacements` (optional) | Exact `{ from, to }` text the release channel swaps in before its generic invocation rewrite. |
+| `rulesRename` | The renamed rules dir (`"steering"` \| `"aidlc-rules"` \| `null`). Applied to the copied dir and to in-prose `<harnessDir>/rules/` references. |
+| `onboarding: OnboardingSpec` | Render neutral guidance from `core/templates/onboarding.md` and harness-specific setup from `core/templates/onboarding-harness.md` with `harness/<name>/onboarding.fills.ts`. |
+| `skipRunnerGen` | Set when the harness ships no `<harnessDir>/skills/` (Codex emits its skill tree to `.agents/skills/`); the packager then skips the standard runner-gen step. |
+| `emit` | The optional plugin (Step 3), `null` for harnesses that need none. |
+| `plugin` (optional) | The host plugin manifest directory and delivery kind. Omitting it derives `<harnessDir>-plugin` plus store delivery; set `kind: "kiro"` only for a folder-drop host. |
 
-### 12.5 Principles
+Claude's manifest is the minimal reference (no rename, no emit); Kiro's adds a rename + `harnessFiles` (agent JSONs and adapter) plus split root/native onboarding; Codex demonstrates native-only root integration and imperative emission. The packager writes `tools/data/harness.json`, `aidlc-stamp.json`, and `aidlc-projection.json` from these fields.
 
-- **No core edits** — Only `harness/<name>/` (+ packaging config if needed)
-- **Thin surface** — Adaptation only; logic stays in core
-- **Deterministic** — Byte-stable emissions (`--check` enforces)
-- **Follow references** — Mirror existing harness patterns
-- **Respect tokens** — Handle `{{HARNESS_DIR}}` correctly
+### 12.3 Step 2 — the hook adapter (the per-harness shim)
 
-See [Porting to a New Harness](https://welldesignedsystem.github.io/docs/harness-engineering/09-porting-to-a-new-harness/) for full details.
+Core hooks consume Claude-shaped stdin as the normal form. A new harness ships **one authored adapter** (`harness/<name>/hooks/aidlc-<name>-adapter.ts`, listed in `harnessFiles`) that normalizes the harness's hook payloads into that contract and subprocess-pipes to the shared core hook. Never split a core hook into logic+adapter — the core bodies stay byte-shared across all harnesses apart from the explicit invocation-token projection.
+
+Wire the adapter to the harness's events the harness's own way: Kiro registers targets in `agents/aidlc.json`; Codex emits `hooks.json`. Register only events with a real core-hook consumer.
+
+Six hooks are flow-altering and need their control channels forwarded, not just piped. The Stop hook answers with `{"decision":"block"}` on stdout; `aidlc-deliver-stage-rules` rewrites the delegated prompt; and the PreToolUse reviewer-scope, review-freeze, plan-approval, and state-transition guards answer with exit 2 + a reason on stderr (the tool call must be refused when the adapter relays that exit code). If the new harness cannot hard-block a tool call from its pre-tool seam, leave the reviewer-scope and review-freeze registrations out and document the gap rather than wiring dead hooks — the prose bounds still govern there.
+
+> **The one sanctioned `core/` edit: the doctor arm.** `/aidlc --doctor` health-checks an installed tree, and a new harness adds a per-harness arm there for its own install surfaces (adapter + wiring files present, any binary-version floor). This is deliberate per-harness *logic*, not data — a version check spawns the CLI and compares semver, which no manifest row can express — so it is the blessed exception to "zero `core/` edits". It degrades gracefully: a harness with no arm simply gets the generic checks.
+
+### 12.4 Step 3 — `emit.ts` (the imperative 20%, only if needed)
+
+Structural divergence a declarative row can't express is `emit.ts` — a plugin the manifest references that the packager calls with an `EmitContext` (`repoRoot`, `coreRoot`, `harnessRoot`, `harnessName`, `distRoot`, `harnessDir`, channel-aware `substituteToken`, `tierCap`). The emitter writes its outputs beneath `distRoot`. Codex's is the worked example: `config.toml`, `hooks.json`, the hook-trust pre-seed, the native onboarding skills-path rewrite, the agent-TOML transpositions, and the `.agents/skills/` tree. Harnesses whose surfaces are all authored files (Claude, Kiro) set `emit: null`.
+
+Under `--check`, the packager supplies two independent temporary `distRoot` sets, runs the same emitter once per channel in each build, then compares the two complete generated roots. Always pass emitted command text through `ctx.substituteToken`; otherwise an emitter can silently put a Bun command into the native channel.
+
+### 12.5 Step 4 — the bounded transform classes
+
+Permitted transforms are the harness/rules projection, the two invocation tokens, declared tier/frontmatter additions, and the native host-surface rewrites in `rewriteNativeInvocations`. That native pass updates command allowlists, hook/adapter/statusline routes, onboarding runtime text, and native trust entries, then rejects any surviving token or Bun invocation into an AIDLC tool/hook. No blind `sed`.
+
+One more projection keeps each tree to its own tool. The construction, topology, reviewer and swarm protocol modules each end with one `### <tool>` binding subsection per harness, and `scripts/harness-bindings.ts` ships a tree only its own. To port: add your tool's subsection to each of those runs and its heading to `BINDING_HEADINGS`. Until you do, your tree ships every tool's subsection.
+
+### 12.6 Step 5 — tests and the gate
+
+- A package-determinism test (`t145`) runs `package.ts --check`; it covers both channels for every discovered harness plus every plugin projection without requiring generated trees on disk.
+- `t243-install-mechanism` asserts copy projections keep Bun invocations, release projections contain no AIDLC Bun invocation, metadata is safe and exhaustive, and native-only integrations appear only in `dist-release/`.
+- `t238-build-binaries` compiles the native dispatcher and exercises every generated harness runtime without Bun on `PATH`.
+- A `<name>` hook-adapter contract test pipes live-captured payloads through the adapter and asserts the observable core-hook effect.
+- Live journeys ship as e2e gated on a `skipReason()` (a `AIDLC_<NAME>_*_LIVE=1` env + the binary present + authenticated) so they skip cleanly in the deterministic tier and run green locally before a port merges.
+
+Run `bun scripts/package.ts <name>` to materialize both local channels, `--check` to prove deterministic generation, and the deterministic suite (`bash tests/run-tests.sh --smoke --unit --integration -P 8`) plus the live journey to gate.
+
+### 12.7 Principles
+
+- **No core edits** — only `harness/<name>/` (plus the one sanctioned doctor arm and the binding subsections).
+- **Thin surface** — adaptation only; logic stays in core, byte-shared apart from the explicit token projection.
+- **Deterministic** — byte-stable emissions, enforced by `--check`.
+- **Follow references** — mirror the closest existing harness.
+- **Respect tokens** — handle `{{HARNESS_DIR}}`, `{{INVOKE}}`, and `{{TOOL_PREFIX}}` correctly.
 
 ## 13. Authoring a Plugin
 
