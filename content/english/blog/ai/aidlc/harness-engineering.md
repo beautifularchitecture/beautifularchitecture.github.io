@@ -95,10 +95,10 @@ Commit `core/`, `harness/`, `plugins/` only. `--check` builds twice in independe
 
 Cross over when changing code, not data:
 
-- Orchestrator routing/state or engine/conductor/directive contract ([Orchestrator](https://github.com/awslabs/aidlc-workflows/tree/main/docs/reference/03-orchestrator.md), [State Machine](https://github.com/awslabs/aidlc-workflows/tree/main/docs/reference/12-state-machine.md), [Skill System](https://github.com/awslabs/aidlc-workflows/tree/main/docs/reference/17-skill-system.md))
-- Hooks/CLI tools ([Hooks and Tools](https://github.com/awslabs/aidlc-workflows/tree/main/docs/reference/06-hooks-and-tools.md))
+- Orchestrator routing/state or engine/conductor/directive contract ([Orchestrator](https://github.com/awslabs/aidlc-workflows/blob/main/docs/reference/03-orchestrator.md), [State Machine](https://github.com/awslabs/aidlc-workflows/blob/main/docs/reference/12-state-machine.md), [Skill System](https://github.com/awslabs/aidlc-workflows/blob/main/docs/reference/17-skill-system.md))
+- Hooks/CLI tools ([Hooks and Tools](https://github.com/awslabs/aidlc-workflows/blob/main/docs/reference/06-hooks-and-tools.md))
 - Graph compile pipeline or audit taxonomy
-- Test suite ([Testing](https://github.com/awslabs/aidlc-workflows/tree/main/docs/reference/09-testing.md))
+- Test suite ([Testing](https://github.com/awslabs/aidlc-workflows/blob/main/docs/reference/09-testing.md))
 
 Adding stages/agents changes graph data—not the code that reads it. Changing *how* the graph compiles is code.
 
@@ -195,7 +195,56 @@ The calls that bite hardest:
 - **`for_each` names the iteration artifact.** The five Construction stages (`functional-design`, `nfr-requirements`, `nfr-design`, `infrastructure-design`, `code-generation`) run once per Unit and each declare `for_each: unit-of-work`; the other stages omit the field and run once. Aggregation is inferred from the graph, not declared.
 - **`lead_agent` and `support_agents` validate against `core/agents/*.md`.** There's no hardcoded list — adding an agent means dropping its file in that directory (see [§6](#6-adding-an-agent)).
 
-This is orientation, not the full contract. For the complete field table with types and constraints, see the Developer Reference's [Stage Definition](https://github.com/awslabs/aidlc-workflows/tree/main/docs/reference/15-stage-definition/).
+This is orientation, not the full contract. For the complete field table with types and constraints, see the Developer Reference's [Stage Definition](https://github.com/awslabs/aidlc-workflows/blob/main/docs/reference/15-stage-definition.md).
+
+<details>
+<summary>What does <code>for_each: unit-of-work</code> mean in practice?</summary>
+
+<p><code>for_each</code> tells the engine to run a stage once for each instance of the named artifact. Here, <code>unit-of-work</code> is the artifact produced by the <code>units-generation</code> stage. That artifact is one file containing multiple Unit definitions; it is not one file per Unit.</p>
+
+<p>The Units are proposed and approved during <code>units-generation</code>. Its <code>unit-of-work.md</code> describes each Unit, while <code>unit-of-work-dependency.md</code> lists the same Unit names and their dependencies. If those artifacts define <code>u1-catalog</code>, <code>u2-identity</code> and <code>u3-orders</code>, a Construction stage with <code>for_each: unit-of-work</code> runs three times: once for each Unit. Each run writes its Construction artifacts under that Unit's directory, such as <code>construction/u1-catalog/</code>.</p>
+
+<p><strong>Illustrative example:</strong> These fictional online-shop Units show how one output file can define several Units. The actual number and boundaries are proposed from the project context and approved by the human; the workflow does not prescribe a fixed count.</p>
+
+<table>
+<thead>
+<tr><th>Unit ID</th><th>Directory</th><th>Kind</th><th>Responsibility</th><th>Complexity</th><th>Deployment model</th></tr>
+</thead>
+<tbody>
+<tr><td>U1</td><td><code>u1-catalog</code></td><td><code>service</code></td><td>Provide product details and search</td><td>M</td><td>standalone</td></tr>
+<tr><td>U2</td><td><code>u2-identity</code></td><td><code>service</code></td><td>Register customers and authenticate them</td><td>M</td><td>standalone</td></tr>
+<tr><td>U3</td><td><code>u3-orders</code></td><td><code>service</code></td><td>Create orders using the catalog and customer identity</td><td>L</td><td>standalone</td></tr>
+<tr><td>U4</td><td><code>u4-storefront</code></td><td><code>ui</code></td><td>Let customers browse products and place orders</td><td>M</td><td>embedded</td></tr>
+<tr><td>U5</td><td><code>u5-packaging</code></td><td><code>packaging</code></td><td>Package the services and storefront for deployment</td><td>S</td><td>shared</td></tr>
+</tbody>
+</table>
+
+<p>The matching dependency block in <code>unit-of-work-dependency.md</code> lists each Unit once and names only declared Units in <code>depends_on</code>:</p>
+
+<pre><code class="language-yaml">units:
+  - name: u1-catalog
+    kind: service
+    depends_on: []
+  - name: u2-identity
+    kind: service
+    depends_on: []
+  - name: u3-orders
+    kind: service
+    depends_on: [u1-catalog, u2-identity]
+  - name: u4-storefront
+    kind: ui
+    depends_on: [u1-catalog, u2-identity, u3-orders]
+  - name: u5-packaging
+    kind: packaging
+    depends_on: [u3-orders, u4-storefront]</code></pre>
+
+<p>In this example, <code>u1-catalog</code> and <code>u2-identity</code> have no dependency on each other, so they can be in the same parallel batch. <code>u3-orders</code> waits for both. A <code>code-generation</code> stage with <code>for_each: unit-of-work</code> has one run for each of the five Units, with each Unit's artifacts written under its own <code>construction/&lt;unit-name&gt;/</code> directory.</p>
+
+<p>A stage without <code>for_each</code> runs once for the workflow. When that stage consumes outputs from per-Unit stages, the graph makes it an aggregation step: for example, <code>build-and-test</code> runs once after the per-Unit Construction work and consumes the resulting outputs. No separate aggregation field is needed.</p>
+
+<p>For the complete field contract, see the <a href="https://github.com/awslabs/aidlc-workflows/blob/main/docs/reference/15-stage-definition.md#for_each">Developer Reference's <code>for_each</code> definition</a> and the <a href="https://github.com/awslabs/aidlc-workflows/blob/main/core/aidlc-common/stages/inception/units-generation.md">Units Generation stage instructions</a>.</p>
+
+</details>
 
 ### 4.3 The Three-Compartment Body
 
@@ -242,7 +291,7 @@ stage-graph.json is out of date. Run `aidlc engine graph compile` to regenerate.
 
 ### 4.6 What a Stage *Contains* versus What It *Does*
 
-This section is about what a stage file *contains* — its format ([Stage Definition](https://github.com/awslabs/aidlc-workflows/tree/main/docs/reference/15-stage-definition/)). A companion contract covers what a stage *does* at runtime: the approval gate, the question flow, the state checkboxes, the completion message. That behavioural contract is the same for every stage regardless of domain, and it lives in [Stage Protocol](https://github.com/awslabs/aidlc-workflows/tree/main/docs/reference/04-stage-protocol/). When a stage body says "follow stage-protocol.md for approval gates," that's the contract it points at.
+This section is about what a stage file *contains* — its format ([Stage Definition](https://github.com/awslabs/aidlc-workflows/blob/main/docs/reference/15-stage-definition.md)). A companion contract covers what a stage *does* at runtime: the approval gate, the question flow, the state checkboxes, the completion message. That behavioural contract is the same for every stage regardless of domain, and it lives in [Stage Protocol](https://github.com/awslabs/aidlc-workflows/blob/main/docs/reference/04-stage-protocol.md). When a stage body says "follow stage-protocol.md for approval gates," that's the contract it points at.
 
 Keep the two separate: the stage *definition* is the file format you edit; the stage *protocol* is the runtime behaviour that wraps around every stage's work, which you mostly leave alone.
 
