@@ -39,9 +39,11 @@ Stages name their lead agent. Agents never name stages. This keeps work and work
 - **Engine** (`core/tools/aidlc-orchestrate.ts`) — Deterministic. Reads `aidlc-state.md` and compiled `stage-graph.json`, picks next step, emits one typed directive. Subcommands: `next`, `continue` (internal), `report`, `park`, `team-board` (read-only), `wait` (bounded read-only).
 - **Conductor** (`skills/aidlc/SKILL.md`) — Thin forwarding loop that executes each directive.
 
+**Routing lives in the engine.** Your stage files, scopes, and rules are the inputs that steer it—the conductor never decides the route.
+
 Everything else shapes their inputs:
 
-- **Scopes** — Which stages run for a given work type.
+- **Scopes** — Which stages run for a given work type (e.g. a bugfix runs 9 of the 33 stages; an enterprise feature runs all of them).
 - **Rules** — Standing "always do this" decisions applied to every workflow.
 - **Sensors** — Deterministic checks bound to stages (advisory or blocking).
 - **Knowledge** — Domain/project context agents load before working.
@@ -102,62 +104,147 @@ Adding stages/agents changes graph data—not the code that reads it. Changing *
 
 ## 4. Anatomy of a Stage
 
-A **stage** is the atomic unit of work. Every phase step is a single Markdown file.
+A **stage** is the atom of the AI-DLC workflow — *what* happens at one step. Every other change a harness engineer makes builds on the stage file, so read this first.
 
-### 4.1 Location
+A stage file is a **single Markdown file**: YAML frontmatter on top, prose body below. The frontmatter declares the graph node (the artifacts the stage consumes and produces, its lead agent, how it executes). The body is the prose the agent follows. Both live in one file on purpose.
 
-`core/aidlc-common/stages/<phase>/<slug>.md` with phases: `initialization`, `ideation`, `inception`, `construction`, `operation`.
+### 4.1 Two Readers, One File
 
-### 4.2 Structure
+A stage file has two readers, and they never overlap:
 
-Stage files have YAML frontmatter (machine-readable) and Markdown body (human-readable). Engine reads frontmatter; conductor/agents read body.
+- **The parser** reads only the YAML frontmatter. It produces a structured graph entry — the edges, the lead agent, the execution mode — and ignores the body entirely.
+- **The agent** executing the stage reads only the body. It follows the prose steps, produces the artifacts, and never touches the frontmatter.
+
+Keeping both in one file means you see the graph edges and the execution steps side by side. A reviewer sees both at once: which artifacts the stage produces *and* the instructions that produce them. Splitting them (one YAML file for the graph, one prose file for the agent) would break that inline visibility, which is what makes stages reviewable.
+
+This split is the key to knowing what you're editing:
+
+- Change a **frontmatter** field → you've changed the **graph** (a dependency edge, the leading agent, the execution mode).
+- Change the **body** → you've changed the **work** (what the agent actually does).
+
+The two are independent. A real stage is authored at `core/aidlc-common/stages/<phase>/<slug>.md` — for example `stages/inception/domain-design.md` (phases: `initialization`, `ideation`, `inception`, `construction`, `operation`).
+
+### 4.2 The Frontmatter at a Glance
+
+The frontmatter is a flat block of YAML keys. Some are mechanical (`slug`, `phase`) and copied from a neighbouring stage. A handful carry real judgment. Here is a real stage's frontmatter (from `stages/inception/domain-design.md`, trimmed):
 
 ```yaml
 ---
-title: "Stage Display Name"
-slug: example-stage
+slug: domain-design
 phase: inception
-lead_agent: aidlc-product-agent
-scopes:
-  - feature
-  - bugfix
-  - enterprise
-consumes:
-  - artifact.idea
+execution: CONDITIONAL
+condition: Execute when new components are needed. Skip for modifications to existing components only.
+lead_agent: aidlc-architect-agent
+support_agents:
+  - aidlc-aws-platform-agent
+  - aidlc-design-agent
+mode: inline
+summary_confirmation: required
+reviewer: aidlc-architecture-reviewer-agent
+review_artifact: components
+reviewer_max_iterations: 2
+review_class: advisory
 produces:
-  - artifact.spec
-gate: approval  # or none
+  - components
+  - decisions
+  - traceability
+consumes:
+  - artifact: requirements
+    required: true
+  - artifact: stories
+    required: false
+  - artifact: architecture
+    required: false
+    conditional_on: brownfield
+requires_stage:
+  - requirements-analysis
+  - refined-mockups
 sensors:
-  - sensor: aidlc-required-sections
-    on: gate
-    binding: advisory
+  - required-sections
+  - upstream-coverage
+  - traceability
+scopes:
+  - enterprise
+  - feature
+  - mvp
+  - classic
+  - workshop
+inputs: <record>/inception/requirements-analysis/requirements.md, ...
+outputs: components.md, decisions.md, and traceability.json — under this stage's record dir
 ---
 ```
 
-Body typically has three compartments: **Purpose**, **Inputs & Outputs**, **Execution** (steps, acceptance criteria, guardrails).
+The judgment-bearing fields:
 
-### 4.3 Key Frontmatter
-
-| Field | Purpose | Notes |
+| Field | What it decides | The judgment call |
 |---|---|---|
-| `title` | Display name | Shown in dashboards/status |
-| `slug` | Machine key | Must match filename stem; unique |
-| `phase` | Lifecycle phase | One of the five phases |
-| `lead_agent` | Persona that runs it | References `core/agents/<name>-agent.md` |
-| `scopes` | Which scopes include it | Controls routing |
-| `consumes` | Artifacts read | Forms dependency edges |
-| `produces` | Artifacts written | Forms edges |
-| `gate` | Approval behavior | `approval` or `none` |
-| `sensors` | Bound checks | List with `sensor`, `on`, `binding` |
+| `requires_stage` | Dependency and ordering edges | Does this stage genuinely consume another's output, or just need to run after it? |
+| `consumes` | The artifacts this stage reads | Per artifact: is it `required`, `conditional_on` brownfield/greenfield, and `cited`? |
+| `consumes[].cited` | Which optional inputs the output must cite when they exist | Is there an optional input that, whenever present, the output builds on? Mark `cited: true`; the `upstream-coverage` check then asks for its citation. |
+| `produces` | The artifacts this stage writes | These are the forward edges other stages discover. |
+| `lead_agent` / `support_agents` | Who runs the stage | One persona owns it; supporters add perspective. |
+| `mode` | Communication topology | `inline` (voices in the conductor's context), `subagent` (hub-and-spoke dispatch), `pipeline` (chain), or `mob` (mesh in bounded rounds). |
+| `for_each` | Whether it iterates | Names an artifact whose instances drive a once-per-instance run. |
+| `reviewer` / `review_artifact` | Independent quality review | If a reviewer is declared, name the one required Markdown output the review is about (the record is keyed to it and the gate names it); never rely on `produces` order. |
 
-### 4.4 How It Connects
+The calls that bite hardest:
 
-- **Graph edges** from `consumes`/`produces`. Compiler validates ordering, no duplicate producers of consumed artifacts.
-- **Scopes** filter eligibility.
-- **Sensors** run on `gate`/`write` with `advisory` or `blocking`.
-- **Agents** execute via conductor with stage body instructions.
+- **`consumes[].required` is scoped to the active plan, not global.** `required: true` means "if the producing stage runs in *this* workflow, this consume must be satisfied" — not "the producer always runs." Scopes deliberately skip upstream stages, so a flat global requirement would make those scopes structurally invalid. The stage body handles the absent-input case gracefully (prose like "if produced").
+- **`consumes[].conditional_on` captures the brownfield/greenfield split.** A consume marked `conditional_on: brownfield` is only required when the workflow is brownfield. For an unconditional consume, omit the field entirely — there is no `always` value.
+- **`mode` is the communication topology** — who talks to whom while the body runs. `inline` runs short stages in the conductor's own context with supporters as adopted voices; `subagent` delegates the lead to a fresh context (long stages like Construction code generation) and, when supporters are declared, dispatches each as a mutually-blind spoke; `pipeline` chains supporters in declared order, each seeing all upstream work; `mob` runs all supporters in parallel against the lead's draft with one bounded objection round. **WHO** participates is `support_agents`; **HOW** they participate is `mode`. `pipeline` and `mob` require non-empty `support_agents`.
+- **`for_each` names the iteration artifact.** The five Construction stages (`functional-design`, `nfr-requirements`, `nfr-design`, `infrastructure-design`, `code-generation`) run once per Unit and each declare `for_each: unit-of-work`; the other stages omit the field and run once. Aggregation is inferred from the graph, not declared.
+- **`lead_agent` and `support_agents` validate against `core/agents/*.md`.** There's no hardcoded list — adding an agent means dropping its file in that directory (see [§6](#6-adding-an-agent)).
 
-To change *what* happens, edit the stage file. No code change.
+This is orientation, not the full contract. For the complete field table with types and constraints, see the Developer Reference's [Stage Definition](https://welldesignedsystem.github.io/docs/reference/15-stage-definition/).
+
+### 4.3 The Three-Compartment Body
+
+Below the frontmatter, the body has three compartments, always in this order: `## Steps`, `## Sensors`, `## Learn`.
+
+- **`## Steps`** — the imperative prose the agent follows: load personas, read prior context, create the questions file, generate the artifacts, present the approval gate. This is where the stage's domain work lives, and it's the compartment you'll edit most when changing *what a stage does* without touching the graph.
+- **`## Sensors`** — a compact local summary: where outputs land, an `Imports:` line that mirrors the frontmatter `sensors:` list, and an `Upstream targets:` line that mirrors `consumes:` when `upstream-coverage` is imported. Stage-specific exceptions live here (an intentionally omitted sensor, ownership of a structured output); shared behavior lives in `stage-protocol-sensors.md`. See [§9 Sensors](#9-sensors).
+- **`## Learn`** — points to the conditional learning-loop contract in `stage-protocol-learnings.md` §13. Only when `directive.protocol_modules` lists `learnings`, maintain the four-heading diary at `directive.memory_path` while working, then surface and persist confirmed learnings before a human gate. When absent, keep no diary and skip the ritual. Workflow-time learning never rewrites the stage body.
+
+The three compartments are fixed so a stage's sensor bindings and learning-loop pointer always have a place of their own, and adding one never restructures the body.
+
+**One boundary worth internalizing:** a stage file is a framework artifact, immutable in shape. The body's `## Steps` / `## Sensors` / `## Learn` structure is never rewritten by a workflow. The single sanctioned in-workflow edit is the learning loop appending a new sensor id to the frontmatter `sensors:` import list. Everything else you change in a stage file, you change deliberately as a harness engineer.
+
+### 4.4 consumes and produces from the Graph
+
+The dependency graph isn't written anywhere directly — it **emerges** from the `consumes` and `produces` declarations across every stage.
+
+- A stage's `produces` list is its **forward edges**: when another stage asks "who produces `scope-document`?", the answer is whichever stage declares it.
+- A stage's `consumes` list is its **backward edges**: a `required` artifact must exist when this stage runs *if its producer is in this plan*, and an optional one is read when it is there.
+
+`requires_stage` makes the dependency explicit and also encodes pure ordering. It carries two roles:
+
+1. **A semantic data dependency** — "I consume artifact X, which stage Y produces," so Y goes in `requires_stage`.
+2. **A presentation-order edge** — two stages in the same phase with no data dependency but a fixed order. Author the weak edge so the computed display order lands stably rather than relying on an alphabetical tiebreak.
+
+These three lists are what wire a stage into the workflow. Get them right and the stage appears in the correct scopes, in the correct order, with its inputs satisfied. Wiring a brand-new stage is covered step by step in [§5 Adding a Stage](#5-adding-a-stage).
+
+### 4.5 stage-graph.json Is Compiled — Never Hand-Edit It
+
+The graph is compiled into a JSON build artifact. In a source build, the generated Claude projection runs the graph from `dist/claude/.claude/tools/data/stage-graph.json`; the installed runtime carries the same relative file under `.claude/tools/data/`. The JSON is a **build artifact, not a source file**. The YAML frontmatter across the stage files is authoritative; the JSON is what you get when you compile it.
+
+```
+edit stage .md YAML  →  compile  →  stage-graph.json  →  runtime reads it
+```
+
+After editing a stage's frontmatter in `core/`, run `bun scripts/package.ts`, which compiles the graph into every generated tree, and commit only the `core/` edit (the generated trees are ignored and CI rebuilds them). In an installed project tree, `aidlc engine graph compile` regenerates that tree's `stage-graph.json`, and `aidlc engine graph compile --check` says when it is out of date:
+
+```text
+$ aidlc engine graph compile --check
+stage-graph.json is out of date. Run `aidlc engine graph compile` to regenerate.
+```
+
+**The rule: do not hand-edit `stage-graph.json`.** Edit the YAML, recompile. A hand-edit either gets clobbered by the next compile or trips the drift check.
+
+### 4.6 What a Stage *Contains* versus What It *Does*
+
+This section is about what a stage file *contains* — its format ([Stage Definition](https://welldesignedsystem.github.io/docs/reference/15-stage-definition/)). A companion contract covers what a stage *does* at runtime: the approval gate, the question flow, the state checkboxes, the completion message. That behavioural contract is the same for every stage regardless of domain, and it lives in [Stage Protocol](https://welldesignedsystem.github.io/docs/reference/04-stage-protocol/). When a stage body says "follow stage-protocol.md for approval gates," that's the contract it points at.
+
+Keep the two separate: the stage *definition* is the file format you edit; the stage *protocol* is the runtime behaviour that wraps around every stage's work, which you mostly leave alone.
 
 ## 5. Adding a Stage
 
