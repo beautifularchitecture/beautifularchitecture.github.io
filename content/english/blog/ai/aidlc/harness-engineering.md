@@ -9,7 +9,7 @@ aliases = ['/blog/ai/aidlc/harness-engineering/']
 
 # AI-DLC Harness Engineering: A Complete Guide to Shaping the Factory
 
-> Part of the AI-DLC series. [User Guide](https://welldesignedsystem.github.io/docs/guide/) → build with AI-DLC. **This guide** → reshape how AI-DLC behaves for your team. [Developer Reference](https://welldesignedsystem.github.io/docs/reference/) → change AI-DLC's code.
+> Part of the AI-DLC series. [User Guide](https://github.com/awslabs/aidlc-workflows/docs/guide/) → build with AI-DLC. **This guide** → reshape how AI-DLC behaves for your team. [Developer Reference](https://github.com/awslabs/aidlc-workflows/docs/reference/) → change AI-DLC's code.
 
 AI-DLC is a spec-driven development factory that runs out of the box across Claude Code, Kiro CLI, Kiro IDE, Codex CLI, Cursor, opencode, and GitHub Copilot. It ships with 14 agents (11 domain experts, 2 reviewers, 1 composer), 33 stages, 11 scopes, plus rules and sensors.
 
@@ -19,9 +19,9 @@ This guide shows you how to **reshape AI-DLC for your team without writing code*
 
 | Guide | Who | What You Change |
 |---|---|---|
-| [User Guide](https://welldesignedsystem.github.io/docs/guide/) | Building *with* AI-DLC | Nothing in harness configs. Run `/aidlc`, answer gates, review artifacts. |
+| [User Guide](https://github.com/awslabs/aidlc-workflows/docs/guide/) | Building *with* AI-DLC | Nothing in harness configs. Run `/aidlc`, answer gates, review artifacts. |
 | **Harness Engineering Guide (this one)** | Shaping *how* AI-DLC behaves | Declarative data: stages, agents, scopes, rules, sensors, knowledge. |
-| [Developer Reference](https://welldesignedsystem.github.io/docs/reference/) | Changing AI-DLC *itself* | Code: orchestrator, hooks, CLI tools, graph compiler, tests. |
+| [Developer Reference](https://github.com/awslabs/aidlc-workflows/docs/reference/) | Changing AI-DLC *itself* | Code: orchestrator, hooks, CLI tools, graph compiler, tests. |
 
 The rule is simple: **data vs code**. If you edit Markdown with YAML frontmatter or JSON, you're in this guide. If you edit TypeScript, you're in the Developer Reference.
 
@@ -95,10 +95,10 @@ Commit `core/`, `harness/`, `plugins/` only. `--check` builds twice in independe
 
 Cross over when changing code, not data:
 
-- Orchestrator routing/state or engine/conductor/directive contract ([Orchestrator](https://welldesignedsystem.github.io/docs/reference/03-orchestrator/), [State Machine](https://welldesignedsystem.github.io/docs/reference/12-state-machine/), [Skill System](https://welldesignedsystem.github.io/docs/reference/17-skill-system/))
-- Hooks/CLI tools ([Hooks and Tools](https://welldesignedsystem.github.io/docs/reference/06-hooks-and-tools/))
+- Orchestrator routing/state or engine/conductor/directive contract ([Orchestrator](https://github.com/awslabs/aidlc-workflows/docs/reference/03-orchestrator/), [State Machine](https://github.com/awslabs/aidlc-workflows/docs/reference/12-state-machine/), [Skill System](https://github.com/awslabs/aidlc-workflows/docs/reference/17-skill-system/))
+- Hooks/CLI tools ([Hooks and Tools](https://github.com/awslabs/aidlc-workflows/docs/reference/06-hooks-and-tools/))
 - Graph compile pipeline or audit taxonomy
-- Test suite ([Testing](https://welldesignedsystem.github.io/docs/reference/09-testing/))
+- Test suite ([Testing](https://github.com/awslabs/aidlc-workflows/docs/reference/09-testing/))
 
 Adding stages/agents changes graph data—not the code that reads it. Changing *how* the graph compiles is code.
 
@@ -195,7 +195,7 @@ The calls that bite hardest:
 - **`for_each` names the iteration artifact.** The five Construction stages (`functional-design`, `nfr-requirements`, `nfr-design`, `infrastructure-design`, `code-generation`) run once per Unit and each declare `for_each: unit-of-work`; the other stages omit the field and run once. Aggregation is inferred from the graph, not declared.
 - **`lead_agent` and `support_agents` validate against `core/agents/*.md`.** There's no hardcoded list — adding an agent means dropping its file in that directory (see [§6](#6-adding-an-agent)).
 
-This is orientation, not the full contract. For the complete field table with types and constraints, see the Developer Reference's [Stage Definition](https://welldesignedsystem.github.io/docs/reference/15-stage-definition/).
+This is orientation, not the full contract. For the complete field table with types and constraints, see the Developer Reference's [Stage Definition](https://github.com/awslabs/aidlc-workflows/docs/reference/15-stage-definition/).
 
 ### 4.3 The Three-Compartment Body
 
@@ -242,7 +242,7 @@ stage-graph.json is out of date. Run `aidlc engine graph compile` to regenerate.
 
 ### 4.6 What a Stage *Contains* versus What It *Does*
 
-This section is about what a stage file *contains* — its format ([Stage Definition](https://welldesignedsystem.github.io/docs/reference/15-stage-definition/)). A companion contract covers what a stage *does* at runtime: the approval gate, the question flow, the state checkboxes, the completion message. That behavioural contract is the same for every stage regardless of domain, and it lives in [Stage Protocol](https://welldesignedsystem.github.io/docs/reference/04-stage-protocol/). When a stage body says "follow stage-protocol.md for approval gates," that's the contract it points at.
+This section is about what a stage file *contains* — its format ([Stage Definition](https://github.com/awslabs/aidlc-workflows/docs/reference/15-stage-definition/)). A companion contract covers what a stage *does* at runtime: the approval gate, the question flow, the state checkboxes, the completion message. That behavioural contract is the same for every stage regardless of domain, and it lives in [Stage Protocol](https://github.com/awslabs/aidlc-workflows/docs/reference/04-stage-protocol/). When a stage body says "follow stage-protocol.md for approval gates," that's the contract it points at.
 
 Keep the two separate: the stage *definition* is the file format you edit; the stage *protocol* is the runtime behaviour that wraps around every stage's work, which you mostly leave alone.
 
