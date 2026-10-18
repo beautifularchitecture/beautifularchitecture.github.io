@@ -452,22 +452,24 @@ Two behaviors to note:
 
 ### 5.6 The Runner Is Opt-In Sugar
 
-The extensibility contract: **to add a stage, you write a stage file.** Once it compiles, it runs on its own with no registration:
+Adding a stage requires writing a stage file. Run `bun scripts/package.ts` to copy the source stage into the harnesses and compile their runtime graphs; when working in an installed harness, run `aidlc engine graph compile`. Compilation turns the stage definitions into the `stage-graph.json` artifact the runtime reads, resolving the stage's placement and dependencies. Once compiled, run the stage directly with `--single`:
 
 ```bash
 aidlc engine orchestrate next --stage <your-slug> --single
 ```
 
-The `--single` mode runs that one stage in isolation (emits a `run-stage` directive, conductor runs it, synthetic-id lifecycle in the audit log) and **never touches the main workflow's Current Stage**, so it can't derail an in-flight workflow. Every shipped runnable stage also gets a thin runner skill at `skills/aidlc-<slug>/SKILL.md` so it's typeable as `/aidlc-<slug>` — a generator emits one per compiled stage, so runners can't drift from stages. Regenerate them after adding/removing a stage:
+The engine emits one `run-stage` directive containing the stage's lead agent, resolved `consumes` and `produces` paths, rules and sensors. The conductor runs the stage and reports completion. The engine records a synthetic-ID lifecycle in the audit log: `next --single` records `STAGE_STARTED` before dispatch, and `report --single` requires that event before recording `STAGE_COMPLETED`. The directive sets `single: true`, so the conductor runs the configured body, topology, reviewer and completion checks, reports once with `report --single --stage <slug> --result completed` and stops at `done`. A single-stage run does not run workflow learnings or open a workflow approval gate. It also **never changes the main workflow's `Current Stage`**, so it cannot advance or derail an in-flight workflow.
+
+A runner skill is optional packaging for a shorter command. A generated skill at `skills/aidlc-<slug>/SKILL.md` makes the stage typeable as `/aidlc-<slug>`; the thin skill drives `next --stage <slug> --single`. The generator creates one for each runnable compiled stage, so the generated runner set follows the compiled stage set. After adding or removing a stage, regenerate the runners and check for drift:
 
 ```bash
 aidlc engine gen runners          # regenerate every runner dir
 aidlc engine gen runners --check  # CI drift guard
 ```
 
-Two runner details worth knowing. First, the three **bootstrap initialization stages get no per-stage runner** — they have no standalone `--single` meaning; the whole init phase is the `/aidlc-init` command instead (with `--scope` and a description it packages the engine's intent-create move; with `--scope` alone it first asks what the work is for; with only a description it asks the engine for new work, which shows the plan offer first). Second, a runner carries **no `hooks:` block** — the deterministic spine (audit, sensors, runtime-graph compile, state validation) is project-wide in `settings.json`, so every runner inherits it for free. A runner also does not load the conductor persona by hand; the engine bakes it into the `run-stage` directive. The runner body just states what it does and the one command it drives.
+The three **bootstrap initialization stages have no per-stage runner** because they have no standalone `--single` meaning. Use `/aidlc-init` for the initialization phase. With `--scope` and a description, it packages the engine's intent-create move; with `--scope` alone, it asks what the work is for; with only a description, it asks the engine for new work and shows the plan offer first.
 
-Delete every runner and every stage still runs via `/aidlc --stage <slug> --single`.
+Runner skills carry no `hooks:` block because the deterministic spine (audit, sensors, runtime-graph compile and state validation) is registered project-wide in `settings.json`. The engine includes the conductor persona in the `run-stage` directive, so the runner does not load that persona itself. The runner body states what it does and the command it drives. Deleting all runner skills leaves every compiled stage runnable through `/aidlc --stage <slug> --single`; the stage file remains the definition.
 
 ### 5.7 What Validates Automatically vs. What You Check
 
