@@ -307,6 +307,15 @@ This section is about what a stage file *contains* — its format ([Stage Defini
 
 Keep the two separate: the stage *definition* is the file format you edit; the stage *protocol* is the runtime behaviour that wraps around every stage's work, which you mostly leave alone.
 
+<details>
+<summary>What does the protocol add? (Example)</summary>
+
+A stage definition might tell the agent to create a design document. The stage protocol supplies the shared runtime rules for completing that work, such as how to report completion, update workflow state and request human approval.
+
+Some protocol modules apply only in particular workflow situations. For example, when the Learnings module applies, the agent records useful observations while working and asks whether anything should be saved for next time before presenting the approval gate. The module defines that extra behavior without changing the stage's instructions. See [Stage Protocol](https://github.com/awslabs/aidlc-workflows/blob/main/docs/reference/04-stage-protocol.md) and the [Learnings Protocol](https://github.com/awslabs/aidlc-workflows/blob/main/core/aidlc-common/protocols/stage-protocol-learnings.md).
+
+</details>
+
 ## 5. Adding a Stage
 
 A new stage is the most structural change a harness engineer makes — you introduce a new step into the methodology. The recipe is end-to-end: pick a phase, author the file, wire the dependency edges, compile the graph, and confirm the stage lands where you expect.
