@@ -1177,6 +1177,8 @@ The standing recommendation lives under `## Walking Skeleton` in `core/memory/or
 
 Checkpoint policy requires solo ownership, an actual non-empty Unit DAG, and an included source-producing per-unit stage. Design-only and no-Unit work keep their existing stage flow. Under skeleton-on, plan the first DAG Unit as the smallest working integrated slice: it completes all applicable per-unit design stages and Code Generation, passes a real end-to-end check, and receives human skeleton approval before later Units start, even with stage-major selected. A first design-stage review alone is not a working skeleton.
 
+These checkpoint defaults apply to eligible solo-owned source work. Legacy workflows without the new policy fields keep their existing first-stage review and autonomy-based swarm routing. Team-owned work retains its `unit_gate` policy and configured per-stage or unit-end approval rhythm; design-only and no-Unit workflows keep their existing stage flow.
+
 Under skeleton-off, the engine offers **Continue automatically** / **Review each checkpoint** at Construction entry. Under skeleton-on, it offers the choice after the real skeleton checkpoint. The conductor follows `offer_autonomy`, records the human's choice through `bolt set-autonomy`, and asks no repeated ladder once a choice is known. On-demand grant/revoke requests remain available. Autonomy changes ordinary completion approvals; it never supplies a human Plan Approval, verification command selection, or an enabled summary confirmation, or makes a failed check pass. Summary confirmation applies only when `directive.ceremony.summary_confirmation === "on"`.
 
 To choose swarm execution, explicitly select stage-major and then `Construction Execution: swarm`. Guided (`gated`) and automatic (`autonomous`) batch completion are both supported; granting autonomy does not change order or execution. Unit-major remains serial and refuses a contradictory swarm setting. Team-owned work keeps `unit_gate` and its own per-stage or unit-end approval rhythm.
@@ -1199,13 +1201,13 @@ For a trusted project, the same heading can recommend **Continue automatically**
 
 When `run-stage` carries `construction_checkpoint`, the Unit body and reviews have already run; a `rereview` field names the one re-check of code or documents changed since their review, run first without asking (under Guard Policy `strict` only; under `relaxed` and `off` the change is accepted and the approval stands). With `command_authorized: false`, ask the verification-command question and complete the human decision/answer/setter flow before any `verify`, then re-run `next`. Otherwise run `bolt checkpoint --action verify --unit <unit> --kind <unit|skeleton>`; it executes the recorded, human-authorized command, not text selected at verify time. Approve only current verified evidence and show "Verified with `<full command>` (exit 0)" in the approval question. A skeleton always needs the human; ordinary Units follow `human_required`.
 
-Only after `verify` reports `verified: true` and the current checkpoint has `ready: true`, open the human Unit/skeleton approval question with `aidlc engine bolt checkpoint --action ask --unit "<unit>" --kind <unit|skeleton>`; `ask` refuses an unready or unverified checkpoint. For a human batch question, run `aidlc engine bolt swarm-checkpoint --action ask --batch <N> --units "<Units>"`. Consent is one-shot and bound to the current checkpoint fingerprint, verification proof ID, and authorized command digest. Re-running `verify` or swarm `finalize` withdraws every open checkpoint question and captured checkpoint response for this intent, in any session. Automatic approval (`human_required: false`) needs no `ask`; human rejection always needs the verified question-and-answer flow. Approval/rejection returns to `next`, never approves the whole Code Generation stage for one Unit or batch.
+Only after `verify` reports `verified: true` and the current checkpoint has `ready: true`, open the human Unit/skeleton approval question with `aidlc engine bolt checkpoint --action ask --unit "<unit>" --kind <unit|skeleton>`; `ask` refuses an unready or unverified checkpoint. For a human batch question, first confirm the batch status is `ready: true`, then run `aidlc engine bolt swarm-checkpoint --action ask --batch <N> --units "<Units>"`. The human's exact reply to the newest open checkpoint question authorizes only that checkpoint; an unrelated reply or the agent's own words do not. Batch questions bind the checkpoint fingerprint and the per-Unit command-digest set. Consent is one-shot and also bound to the verification proof ID and authorized command digest. Re-running `verify` or swarm `finalize` withdraws every open checkpoint question and captured checkpoint response for this intent, in any session. Re-verify and ask again after evidence changes. Automatic approval (`human_required: false`) needs no `ask`; human rejection always needs the verified question-and-answer flow. Approval/rejection returns to `next`, never approves the whole Code Generation stage for one Unit or batch.
 
 Version-3 checkpoint proofs store the command's SHA-256 and complete canonical command as the display label, alongside output byte counts and digests rather than raw output. The verifier records a tool-owned `CHECKPOINT_VERIFICATION_RECORDED` receipt alongside the proof file, and approval requires that receipt; a hand-written proof file cannot verify a Unit. On a checkout with no proof file at all (a fresh clone, another machine), that receipt stands in for the proof of a Unit already approved whose evidence is unchanged, so nothing runs again.
 
 Plan Approval remains individually bound even when its presentation is grouped. When several Units' plans are ready together, `next` asks about them in one engine question, and the agent records the person's choice per Unit (`log answer --checkpoint plan-approval --units`), each approval bound to that Unit's own plan: "approve all" approves every Unit, and a change naming one Unit sends only that Unit back.
 
-After a partial landing, `next` names the remaining Units and valid prepared workers retain the original group's approval and worktrees. Delegated workers use their verified parent intent's live fence, so lowering or raising it applies to already prepared workers on their next check. Failure still stops for the human Retry/Abort decision, and a checkpoint Request Changes starts a fresh revision. Recovery of interrupted setup reuses current approval rather than replacing the receipt bound to the worker.
+After a partial landing, `next` names the remaining Units and valid prepared workers retain the original group's approval and worktrees. Verify the parent intent and worktree permission before continuing; a smaller remaining Unit set does not by itself require preparation again. Delegated workers use their verified parent intent's live fence, so lowering or raising it applies to already prepared workers on their next check. Failure still stops for the human Retry/Abort decision, and a checkpoint Request Changes starts a fresh revision. Recovery of interrupted setup reuses current approval rather than replacing the receipt bound to the worker.
 
 ### 11.4 Shaping what can run in parallel — the Bolt-DAG
 
@@ -1254,7 +1256,7 @@ Two surfaces carry the signal:
 
 Your harness contribution is making both real and meaningful. A check that always passes, or a spec that is empty, hands the swarm a rubber stamp. The `## Testing Posture` rule in `org.md` already combines the selected Test Strategy with additive per-scope floors (for example, `mvp`/`feature` add 80% coverage); authoring a stricter structured methodology/order at `team.md` is how you change execution cadence without discarding those floors.
 
-A sensor complements the check on the prose side. The `required-sections` and `upstream-coverage` sensors that `units-generation` already imports verify the artifacts' shape and coverage at the gate; you can author a project-specific convergence or required-sections sensor with the muscle from [§9](#9-sensors) and bind it to the Construction stages whose output you keep eyeing for the same gap. Those two fire at the gate and are advisory; a sensor you add fires on each write or at the gate, as its `fire_on` says, and a blocking gate sensor stops the gate until its findings are fixed or a person overrides it. The project check command is the hard convergence gate. They work the two halves: the sensor watches the artifacts' shape, the check decides whether the Unit may merge.
+A sensor complements the check on the artifact side. The `required-sections` and `upstream-coverage` sensors imported by `units-generation` check artifact shape and coverage at the gate; both are advisory. You can author and bind additional sensors to Construction stages using [§9](#9-sensors). A sensor runs at the event named by its `fire_on` setting. A blocking gate sensor prevents the gate from passing until its findings are fixed or a person overrides them. The project check command remains the convergence signal that decides whether a Unit may merge.
 
 ### 11.6 The driver seam — `AIDLC_USE_SWARM`
 
@@ -1288,7 +1290,7 @@ The seven `SWARM_*` audit events (six from the referee, plus `SWARM_SOURCE_MERGE
 
 ## 12. Porting to a New Harness
 
-AI-DLC ships from **one core, many harnesses** — today Claude Code, Kiro CLI, Kiro IDE, Codex CLI, Cursor, opencode, and GitHub Copilot, and the set is open. The hand-authored source is a harness-neutral `core/` plus a thin `harness/<name>/` surface per CLI; the packager (`scripts/package.ts`) materializes each ignored local Bun copy tree under `dist/<harness>/` and its native counterpart under `dist-release/<harness>/`. Adding another harness is **one directory and one manifest row** — the engine, methodology, projection ownership, and harness-dir/rules resolution take no `core/` edits at all. The two optional exceptions are a per-harness `--doctor` arm (Step 2) and your tool's binding subsections in the protocol modules (end of Step 4).
+AI-DLC ships from **one core, many harnesses** — today Claude Code, Kiro CLI, Kiro IDE, Codex CLI, Cursor, opencode, and GitHub Copilot, and the set is open. The hand-authored source is a harness-neutral `core/` plus a thin `harness/<name>/` surface per CLI; the packager (`scripts/package.ts`) materializes each ignored local Bun copy tree under `dist/<harness>/` and its native counterpart under `dist-release/<harness>/`. Adding another harness normally requires one directory and one manifest row. The engine, methodology, projection ownership, and harness-directory/rules resolution need no `core/` edits. Two harness-specific additions may still be needed: a `--doctor` check for that host's install surfaces (Step 2) and tool-binding subsections in the protocol modules (Step 4).
 
 > Three senses of "harness" in this repo: **`harness/`** (top-level — the per-CLI distribution surfaces this section is about), **`docs/harness-engineering/`** (this guide), and **`tests/harness/`** (the test-suite helper library). Unrelated; only the first is a distribution.
 
@@ -1318,7 +1320,7 @@ dist-release/<name>/       # GENERATED native-aidlc channel
 
 The transform applies to Markdown and structured command surfaces (`.json`/`.toml`/`.hook`), and to invocation tokens in TypeScript; it is not a general source rewrite. The runtime `harnessDir()` seam in `core/tools/aidlc-lib.ts` still derives the directory from the shipped layout (open-set: the tool's own path, not a hardcoded list), so the same authored tool sources run in every tree. The acceptance gate is **generator determinism**: `package.ts --check` builds both channels and every plugin projection twice in independent temporary roots, then byte-compares the complete outputs.
 
-The packager **discovers** harnesses by scanning `harness/` for a `manifest.ts`, so a new dir is built by the default `bun scripts/package.ts` and `--check` with no edit to the packager itself — the literal meaning of "one directory and one manifest row, zero shared-code edits."
+The packager **discovers** harnesses by scanning `harness/` for a `manifest.ts`, so the default `bun scripts/package.ts` and `--check` include a new harness without a packager edit. `--check` generates both channels and plugin projections in independent temporary directories and compares the complete results; it does not use local `dist/` or `dist-release/` output.
 
 ### 12.2 Step 1 — the manifest (the declarative 80%)
 
@@ -1329,11 +1331,11 @@ Create `harness/<name>/manifest.ts` exporting a `HarnessManifest` (`scripts/mani
 | `name` / `harnessDir` | The dir the token substitutes to (e.g. `.foo`). |
 | `productName` / `configNextStep` | User-facing projection metadata consumed by lifecycle and `aidlc config`; keep host commands exact. |
 | `choiceName` / `choiceNote` (optional) | What the `aidlc config` menus show instead of `productName`, and beside it. Plain ASCII text only: an ASCII letter or digit first, then letters, digits, spaces and `.,()+-`; name 1–15 chars, note 1–60. The packager refuses non-conforming text. |
-| `firstRunSteps` / `editorTerminalApp` / `hookActivation` (optional) | Only for a host whose first run needs steps the others do not. `firstRunSteps` replaces the two next-step lines that end `aidlc config`. `editorTerminalApp` is the `TERM_PROGRAM` value the editor's terminal sets, making this harness the wizard's default there. `hookActivation` is for a host that may run no hooks until the person acts, and its texts name only the person's own step, in the host's own words. |
+| `firstRunSteps` / `editorTerminalApp` / `hookActivation` (optional) | Host-specific onboarding. `firstRunSteps` replaces the two next-step lines printed by `aidlc config`; `editorTerminalApp` matches the editor terminal's `TERM_PROGRAM` value so the wizard can default to that host. `hookActivation` names the person's required setup step for hosts where hooks may not run until the person acts. |
 | `directiveMaxBytes` (optional) | For a host that keeps less of one shell result than the engine's 28 KiB directive cap. Size it below the host's cut with room for the trailing newline. Only Copilot declares it (19,000 bytes, for VS Code's 20,000-character terminal result). In a project with several harnesses the smallest declared limit wins. |
 | `agentFinishRecorded` (optional) | `{ env: [...] }`, only for a host whose own stop event runs the `log-subagent` hook before the agent that dispatched a helper sees the result. Only Claude Code declares it. |
 | `statusLine` (optional) | Only for a host with a status line AI-DLC can show its progress in, in that host's own shape (Claude Code: `{ type, command }`; Codex: `{ items }`). Emitted into `tools/data/harness.json`, never into a settings file the host reads. |
-| `rootIntegrations` | Every project-root file emitted by the normal projection, each with an explicit init merge policy (`managed-block`, `json-map`, `json-array`, `whole-file`, `jsonc-settings`, or `json-entries`). `json-entries` is for a team's own JSON config (opencode's `opencode.json`); `jsonc-settings` is for an editor's own JSONC settings (Copilot's `.vscode/settings.json`). `shared: "union"` combines managed-block line sets across installed harnesses; `shared: "identical"` declares byte-identical content any declaring harness may own. |
+| `rootIntegrations` | Every project-root file emitted by the normal projection, with an explicit init merge policy (`managed-block`, `json-map`, `json-array`, `whole-file`, `jsonc-settings`, or `json-entries`). Policies define how `aidlc config` adds and later removes framework-owned content while preserving unrelated project content. For team-owned JSON and JSONC settings, the copy projection omits the file so it cannot replace the team's config. `shared: "union"` combines managed-block line sets across installed harnesses; `shared: "identical"` declares byte-identical content any declaring harness may own. |
 | `nativeRootIntegrations` (optional) | Release-channel-only root files, such as a trust seed, with the same merge contract plus an authored `src`. |
 | `tierFlavor` | Selects the existing Claude/Codex/Kiro/OpenCode agent model/effort projection shape. Manifest data, never inferred from `name`. |
 | `kiroLayout` (Kiro rows only) | `agent-v1` (JSON agents carrying their hooks) or `kas` (Markdown agents and standalone `.kiro/hooks/*.json`). |
@@ -1346,7 +1348,7 @@ Create `harness/<name>/manifest.ts` exporting a `HarnessManifest` (`scripts/mani
 | `onboarding: OnboardingSpec` | Render neutral guidance from `core/templates/onboarding.md` and harness-specific setup from `core/templates/onboarding-harness.md` with `harness/<name>/onboarding.fills.ts`. |
 | `skipRunnerGen` | Set when the harness ships no `<harnessDir>/skills/` (Codex emits its skill tree to `.agents/skills/`); the packager then skips the standard runner-gen step. |
 | `emit` | The optional plugin (Step 3), `null` for harnesses that need none. |
-| `plugin` (optional) | The host plugin manifest directory and delivery kind. Omitting it derives `<harnessDir>-plugin` plus store delivery; set `kind: "kiro"` only for a folder-drop host. |
+| `plugin` (optional) | The host plugin manifest directory and delivery kind. Omitting it derives `<harnessDir>-plugin` plus store delivery; set `kind: "kiro"` for a folder-drop host, and `marketplaceDir` when the host stores its catalogue somewhere other than the manifest directory. |
 
 Claude's manifest is the minimal reference (no rename, no emit); Kiro's adds a rename + `harnessFiles` (agent JSONs and adapter) plus split root/native onboarding; Codex demonstrates native-only root integration and imperative emission. The packager writes `tools/data/harness.json`, `aidlc-stamp.json`, and `aidlc-projection.json` from these fields.
 
@@ -1399,7 +1401,7 @@ First-party plugins (shipped by the AIDLC team) and third-party plugins (anyone 
 ### 13.1 When to write a plugin vs. a plain stage or rule
 
 - **A stage/agent/rule** ([§4](#4-anatomy-of-a-stage)–[§9](#9-sensors)) is a permanent part of the framework everyone gets.
-- **A plugin** is *optional and owned* — it ships in its own repo, activates only under an opt-in scope (and/or a `when:` predicate), and a consumer chooses to compose it into their install. Use it for a domain pack (a full operation phase, a compliance plugin, a testing plugin) that not every project wants.
+- **A plugin** is optional and independently owned. A consumer installs and selects it for composition; selection controls which of its stages, scopes, runners, and contributions are active. Stage `scopes:` metadata controls where each stage can run. The `when:` predicate is parsed but is not evaluated by the engine yet, so it does not gate execution. Use a plugin for a domain pack (such as an operation phase, compliance checks, or testing) that not every project needs.
 
 Start a new repository with `aidlc-plugin-create.ts`; the `test-pro` reference plugin walks the richer case end to end.
 
@@ -1450,7 +1452,7 @@ test-pro/
 }
 ```
 
-`contributes` declares the conventional plugin subtrees. Configurable routing is not implemented yet, so each present value must use the exact canonical path shown above; VALIDATE, BUILD, and TEST reject alternatives such as `"stages": "custom-stages/"` instead of silently omitting that content. `overlays` is special: its canonical directory is `contributions/`, whose files are consumed by the merge rather than copied as a primitive subtree. Keep tests and fixtures in the plugin's top-level `tests/` directory, never inside `tools/`.
+`contributes` declares conventional plugin subtrees. Configurable routing is not implemented, so every declared value must use the canonical path shown above; the validator, builder, and composition test reject alternatives such as `"stages": "custom-stages/"`. `overlays` is special: its canonical directory is `contributions/`, whose files are consumed by the merge rather than copied as a primitive subtree. Keep tests and fixtures in the plugin's top-level `tests/` directory. Composition excludes test fixtures from installed `tools/` files and reports misplaced test payloads.
 
 Ship only the keys your plugin uses. `test-pro` ships a support agent, a plugin scope, and per-agent methodology knowledge; it still reuses `aidlc-quality-agent` as the lead. **Memory projection remains deferred** — do not declare `contributes.memory` yet: the authoring tools reject it until the default-space method-seed merge ships. And there are **no number ranges**: stage numbers are display-only, so a plugin does not claim a number range in its manifest.
 
@@ -1547,7 +1549,7 @@ Re-composing a newer version of your plugin takes your newer stages, scopes, age
 ### 13.5 Packaging the other primitives
 
 - **Agents.** Drop `agents/<plugin>-<role>-agent.md` with `plugin:` set. The plugin prefix replaces core's `aidlc-` filename prefix, and the filename stem must equal frontmatter `name` (e.g. `agents/test-pro-metrics-agent.md` has `name: test-pro-metrics-agent`). It is discovered automatically after compose, and your plugin's stages may name it as `lead_agent`/`support_agents`. OpenCode composition also creates the native `.opencode/agents/` subagent twin and denies nested `task` delegation.
-- **Sensors.** Ship the manifest `sensors/aidlc-<id>.md` **and** its script under `tools/` (both — a manifest alone is discoverable but its script must live in `tools/` to run). The `aidlc-<id>.md` name at the top of `sensors/` is a hard requirement: sensor discovery flatly scans `sensors/` and indexes only basenames matching `aidlc-<id>.md`, so a manifest under any other name (or nested in a subdirectory) would compose but never fire. Bind the sensor to your own stages via `sensors:`, or to a core stage via a contribution's `adds.sensors`.
+- **Sensors.** Ship the manifest `sensors/aidlc-<id>.md` **and** its script under `tools/`; the manifest declares the sensor and the script implements its check. The manifest must be directly under `sensors/` and its basename must match `aidlc-<id>.md`. Composition rejects a misnamed or nested manifest and reports the problem through `/aidlc --doctor`; it will not silently install a sensor that cannot be discovered. Bind the sensor to your own stages via `sensors:`, or to a core stage via a contribution's `adds.sensors`.
 - **Method/rules.** *(⏳ deferred.)* A future `contributes.memory` surface will merge `memory/phases/<phase>.md` and `memory/{org,team,project}.md` into the default-space method seed. Do **not** ship a `rules/` dir — that path is no longer read.
 - **Knowledge.** Ship per-agent **methodology** knowledge under `knowledge/<agent-slug>/`, projected into the framework-shipped `<harness>/knowledge/` tree and loaded when that agent leads or supports a stage. **Domain/team knowledge** (`aidlc/spaces/<space>/knowledge/`) is empty-at-bootstrap user runtime state — a plugin does not ship it.
 - **Scopes.** A scope's **identity** is one file you ship under `scopes/<plugin>-<name>.md`. The plugin prefix replaces core's `aidlc-` filename prefix, and the filename stem must equal frontmatter `name` (e.g. `scopes/test-pro-validation.md` has `name: test-pro-validation`). Set `freeform_default: true` to nominate the scope as the fallback when the core `classic` default is disabled; at most one enabled scope across the selected core/plugin set may claim it.
@@ -1585,7 +1587,7 @@ The shipped builder emits your plugin as **a real host plugin** for one harness 
 bun <tools-dir>/aidlc-plugin-build.ts <plugin-root> <harness> [outDir]
 ```
 
-The default output is `<plugin-root>/dist/<harness>/`. The repository packager uses the same emitter to build first-party `dist/plugins/<name>/<harness>/` trees, so its byte-parity guard also guards external builds. Publish the output to a git repo with semver tags and a `marketplace.json`; teams then install through the host's native commands.
+The default output is `<plugin-root>/dist/<harness>/`. The repository packager uses the same emitter to build first-party `dist/plugins/<name>/<harness>/` trees, so its byte-parity guard also guards external builds. Publish the output to a git repo with semver tags and a `marketplace.json`; teams then install through the host's native commands. Give each plugin repository a distinct marketplace name. Set it with `aidlc.marketplace`, or omit the field to use the plugin name. The names `aidlc` and names beginning `aidlc-` are reserved for the framework catalogue.
 
 **Claude / Codex (host store):**
 
@@ -1610,26 +1612,25 @@ aidlc engine plugin list
 aidlc engine plugin sync
 ```
 
-`plugin select` stages disabled-contribution removal, graph/grid compilation, runners, and generated tables before committing one project transaction; re-enabled contributions return on the next SessionStart sync. It refuses to disable a plugin needed by an active workflow. `plugin list` compares host inventory with composition/ownership stamps and does not change selection.
+`plugin select` stages disabled-contribution removal, graph/grid compilation, runners, and generated tables before committing one project transaction. Re-enabled contributions return on the next SessionStart sync on hosts with a compose hook. Kiro CLI and opencode have no compose hook, so run `aidlc engine plugin sync --plugin-root <folder>` after selecting a plugin. Selection refuses to disable a plugin needed by an active workflow. `plugin list` compares host inventory with composition/ownership stamps and does not change selection.
 
 **Kiro (no store — folder-drop, then run the composer explicitly):**
 
 ```bash
-# From the AIDLC source root, materialize the ignored local plugin projections:
-bun scripts/package.ts
-# Then copy the Kiro projection into the project:
-cp -r dist/plugins/<name>/kiro/. <project>/
+# Copy the built Kiro projection's .kiro directory into the project. The plugin
+# is installed at .kiro/aidlc-plugins/<name>/ beside other plugins:
+cp -r <projection>/.kiro <project>/
 # preferred when aidlc is on PATH:
-AIDLC_PLUGIN_ROOT="<plugin-root>" AIDLC_PROJECT_DIR="<project>" \
+AIDLC_PLUGIN_ROOT="<project>/.kiro/aidlc-plugins/<name>" AIDLC_PROJECT_DIR="<project>" \
   AIDLC_HARNESS_DIR=.kiro aidlc engine plugin sync
 
 # fallback: run the composer explicitly:
-AIDLC_PLUGIN_ROOT="<plugin-root>" AIDLC_PROJECT_DIR="<project>" \
-  AIDLC_HARNESS_DIR=.kiro bun "<plugin-root>/hooks/compose.ts"
+AIDLC_PLUGIN_ROOT="<project>/.kiro/aidlc-plugins/<name>" AIDLC_PROJECT_DIR="<project>" \
+  AIDLC_HARNESS_DIR=.kiro bun "<project>/.kiro/aidlc-plugins/<name>/hooks/compose.ts"
 # open in Kiro IDE or kiro-cli chat → /aidlc
 ```
 
-> **Kiro note.** Use the `kiro-ide` projection for Kiro IDE 1.x or Kiro CLI v3; its folder-drop includes a `version: "v1"` `.kiro/hooks/aidlc-<plugin>-compose.json` SessionStart registration that runs the cross-platform `hooks/aidlc-plugin-compose.ts` Bun launcher. The `kiro` projection emits no hook registration, so run one of the explicit composer commands above.
+> **Kiro note.** Use the `kiro-ide` projection for Kiro IDE 1.x or Kiro CLI v3. Its folder-drop includes a `version: "v1"` `.kiro/hooks/aidlc-<plugin>-compose.json` SessionStart registration that runs `aidlc engine plugin sync` from the workspace root, or the plugin's cross-platform Bun launcher when `aidlc` is unavailable. The `kiro` projection emits no hook registration, so run one of the explicit composer commands above.
 
 **Trust is host-native** — you don't build anything: Claude (org admin sets `strictKnownMarketplaces`, managed, unoverridable), Codex (one-time trust prompt per plugin, content-hash-pinned), Kiro (n/a, folder-drop, no host gate).
 
@@ -1668,10 +1669,10 @@ The builder runs validation in-process before it writes anything. Errors refuse 
 
 ```bash
 bun <tools-dir>/aidlc-plugin-test.ts <plugin-root> \
-  --install <project-root> [--harness <name>] [--json]
+  --install <project-root> [--harness <name>] [--with <base-root>] [--json]
 ```
 
-The tool validates and builds first, copies the selected install surfaces into a temporary candidate, runs the real emitted `hooks/compose.ts`, recompiles the candidate graph, verifies the plugin stages and scopes are present, and runs compose a second time to prove idempotency. Any compose drop, graph failure, missing plugin node, or second-pass file change exits `1`. The live install is hashed before and after and is never a compose target.
+The tool validates and builds first, copies the selected install surfaces into a temporary candidate, runs the real emitted `hooks/compose.ts`, recompiles the candidate graph, verifies the plugin stages and scopes are present, and runs compose a second time to prove idempotency. Use `--harness` when the install directory is ambiguous, such as `.kiro` or `.aidlc`. For a plugin built on a base, `--with <base-root>` composes that base into the candidate first. Any compose drop, graph failure, missing plugin node, or second-pass file change exits `1`. The live install is hashed before and after and is never a compose target.
 
 6. **Publish** those generated directories and marketplace metadata from your own repository.
 
@@ -1692,7 +1693,7 @@ bash tests/run-tests.sh --integration --filter "plugin-<name>"
 - **Number is display-only.** Author a sensible `number:`; claim no range; inserting a stage never renumbers core.
 - **Artifact namespacing.** Every artifact you produce is `<plugin>-` prefixed; it may not collide with a core artifact or another plugin's.
 - **Primitive names are unique.** Your scopes/agents/sensors may not collide with core or another plugin — a collision is a compose error with attribution.
-- **One base at most.** A plugin builds on core and at most one base plugin: `"dependencies": ["core", "acme@^1.2.0"]`. Sync composes the base first, so your stages can order after its stages (`requires_stage`) and read its artifacts. A missing/out-of-range base means your plugin is not composed (a prior version stays as it was) and the person sees one line saying why; everything else still composes.
+- **One base at most.** A plugin builds on core and at most one base plugin: `"dependencies": ["core", "acme@^1.2.0"]`. Sync composes the base first, so your stages can order after its stages (`requires_stage`), read its artifacts, name its agents, and include its stages in your scopes with `include_stages`. Validate and test base references with `--with <base-root>`. A missing or incompatible base means your plugin is not composed (a prior version stays as it was) and the person sees why; other plugins can still compose.
 - **Additive only.** Contributions add — they cannot override or remove a core stage's fields, agent, or prose. A genuine need to *change* upstream behavior is a framework design decision, not a plugin concern.
 
 ## 14. Practical Tips & Next Steps
