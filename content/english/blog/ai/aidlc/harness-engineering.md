@@ -504,7 +504,7 @@ The one thing to internalize is the two-step truth: dropping the file makes the 
 
 Every agent is one flat file at `core/agents/<slug>-agent.md`: YAML frontmatter on top, a Markdown body below. The shipped files all carry the `aidlc-` prefix (`aidlc-architect-agent.md`, `aidlc-developer-agent.md`); a file you add is yours and need not use that prefix.
 
-Treat the shipped 14 as framework files: in an installed project, a local edit to one stops the next `aidlc config` refresh until you move your copy away or take the shipped one with `--force`:
+The installer treats the 14 shipped agent files as framework-owned. If you edit one in an installed project, the next `aidlc config` refresh stops with a conflict. To continue, either move your edited file out of the harness agent directory and rerun the command, or rerun it with `--force` to replace your edit with the shipped version:
 
 ```text
 $ aidlc config --harness claude --yes
@@ -876,19 +876,19 @@ The same holds when you author by hand: editing `team.md` mid-workflow reaches t
 
 ## 9. Sensors
 
-A **sensor** is a deterministic check that fires automatically on matching writes or at the stage's approval gate. Where a rule is prose the agent reads, a sensor is code that runs — the feedback half of the control loop to the rules' feedforward half. A rule says "user stories follow Given/When/Then"; a sensor verifies, byte for byte, that the required headings are present in the file the agent just wrote.
+A **sensor** is a deterministic check that the framework dispatches after a matching file write or during a stage gate. A stage imports the sensor by ID; the sensor's `fire_on` and `matches` settings determine which event and file path trigger it. A rule gives the agent prose guidance — for example, "user stories follow Given/When/Then." A sensor runs code to check a defined condition, such as whether a file contains required headings.
 
 ### 9.1 What a sensor is
 
-A sensor manifest is a Markdown file with YAML frontmatter, dropped under `core/sensors/`. The frontmatter is a pure **capability descriptor** — it says what the check is and how to invoke it. It says nothing about which stages use it. That binding lives on the stage side, which is the central idea of this section.
+A sensor manifest is a Markdown file with YAML frontmatter under `core/sensors/`. The manifest describes the check and how to invoke it. It does not name the stages that use it. A stage binds to a sensor by listing the sensor's ID in its `sensors:` frontmatter field.
 
 Three properties define the runtime behavior:
 
-- **`fire_on: write` runs during authoring.** The `PostToolUse` hook runs each matching sensor after a Write or Edit. This is the default when `fire_on` is omitted.
-- **`fire_on: gate` runs once per deliverable.** Immediately before `gate-start` opens its state transaction, the state tool fires each gate-bound sensor once for every existing declared deliverable path (`upstream-coverage` and `claim-sources`, which read the whole stage's output, once per output folder). A gate the engine approves itself under Construction autonomy fires only blocking sensors, since advisory evidence has no reader there.
-- **Severity controls gate enforcement.** `advisory` outcomes are recorded and the gate still opens. A `blocking` binding requires a verified pass: findings, unavailable tools, script/dispatcher errors, malformed verdicts, and timeouts stop gate entry. An override is a separate logged human decision, not a bare flag, and is forbidden in autonomous mode. Blocking enforcement applies only to `fire_on: gate` in this release; a write-fired sensor may declare `blocking`, but its result remains advisory.
+- **`fire_on: write` runs after matching edits.** After a Write or Edit, the `PostToolUse` hook dispatches each imported sensor whose `matches` pattern matches the changed path. If `fire_on` is omitted, it defaults to `write`.
+- **`fire_on: gate` runs during the approval flow.** Before `gate-start` opens the gate transaction, the state tool dispatches each imported gate sensor for existing declared deliverables that match its `matches` pattern. Most gate sensors run once per matching deliverable path. `upstream-coverage` and `claim-sources` inspect the stage output as a whole and run once per output folder. When Construction autonomy lets the engine approve a gate, the engine runs only blocking sensors because no person is waiting to review advisory findings.
+- **Severity determines whether a gate can open.** An `advisory` result is recorded but does not block the gate. A `blocking` gate sensor requires a verified pass. Findings, unavailable tools, script or dispatcher errors, malformed verdicts, and timeouts prevent the gate from opening. A human can choose a logged override; an override is not a bare flag and autonomous mode does not allow it. In this release, blocking applies only to gate-fired sensors. A write-fired sensor may declare `blocking`, but its result remains advisory.
 
-Each fire leaves a row in the intent's `audit/` shards. The event names — exact casing matters when you grep the log — are **`SENSOR_FIRED`** when a sensor starts, **`SENSOR_PASSED`** when it clears, and **`SENSOR_FAILED`** when it finds a gap. A failed row links to a detail file under `<record>/.aidlc-engine/sensors/<stage-slug>/` that names the specific gap: the missing headings, the unreferenced upstream artifact, the lint error.
+The intent's `audit/` shards record sensor lifecycle events: **`SENSOR_FIRED`** when dispatch starts, followed by **`SENSOR_PASSED`** when the check passes or **`SENSOR_FAILED`** when it reports findings. A failed event links to a detail file under `<record>/.aidlc-engine/sensors/<stage-slug>/`. The detail file records the specific finding, such as missing headings, an unreferenced upstream artifact, or a lint error.
 
 ### 9.2 The six sensors that ship
 
@@ -903,7 +903,7 @@ Six manifests ship under `sensors/`, each prefixed `aidlc-`:
 | `aidlc-linter.md` | Write: `.ts` / `.js` | Wraps your configured linter (ESLint by default) |
 | `aidlc-type-check.md` | Write: `.ts` / `.tsx` | Wraps your configured type-checker (`tsc` by default) |
 
-All six are gated by a `matches:` glob: the provenance check and two document-shape checks scope to the artifact tree (the shipped manifests carry `**/{aidlc-docs,intents}/**`, with the legacy `aidlc-docs/` arm kept for a pre-migration project), traceability scopes to `**/traceability.json`, and the two code-quality checks to their language globs (`**/*.{ts,js}`, `**/*.{ts,tsx}`). Read `aidlc-required-sections.md` end to end before authoring your own — it is the smallest of the six and shows the whole shape, frontmatter plus prose body.
+All six shipped manifests define a `matches:` glob. On a write, the hook compares the changed path with that glob. At a gate, the state tool compares declared deliverable paths with the glob. `claim-sources` uses `**/{aidlc-docs,intents}/**`; `required-sections` and `upstream-coverage` use `**/{aidlc-docs,intents,codekb}/**`. Both patterns retain the legacy `aidlc-docs/` arm for pre-migration projects. `traceability` uses `**/traceability.json`. `linter` and `type-check` use `**/*.{ts,js}` and `**/*.{ts,tsx}` respectively. Read `aidlc-required-sections.md` end to end before authoring a sensor; it is the smallest shipped manifest and shows both its frontmatter and prose body.
 
 ### 9.3 How binding works: pull authoring
 
@@ -922,11 +922,11 @@ sensors:
 ---
 ```
 
-This is **pull authoring**, and it is the same direction as every other binding in the harness model: the consumer (the stage) names the capability (the sensor), never the reverse. The `sensors:` list holds **bare ids** — `linter`, not `aidlc-linter` — because the id matches the manifest's frontmatter `id:` field, which equals the filename stem with the `aidlc-` prefix stripped.
+This is **pull authoring**: the stage names the sensor it imports; the manifest does not name its stages. The `sensors:` list holds **bare IDs** — `linter`, not `aidlc-linter`. A sensor ID matches the manifest's `id:` field and the filename stem after removing the `aidlc-` prefix.
 
-The payoff is locality of reference. Open a stage file and you see exactly which checks fire when that stage runs — you do not have to scan every manifest hunting for one that claims to target this stage.
+The stage's `sensors:` list shows which checks are eligible to run for that stage. The event type and matching file path still have to satisfy each sensor's `fire_on` and `matches` settings before dispatch.
 
-When the graph compiles, the resolver walks `sensors/`, indexes every manifest by id, and for each stage looks up each declared import, throwing loudly at compile time if an id has no manifest, rather than failing silently when the stage runs. Which sensors a stage imports is baked onto its graph node, and so is each manifest's `matches`, which the write hook uses to decide whether a sensor fires. The dispatcher reads the manifest again each time a sensor fires, so a changed `command` or `timeout_seconds` applies from the next fire, while a changed `matches` and a new import wait for the next compile. Recompile after any sensor edit for predictable behaviour. On a native install the six shipped sensors' workers are picked by id, so editing a shipped manifest's `command` runs nothing different; a different check needs its own id.
+During graph compilation, the resolver indexes manifests by ID and resolves each stage import. An import with no matching manifest causes a compile error. The compiled graph stores each stage's imports and each sensor's `matches` patterns; the write hook uses the compiled pattern to filter changed paths. The dispatcher rereads the manifest when it runs a sensor. Edits to `command` or `timeout_seconds` apply on the next dispatch. Edits to `matches` or a stage's imports require recompilation. On a native install, the six shipped workers are selected by sensor ID, so changing a shipped manifest's `command` does not select a different worker; give a different check a new sensor ID.
 
 ### 9.4 Authoring a new sensor
 
@@ -945,7 +945,7 @@ The frontmatter has five required fields and a handful of optional ones:
 | `description` | Yes | one-line human description |
 | `category` | No | free-form label (the shipped manifests use `document-shape`, `code-quality`) |
 | `fire_on` | No | `write` or `gate`; defaults to `write` |
-| `matches` | No | write-path filter; for gate dispatch, an omitted glob accepts every declared deliverable |
+| `matches` | No | Path filter. On writes it filters changed paths; at gates it filters declared deliverables. If omitted for a gate sensor, every declared deliverable matches. |
 | `input_schema` | No | declares the `file_path`/`output_path` key the dispatcher appends |
 | `output_schema` | No | declares the worker's JSON contract |
 | `timeout_seconds` | No | bounds the worker's run |
@@ -1021,13 +1021,13 @@ The detail file lists the finding the worker printed, and the audit shard gets a
 
 ### 9.5 Judgment calls: `fire_on`, `matches`, and `default_severity`
 
-Most of the manifest is mechanical. Two fields carry the real authoring judgment.
+Most manifest fields are mechanical. Three fields require an authoring decision.
 
-**`fire_on` — when is the useful checking boundary?** Use `write` for fast, incremental feedback where repeated checks are useful. Use `gate` for whole-deliverable or cross-file checks that should run once against the final stage output. Omission means `write`.
+**`fire_on` — when should the check run?** Use `write` for incremental checks after matching file edits. Use `gate` for checks that need declared deliverables at the approval gate. Gate sensors run against existing deliverables that match `matches`; `upstream-coverage` and `claim-sources` inspect the stage output folder as a whole. If omitted, `fire_on` defaults to `write`.
 
-**`matches` — what shape of file should this analyze?** For `fire_on: write`, this glob is the fire filter and is effectively required: the hook fires only when the written path matches, and an entry with no `matches` never fires. For `fire_on: gate`, the state tool applies the same capability check to each existing declared deliverable and dispatches only matching files; omitting `matches` accepts every one. The code-quality sensors set it to code globs so they fire only on code writes and stay quiet on prose; the document-shape sensors scope to the artifact tree so they fire on any markdown artifact a stage writes. Decide the file shape your check is meaningful for, and write the narrowest glob that covers it. An empty `matches: ""` is rejected at parse time.
+**`matches` — which paths should the check analyze?** For `fire_on: write`, the hook dispatches only when the changed path matches the glob; without `matches`, a write sensor does not fire. For `fire_on: gate`, the state tool applies the glob to existing declared deliverables and dispatches only for matching paths; without `matches`, every declared deliverable matches. The shipped code-quality sensors match code files, while the document sensors match artifact files. Choose the narrowest glob that includes every file shape the check needs. An empty `matches: ""` is rejected at parse time.
 
-**`default_severity` — signal or enforcement.** `advisory` records outcomes and continues. `blocking` stops a gate-fired sensor unless the dispatcher returns a verified pass; findings, unavailable evaluation, malformed output, and timeout all refuse. The operator may fix the issue or explicitly select `Override blocking sensors` from the logged two-choice prompt, then retry with the flag and exact `--user-input`. Autonomous mode cannot override. Blocking on write-fired sensors is accepted by the schema but remains advisory in this release.
+**`default_severity` — record or block?** `advisory` records the result and allows the gate to continue. `blocking` requires a verified pass for a gate-fired sensor. Findings, unavailable evaluation, malformed output, or timeout prevent gate entry. A human can fix the finding or choose `Override blocking sensors` in the logged prompt, then retry with the required flag and exact `--user-input`. Autonomous mode does not allow overrides. The schema accepts `blocking` on a write-fired sensor, but write-fired results remain advisory in this release.
 
 ### 9.6 When the learning loop installs a sensor for you
 
@@ -1038,7 +1038,7 @@ You do not always author sensors by hand. The learning gate can install one when
 - **Deterministic only** — regex, file presence, counts, command output. If it needs semantic judgment, use a rule or a gate instead.
 - **Clear failures** — name the exact issue and how to fix it (file/section/command).
 - **Least blocking** — start advisory; promote to blocking only when correctness is non-negotiable.
-- **Scoped binding** — only where the sensor's `matches` artifacts appear.
+- **Scoped binding** — import a sensor only on stages that produce files it can check; use `matches` to filter those files.
 - **Idempotent** — safe to run multiple times.
 - **One owner** — don't duplicate the same invariant in a sensor and a hook.
 
