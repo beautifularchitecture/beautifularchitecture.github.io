@@ -452,15 +452,19 @@ Two behaviors to note:
 
 ### 5.6 The Runner Is Opt-In Sugar
 
-Adding a stage requires writing a stage file. Run `bun scripts/package.ts` to copy the source stage into the harnesses and compile their runtime graphs; when working in an installed harness, run `aidlc engine graph compile`. Compilation turns the stage definitions into the `stage-graph.json` artifact the runtime reads, resolving the stage's placement and dependencies. Once compiled, run the stage directly with `--single`:
+**Adding a stage requires writing a stage file; it does not require writing or registering a runner.** Once the stage compiles into the graph, run it directly with `--single`:
 
 ```bash
 aidlc engine orchestrate next --stage <your-slug> --single
 ```
 
+A *runner* is a user-invocable skill that gives a stage a shorter command. For example, the built-in `approval-handoff` stage can be run directly with `aidlc engine orchestrate next --stage approval-handoff --single`; its generated runner exposes the same action as `/aidlc-approval-handoff`. The runner is a convenience wrapper, not the stage definition and not what makes the stage runnable.
+
+You do not need to write or register a runner because the compiled stage graph is enough for the engine to resolve and run a stage by slug. When you do want the shorter slash command, `aidlc engine gen runners` generates a runner for each runnable compiled stage. The generator derives the runner set from the graph, so there is no separate per-stage registration to maintain.
+
 The engine emits one `run-stage` directive containing the stage's lead agent, resolved `consumes` and `produces` paths, rules and sensors. The conductor runs the stage and reports completion. The engine records a synthetic-ID lifecycle in the audit log: `next --single` records `STAGE_STARTED` before dispatch, and `report --single` requires that event before recording `STAGE_COMPLETED`. The directive sets `single: true`, so the conductor runs the configured body, topology, reviewer and completion checks, reports once with `report --single --stage <slug> --result completed` and stops at `done`. A single-stage run does not run workflow learnings or open a workflow approval gate. It also **never changes the main workflow's `Current Stage`**, so it cannot advance or derail an in-flight workflow.
 
-A runner skill is optional packaging for a shorter command. A generated skill at `skills/aidlc-<slug>/SKILL.md` makes the stage typeable as `/aidlc-<slug>`; the thin skill drives `next --stage <slug> --single`. The generator creates one for each runnable compiled stage, so the generated runner set follows the compiled stage set. After adding or removing a stage, regenerate the runners and check for drift:
+Generated runner skills live at `skills/aidlc-<slug>/SKILL.md` and drive `next --stage <slug> --single`. After adding or removing a stage, regenerate the runners and check for drift:
 
 ```bash
 aidlc engine gen runners          # regenerate every runner dir
