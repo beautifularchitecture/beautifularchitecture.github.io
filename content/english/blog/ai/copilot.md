@@ -2076,7 +2076,7 @@ Beyond these 19 official examples, GitHub maintains a community repository with 
 
 ## Writing Effective Custom Instructions
 
-### 1. Keep files short and focused
+### Keep files short and focused
 
 The most important rule from the official docs: **shorter instruction files are more reliably processed**.
 
@@ -2084,7 +2084,7 @@ The most important rule from the official docs: **shorter instruction files are 
 - For general quality, keep any single instruction file to a **maximum of around 1,000 lines**. Beyond this, response quality can deteriorate.
 - Start with a minimal set of 10–20 specific instructions, then add more iteratively based on what actually works.
 
-### 2. Use clear structure and formatting
+### Use clear structure and formatting
 
 Copilot processes well-structured Markdown better than narrative prose. Use:
 
@@ -2110,11 +2110,11 @@ information like passwords or API keys and also check for security issues.
 - Verify proper input validation and sanitization
 ```
 
-### 3. Include the reasoning behind rules
+### Include the reasoning behind rules
 
 When instructions explain _why_ a convention exists, the AI makes better decisions in edge cases. For example: _"Use `date-fns` instead of `moment.js` because moment.js is deprecated and increases bundle size."_
 
-### 4. Provide concrete code examples
+### Provide concrete code examples
 
 Examples eliminate ambiguity. Include code snippets showing both the pattern to avoid and the pattern to prefer.
 
@@ -2136,7 +2136,7 @@ const activeUsers = users.filter((user) => user.isActive);
 
 ````
 
-### 5. Be specific, not vague
+### Be specific, not vague
 
 Vague instructions do not help. The official docs specifically call these out as **not supported** for code review:
 
@@ -2146,11 +2146,11 @@ Vague instructions do not help. The official docs specifically call these out as
 
 Instead, write instructions about specific patterns in your codebase.
 
-### 6. Focus on non-obvious rules
+### Focus on non-obvious rules
 
 Skip conventions that standard linters or formatters already enforce. Only document what's unique to your team or project.
 
-### 7. Avoid instructions Copilot cannot follow
+### Avoid instructions Copilot cannot follow
 
 From the official docs, the following types of instructions are **not currently supported** for Copilot code review:
 
@@ -2161,7 +2161,7 @@ From the official docs, the following types of instructions are **not currently 
   - Workaround: Copy the relevant content directly into your instruction file
 - Instructions about self-improvement: `Be consistent`, `Don't miss any issues`
 
-### 8. Don't let perfect be the enemy of good
+### Don't let perfect be the enemy of good
 
 An "imperfect" instructions file delivers far more impact than no file at all. Instruction files should evolve over time, just like documentation. Experiment, iterate and don't overthink the initial version.
 

@@ -47,7 +47,7 @@ CDC eliminates dual writes by making the database the single source of truth and
 
 ## CDC Approaches
 
-### 1. Log-Based CDC (Best)
+### Log-Based CDC (Best)
 
 Also called "transaction log tailing" or "write-ahead log (WAL) capture."
 
@@ -75,7 +75,7 @@ Database → WAL/Transaction Log → Log Reader → Change Events → Kafka / Pu
 | DynamoDB   | DynamoDB Streams (Kinesis-backed)               | Lambda, KCL             |
 | Cosmos DB  | Change Feed                                     | Azure Functions         |
 
-### 2. Trigger-Based CDC
+### Trigger-Based CDC
 
 **How it works:**
 
@@ -109,7 +109,7 @@ CREATE TRIGGER trg_order_changes
 - Changes written by triggers are visible only after the outer transaction commits
 - Managing triggers across schema migrations is error-prone
 
-### 3. Timestamp-Based CDC (Lowest Fidelity)
+### Timestamp-Based CDC (Lowest Fidelity)
 
 **How it works:**
 
@@ -133,7 +133,7 @@ LIMIT 1000;
 - Pagination is complex under heavy concurrent writes
 - No schema change detection
 
-### 4. API-Based CDC (e.g. DynamoDB Streams)
+### API-Based CDC (e.g. DynamoDB Streams)
 
 Some databases expose changes as a native streaming API:
 

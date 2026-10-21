@@ -166,7 +166,7 @@ Let's meet this "virtual doctor" for ships and see how it makes its diagnosis.
 
 ---
 
-## 1. What Is Virtual Structural Health Monitoring (V-SHM)?
+## What Is Virtual Structural Health Monitoring (V-SHM)?
 
 In simple terms, Virtual Structural Health Monitoring (V-SHM) is a **"sensorless," cloud-based platform** that monitors a ship's structural health without requiring physical hardware like strain gauges or accelerometers. It's a software-driven approach that uses data and digital modelling to achieve what once required extensive, costly hardware. This is a fundamental shift from traditional monitoring, which relies on installing a costly and complex network of physical strain gauges that are expensive to maintain and can only measure stress at their specific installation points.
 
@@ -176,7 +176,7 @@ Now that we know what the system is, let's look at how it gathers its informatio
 
 ---
 
-## 2. The "Virtual Doctor's" Toolkit: Gathering Clues Without Sensors
+## The "Virtual Doctor's" Toolkit: Gathering Clues Without Sensors
 
 Instead of attaching physical sensors to the hull, the V-SHM system gathers three critical types of data that, when combined, paint a complete picture of the forces acting on the ship.
 
@@ -190,7 +190,7 @@ Once all this information is collected, it needs to be processed and understood 
 
 ---
 
-## 3. The Brain of the System: The Vessel's Digital Twin
+## The Brain of the System: The Vessel's Digital Twin
 
 The core of the V-SHM system is the vessel's **digital twin**. It is a highly accurate, physics-based 3D computer model of that specific vessel, built using the ship's original design plans and extensive hydrodynamic calculations. Think of it as a perfect virtual copy of the ship that lives in the cloud, with the same size, shape, and structural properties as its real-world counterpart.
 
@@ -200,7 +200,7 @@ Now, let's see how the system turns this raw data and virtual simulation into a 
 
 ---
 
-## 4. The Diagnosis: How Data Becomes a Decision
+## The Diagnosis: How Data Becomes a Decision
 
 The process of turning data into a decision is logical and sequential. The V-SHM system follows a clear, three-step process to produce its analysis:
 
@@ -214,7 +214,7 @@ Now that the system has made a diagnosis, it must communicate its findings to th
 
 ---
 
-## 5. The "Doctor's Orders": From Alerts to Action
+## The "Doctor's Orders": From Alerts to Action
 
 The V-SHM system is designed to provide clear, actionable information — not just raw data — to the crew on the vessel and the support teams on shore.
 
@@ -231,7 +231,7 @@ This journey — from gathering data clues to providing clear, life-saving advic
 
 ---
 
-## 6. Conclusion: A Smarter, Safer Way to Sail
+## Conclusion: A Smarter, Safer Way to Sail
 
 Virtual Structural Health Monitoring represents a major leap forward in marine safety. By combining real-world data from existing onboard systems with a sophisticated digital twin, it is possible to continuously monitor a ship's structural health without installing a single physical sensor.
 
@@ -243,13 +243,13 @@ This project scope outlines the development of a software solution for **Virtual
 
 ---
 
-## 1. Project Goal
+## Project Goal
 
 To deliver a reliable, cloud-based software solution that monitors the structural health of marine vessels using existing operational data (a "sensorless" approach), provides actionable insights to crew and shore personnel, and achieves ABS Product Design Assessment (PDA) certification for the Smart Structural Health Monitoring Tier 1 notation.
 
 ---
 
-## 2. Functional Requirements
+## Functional Requirements
 
 The software must perform the following core functions:
 
@@ -261,7 +261,7 @@ The software must perform the following core functions:
 
 ---
 
-## 3. Performance Requirements
+## Performance Requirements
 
 - **Availability:** The cloud platform shall maintain 99.9% uptime.
 - **Latency:** Data processing and alert generation must occur with minimal latency (e.g., within 60 seconds of data ingestion) to support timely decision-making.
@@ -270,7 +270,7 @@ The software must perform the following core functions:
 
 ---
 
-## 4. Data Sources and Data Points (Inputs)
+## Data Sources and Data Points (Inputs)
 
 The system will ingest data from existing sources on the vessel:
 
@@ -286,7 +286,7 @@ The system will ingest data from existing sources on the vessel:
 
 ---
 
-## 5. Analysis Methodology
+## Analysis Methodology
 
 The methodology will be a hybrid approach combining data analytics with physics-based modelling:
 
@@ -296,7 +296,7 @@ The methodology will be a hybrid approach combining data analytics with physics-
 
 ---
 
-## 6. System Output and User Interface
+## System Output and User Interface
 
 The output will be delivered via a secure web portal and a light onboard client (for local alerts).
 
@@ -306,7 +306,7 @@ The output will be delivered via a secure web portal and a light onboard client 
 
 ---
 
-## 7. ABS Certification Plan
+## ABS Certification Plan
 
 The project plan includes a dedicated phase for certification:
 
@@ -394,11 +394,11 @@ The V-SHM system is entirely reliant on existing data infrastructure. We categor
 
 # 1. Executive Summary
 
-## 1.1 Product Overview
+## Product Overview
 
 **V-SHM TIER 1** is a cloud-based, AI-powered structural health monitoring platform designed for vessels operating in restricted conditions. The system achieves ABS Smart Structural Health Monitoring TIER 1 notation through a **sensorless approach**, leveraging existing operational data, AIS tracking, and environmental data to predict structural fatigue and ensure operational compliance.
 
-## 1.2 Key Differentiators
+## Key Differentiators
 
 | Feature                     | V-SHM TIER 1 Approach                                                 |
 | --------------------------- | --------------------------------------------------------------------- |
@@ -408,7 +408,7 @@ The V-SHM system is entirely reliant on existing data infrastructure. We categor
 | **Rapid Deployment**        | 48-hour onboarding per vessel vs. months for hardware installation    |
 | **Predictive Intelligence** | Fatigue damage forecasting with 14-day advance warnings               |
 
-## 1.3 Target Vessels
+## Target Vessels
 
 - High-speed craft (HSC, crew boats, FSIV)
 - Offshore patrol vessels (OPV)
@@ -420,11 +420,11 @@ The V-SHM system is entirely reliant on existing data infrastructure. We categor
 
 # 2. Product Vision & Objectives
 
-## 2.1 Vision Statement
+## Vision Statement
 
 "Enable vessel operators to maximize structural life and operational safety through intelligent, non-intrusive monitoring that learns from operational patterns and environmental exposure."
 
-## 2.2 Business Objectives
+## Business Objectives
 
 1. **Regulatory Compliance**: Achieve ABS Smart Structural Health Monitoring TIER 1 certification
 2. **Market Penetration**: Capture 15% of high-speed craft market (Year 1)
@@ -432,7 +432,7 @@ The V-SHM system is entirely reliant on existing data infrastructure. We categor
 4. **Operational Excellence**: Reduce unplanned maintenance by 30%
 5. **Safety Enhancement**: Zero structural failures for monitored vessels
 
-## 2.3 Technical Objectives
+## Technical Objectives
 
 1. **Real-time Processing**: Position-to-alert latency < 60 seconds
 2. **Prediction Accuracy**: Fatigue damage estimation ±8% vs. actual measurements
@@ -487,9 +487,9 @@ graph TB
     end
 ```
 
-## 3.2 Component Architecture
+## Component Architecture
 
-### 3.2.1 Data Layer Components
+### Data Layer Components
 
 | Component                  | Technology       | Purpose                                              |
 | -------------------------- | ---------------- | ---------------------------------------------------- |
@@ -498,7 +498,7 @@ graph TB
 | **Vessel Data Adapter**    | REST API Gateway | Standardised interface for ship systems integration  |
 | **Master Data Repository** | PostgreSQL       | Vessel specifications, design envelopes, S-N curves  |
 
-### 3.2.2 Analytics Layer Components
+### Analytics Layer Components
 
 | Component               | Technology            | Purpose                                             |
 | ----------------------- | --------------------- | --------------------------------------------------- |
@@ -507,7 +507,7 @@ graph TB
 | **Fatigue Accumulator** | InfluxDB + Python     | Time-series damage calculation (Palmgren-Miner)     |
 | **Compliance Monitor**  | Rules Engine (Drools) | Design envelope boundary checking                   |
 
-### 3.2.3 Presentation Layer Components
+### Presentation Layer Components
 
 | Component                | Technology               | Purpose                               |
 | ------------------------ | ------------------------ | ------------------------------------- |
@@ -518,9 +518,9 @@ graph TB
 
 ---
 
-## 4. Data Sources & Specifications
+## Data Sources & Specifications
 
-### 4.1 Data Source Matrix
+### Data Source Matrix
 
 | Source Category   | Provider Examples                          | Update Frequency           | Critical Data Points                         | Data Volume   |
 | ----------------- | ------------------------------------------ | -------------------------- | -------------------------------------------- | ------------- |
@@ -529,9 +529,9 @@ graph TB
 | **Operational**   | Ship's DAS, Noon Reports, Loading Computer | Variable (1 hr – 1 day)    | Draft F/A/M, Cargo Weight, Trim, Engine Load | ~5 KB/entry   |
 | **Master Data**   | Classification Society, Ship Builder       | Static (updates on survey) | GA Plans, Scantlings, S-N Curves, Limits     | ~50 MB/vessel |
 
-## 4.2 Detailed Data Specifications
+## Detailed Data Specifications
 
-### 4.2.1 AIS Data Structure
+### AIS Data Structure
 
 ```json
 {
@@ -568,7 +568,7 @@ graph TB
 
 ---
 
-### 4.2.2 Environmental Data Structure
+### Environmental Data Structure
 
 ```json
 {
@@ -607,7 +607,7 @@ graph TB
 
 ---
 
-### 4.2.3 Operational Data Structure
+### Operational Data Structure
 
 ```json
 {
@@ -646,7 +646,7 @@ graph TB
 
 ---
 
-### 4.2.4 Master Data Structure
+### Master Data Structure
 
 ```json
 {
@@ -690,9 +690,9 @@ graph TB
 }
 ```
 
-## 5 Data Flow Architecture
+## Data Flow Architecture
 
-### 5.1 End-to-End Data Flow Diagram
+### End-to-End Data Flow Diagram
 
 ```mermaid
 flowchart TD
@@ -796,7 +796,7 @@ flowchart TD
     CLIENTS -.-> NOTE
 ```
 
-## 5.2 Data Processing Latency Budget
+## Data Processing Latency Budget
 
 | Stage                        | Target Latency    | Technology           | Notes                       |
 | ---------------------------- | ----------------- | -------------------- | --------------------------- |
@@ -810,9 +810,9 @@ flowchart TD
 
 ---
 
-## 6. AI/ML Models & Analytics
+## AI/ML Models & Analytics
 
-### 6.1 AI Model Portfolio
+### AI Model Portfolio
 
 #### 6.1.1 Primary Model: Load Prediction Neural Network
 
@@ -887,7 +887,7 @@ Output Layer (4 outputs, Linear)
 
 ---
 
-### 6.2 Empirical Analysis Models
+### Empirical Analysis Models
 
 #### 6.2.1 Wave-Induced Load Calculation
 
@@ -950,7 +950,7 @@ def calculate_wave_bending(vessel, Hs, Tp, encounter_angle):
 
 ---
 
-### 6.2.2 Fatigue Damage Calculation
+### Fatigue Damage Calculation
 
 **Rainflow Counting Implementation:**
 
@@ -1034,7 +1034,7 @@ def calculate_fatigue_damage(stress_cycles, vessel_section):
 
 ---
 
-### 6.3 Compliance Monitoring Logic
+### Compliance Monitoring Logic
 
 **Design Envelope Check:**
 
@@ -1095,11 +1095,11 @@ def check_design_envelope_compliance(vessel_state, design_envelope):
 
 ---
 
-## 7. Core Workflows
+## Core Workflows
 
-## 7. Core Workflows
+## Core Workflows
 
-### 7.1 Vessel Onboarding Workflow
+### Vessel Onboarding Workflow
 
 ```
 VESSEL ONBOARDING PROCESS
@@ -1200,7 +1200,7 @@ VESSEL ONBOARDING PROCESS
 
 ---
 
-### 7.2 Real-Time Monitoring Workflow
+### Real-Time Monitoring Workflow
 
 ```
 CONTINUOUS MONITORING LOOP (1-minute cycle)
@@ -1311,7 +1311,7 @@ CONTINUOUS MONITORING LOOP (1-minute cycle)
 
 ---
 
-### 7.3 Alert Response Workflow
+### Alert Response Workflow
 
 ```
 ALERT RESPONSE & ESCALATION
@@ -1449,7 +1449,7 @@ ALERT RESPONSE & ESCALATION
   - Response time metrics (KPI: acknowledge <30 min for ORANGE)
   - False positive rate (target: <5%)
 
-## 7.4 Monthly Reporting Workflow
+## Monthly Reporting Workflow
 
 **SCHEDULED PROCESS:** 1st day of each month, 00:00 UTC
 
@@ -1534,9 +1534,9 @@ ALERT RESPONSE & ESCALATION
 
 ---
 
-## 9. Technical Requirements
+## Technical Requirements
 
-### 9.1 Technology Stack
+### Technology Stack
 
 | Layer              | Component               | Technology                                | Justification                                |
 | ------------------ | ----------------------- | ----------------------------------------- | -------------------------------------------- |
@@ -1566,7 +1566,7 @@ ALERT RESPONSE & ESCALATION
 
 ---
 
-### 9.2 Infrastructure Architecture
+### Infrastructure Architecture
 
 **AWS CLOUD INFRASTRUCTURE (Multi-Region Deployment)**
 
@@ -1621,7 +1621,7 @@ ALERT RESPONSE & ESCALATION
 
 ---
 
-### 9.3 Scalability & Performance
+### Scalability & Performance
 
 #### Performance Targets
 
@@ -1647,7 +1647,7 @@ ALERT RESPONSE & ESCALATION
 
 ---
 
-### 9.4 Security Requirements
+### Security Requirements
 
 #### Authentication & Authorisation
 
@@ -1674,7 +1674,7 @@ ALERT RESPONSE & ESCALATION
 
 ---
 
-### 9.5 Data Retention Policy
+### Data Retention Policy
 
 | Data Category           | Retention Period | Storage Tier          | Justification                |
 | ----------------------- | ---------------- | --------------------- | ---------------------------- |
@@ -1688,9 +1688,9 @@ ALERT RESPONSE & ESCALATION
 
 ---
 
-## 10. Compliance & Certification
+## Compliance & Certification
 
-### 10.1 ABS Smart Structural Health Monitoring TIER 1 Compliance Checklist
+### ABS Smart Structural Health Monitoring TIER 1 Compliance Checklist
 
 | Requirement                            | Implementation                       | Verification Method            | Status      |
 | -------------------------------------- | ------------------------------------ | ------------------------------ | ----------- |
@@ -1715,7 +1715,7 @@ ALERT RESPONSE & ESCALATION
 
 ---
 
-### 10.2 Certification Roadmap
+### Certification Roadmap
 
 #### Phase 1: Pre-Submission (Months 1–3)
 
@@ -1936,7 +1936,7 @@ That still requires the specialist hydrodynamics work to generate synthetic labe
 
 ## Critical - Grey Areas
 
-### 1. The Digital Twin — The Biggest Gap
+### The Digital Twin — The Biggest Gap
 
 This is the **core Enginer of the entire product** and the document totally ignores or purposefully removed (section 8?) this:
 
@@ -1945,7 +1945,7 @@ This is the **core Enginer of the entire product** and the document totally igno
 - The document assumes you can "automatically generate" a digital twin from uploaded PDFs — this is **extremely non-trivial** and is essentially unsolved as a fully automated process
 - A **naval architect** needs to be involved here. This cannot be pure software engineering
 
-### 2. The AI/ML Model — No Training Data
+### The AI/ML Model — No Training Data
 
 - Training Data Requirements:
   - Historical dataset: min. 100,000+ vessel-hours across 50+ vessels
@@ -1954,7 +1954,7 @@ This is the **core Enginer of the entire product** and the document totally igno
 - The model can't be built without this, yet the whole product depends on it
 - The fallback (empirical model) is described in pseudocode but not fully specified mathematically
 
-### 3. The Empirical Formulas — Incomplete
+### The Empirical Formulas — Incomplete
 
 The Python code shown is **illustrative pseudocode**, not implementable code:
 
@@ -1967,13 +1967,13 @@ P_slam = slam_probability(V_rel, Hs, vessel.bow_geometry)
 - `vessel.pressure_distribution_factor` — undefined
 - These require referencing DNV-RP-C205 and ABS HSC Guide directly — they are not in this document
 
-### 4. AIS Data Sourcing
+### AIS Data Sourcing
 
 - Which AIS provider? MarineTraffic, VesselFinder, exactEarth all have **very different APIs, pricing, and data access policies**
 - Commercial AIS APIs require contracts and have geographic coverage gaps
 - No API integration spec beyond a JSON example
 
-### 5. Vessel Onboarding — "AI Document Parser"
+### Vessel Onboarding — "AI Document Parser"
 
 ```
 Action: AI document parser extracts principal dimensions from PDF/DWG files
@@ -1983,13 +1983,13 @@ Action: AI document parser extracts principal dimensions from PDF/DWG files
 - Parsing ship drawings (DWG files) automatically is an unsolved hard problem
 - No spec on what happens when the parser fails or extracts wrong values
 
-### 6. Weather API Integration
+### Weather API Integration
 
 - Lists NOAA GFS, ECMWF, Copernicus as examples but no integration spec
 - Spatial interpolation mentioned ("bi-linear") but not implemented
 - Hindcast vs. forecast logic — when do you use which? Not defined
 
-### 7. The Ensemble Model Weighting
+### The Ensemble Model Weighting
 
 ```
 Final_Load = 0.6 × AI_Prediction + 0.4 × Empirical
@@ -1999,13 +1999,13 @@ Final_Load = 0.6 × AI_Prediction + 0.4 × Empirical
 - What happens before you have a trained AI model (Day 1)?
 - No fallback strategy documented
 
-### 8. Security & Multi-Tenancy
+### Security & Multi-Tenancy
 
 - RBAC is listed but **not designed** — no database schema, no permission matrix detail
 - Multi-tenant data isolation (one customer can't see another's vessels) — not addressed
 - GDPR data handling procedures — mentioned but not specified
 
-### 9. Satellite Communication Integration
+### Satellite Communication Integration
 
 - Mentioned as the data transmission mechanism but **zero implementation detail**
 - Inmarsat Fleet Xpress, Iridium, Starlink all work differently
@@ -2078,12 +2078,12 @@ The Approach is a **two-track delivery**:
 
 # Estimation
 
-## 1. Pre-Commence Requirements
+## Pre-Commence Requirements
 
 These are business, procurement and specialist decisions that block the analytical core of the product.
 The platform scaffolding (infra, UI, pipelines) can start immediately — but the structural analysis engine cannot be built until these are resolved.
 
-### 1.1 Hard Blockers — Must Resolve Before first Sprint (Analytical Track)
+### Hard Blockers — Must Resolve Before first Sprint (Analytical Track)
 
 - **Naval Architecture Partner (CRITICAL)**
   - Engage a licensed naval architect firm to deliver: digital twin hydrodynamic models, RAO tables and empirical formula implementations
@@ -2106,7 +2106,7 @@ The platform scaffolding (infra, UI, pipelines) can start immediately — but th
   - Decision required: accept Phase 1 as empirical-only MVP (recommended) or invest in synthetic label generation via FEM simulations
   - If empirical-only MVP is accepted, document this formally as a scope decision before development starts
 
-### 1.2 Commercial & Procurement — Must Resolve Before Phase 3
+### Commercial & Procurement — Must Resolve Before Phase 3
 
 - **AIS Data Provider Contract**
   - Free NOAA/DMA AIS is fine for dev/test. Not acceptable for production SLA
@@ -2123,7 +2123,7 @@ The platform scaffolding (infra, UI, pipelines) can start immediately — but th
   - Define minimum onboard connectivity spec (bandwidth, latency tolerance)
   - Choose primary satellite comms partner and specify edge-buffering hardware model before integration work begins
 
-### 1.3 ABS Certification Prerequisites (EigenAI can only assist as advisory) — Must be Resolved Before Phase 7
+### ABS Certification Prerequisites (EigenAI can only assist as advisory) — Must be Resolved Before Phase 7
 
 - **ABS Pre-Submission Consultation**
   - ABS offers pre-submission consultations for smart notation applications. Initiate no later than Month 6
@@ -2143,7 +2143,7 @@ The platform scaffolding (infra, UI, pipelines) can start immediately — but th
 
 ---
 
-## 2. Detailed Project Estimation — Design to Implementation
+## Detailed Project Estimation — Design to Implementation
 
 > **Man-day basis:** 1 MD = 1 person working 1 full day. Estimates assume senior-level engineers. No estimation for meetings, reviews or rework — must add 20%+ buffer at sprint planning.  
 > **Build Status:** ✅ Can Build = EigenAI executes independently | ⚠️ Partial = Buildable with caveats | ⛔ Blocked = Eigen AI doesn't have capability (Requires specialist or procurement action first)
@@ -2284,7 +2284,7 @@ The platform scaffolding (infra, UI, pipelines) can start immediately — but th
 
 ---
 
-## 3. Phase Summary
+## Phase Summary
 
 | Phase                                     | EigenAI (MD) | Naval Arch. (MD) | Total (MD) | Overall Status |
 | ----------------------------------------- | :----------: | :--------------: | :--------: | :------------: |
@@ -2308,7 +2308,7 @@ The platform scaffolding (infra, UI, pipelines) can start immediately — but th
 
 ---
 
-## 4. Gap Analysis — What Is Needed Before Starting
+## Gap Analysis — What Is Needed Before Starting
 
 ### Critical Gaps — Block the Core Product
 
@@ -2380,7 +2380,7 @@ The platform scaffolding (infra, UI, pipelines) can start immediately — but th
 
 ---
 
-## 5. Recommended Two-Track Approach
+## Recommended Two-Track Approach
 
 ### Track 1 — EigenAI (Start Week 1)
 
@@ -2422,7 +2422,7 @@ These are sub-deliverables contracted to a specialist firm. EigenAI integrates t
 
 ---
 
-## 6. Decision Gate — Month 3
+## Decision Gate — Month 3
 
 At the end of Month 3, a formal go/no-go gate should assess the following. If any item is not in place, the ABS certification target of Month 12–14 should be revised accordingly.
 

@@ -29,6 +29,7 @@ Push to `main` → GitHub Actions (Node 24, Hugo latest) → GitHub Pages. CI bu
 
 - **Frontmatter is TOML** (`+++`), never YAML.
 - Blog posts: `content/english/blog/{category}/{slug}.md`.
+- **Do not manually number blog headings solely for the section hierarchy.** Blog H2 headings are numbered automatically as `1.`, `2.` and blog H3 headings as `1.1`, `1.2`, with H3 numbering restarting under each H2. Preserve meaningful labels such as `Part 1`, `Phase 1`, `Step 1` and `Pattern 1` in the heading text.
 - 10 categories: `ai/`, `business-ideas/`, `containerization/`, `languages/`, `legacy/`, `misc/`, `roadmap/`, `security/`, `soft-skills/`, `system_design/`.
 - `summaryLength = 10` — excerpts truncate at 10 words.
 - No Oxford comma (see `.github/instructions/blog.instructions.md`).

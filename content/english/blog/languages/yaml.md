@@ -421,7 +421,7 @@ code: |
 
 ## Best Practices
 
-### 1. Indentation and Formatting
+### Indentation and Formatting
 
 ```yaml
 # GOOD: Consistent 2-space indentation
@@ -438,7 +438,7 @@ person:
       street: Main St
 ```
 
-### 2. Quoting Strings
+### Quoting Strings
 
 ```yaml
 # Quote when necessary
@@ -455,7 +455,7 @@ message: "Value with: colons"
 path: "C:\\Users\\Documents"
 ```
 
-### 3. Comments for Documentation
+### Comments for Documentation
 
 ```yaml
 # Server configuration
@@ -469,7 +469,7 @@ server:
     certificate: /path/to/cert.pem
 ```
 
-### 4. Use Anchors to Avoid Repetition
+### Use Anchors to Avoid Repetition
 
 ```yaml
 # GOOD: Using anchors
@@ -497,7 +497,7 @@ service_b:
   name: ServiceB
 ```
 
-### 5. Organize Complex Files
+### Organize Complex Files
 
 ```yaml
 # Group related configurations
@@ -518,7 +518,7 @@ logging:
   format: json
 ```
 
-### 6. Validate YAML Files
+### Validate YAML Files
 
 Always validate your YAML files using tools like:
 
@@ -530,7 +530,7 @@ Always validate your YAML files using tools like:
 
 ## Common Use Cases
 
-### 1. Docker Compose
+### Docker Compose
 
 ```yaml
 version: "3.8"
@@ -561,7 +561,7 @@ volumes:
   db_data:
 ```
 
-### 2. Kubernetes Configuration
+### Kubernetes Configuration
 
 ```yaml
 apiVersion: apps/v1
@@ -594,7 +594,7 @@ spec:
               cpu: "500m"
 ```
 
-### 3. CI/CD Pipeline (GitHub Actions)
+### CI/CD Pipeline (GitHub Actions)
 
 ```yaml
 name: CI/CD Pipeline
@@ -633,7 +633,7 @@ jobs:
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
 ```
 
-### 4. Application Configuration
+### Application Configuration
 
 ```yaml
 # config.yaml
@@ -688,7 +688,7 @@ features:
       param2: value2
 ```
 
-### 5. Ansible Playbook
+### Ansible Playbook
 
 ```yaml
 ---

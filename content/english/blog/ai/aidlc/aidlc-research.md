@@ -19,7 +19,7 @@ This article compares those layers, reviews the best-known workflow approaches a
 - **GitHub Spec Kit** is a flexible toolkit for spec-driven work, with independent entry points for feature development, bug fixing and idea assessment. **OpenSpec** emphasizes lightweight, iterative change specs. **Kiro Specs** provide requirements, design and task workflows inside Kiro. **BMAD** packages role-based agents and workflows across a broader development lifecycle. ([Spec Kit](https://github.com/github/spec-kit), [OpenSpec](https://github.com/Fission-AI/OpenSpec), [Kiro Specs](https://kiro.dev/docs/specs/), [BMad Method](https://github.com/bmad-code-org/BMAD-METHOD))
 - For a team choosing today, the best fit depends on desired process weight and existing tools. For the **AI-DLC roadmap**, the strongest bet is to make its existing breadth easier to adopt, easier to verify and demonstrably useful through measured outcomes. Adding more stages or roles should come after that.
 
-## 1. Two layers: harness and workflow
+## Two layers: harness and workflow
 
 A **coding harness** provides the execution environment around a model. Depending on the product, it may manage a conversation loop, repository context, tool calls, permissions, approvals, subagents and user interaction. Claude Code, Codex CLI, Kiro, Cursor and OpenCode are examples of agentic coding products; they differ in interface, model access and control mechanisms.
 
@@ -35,7 +35,7 @@ These are useful categories, not strict product boundaries. Some harnesses ship 
 
 The practical consequence: comparing a coding harness directly with a lifecycle method is like comparing an IDE with a delivery process. A team may choose both.
 
-## 2. The main workflow approaches
+## The main workflow approaches
 
 The table compares their documented shape and intended fit. It does not claim that one is universally better; project size, risk, existing tools and tolerance for process all matter.
 
@@ -49,7 +49,7 @@ The table compares their documented shape and intended fit. It does not claim th
 
 **Spec-driven development (SDD)** is an umbrella for methods that put a written specification at the center of agent-assisted work. The term does not identify one standard process. The tools above differ in how much lifecycle they cover, how they represent change and how much the team must govern for itself.
 
-## 3. Maturity: separate evidence from ambition
+## Maturity: separate evidence from ambition
 
 “Mature” can mean several different things: a stable release, an active maintainer community, good integrations, a usable update path, operational safeguards or evidence that the method improves delivery. A feature list or repository popularity does not establish all of these.
 
@@ -73,7 +73,7 @@ No source cited here provides a controlled, apples-to-apples evaluation of defec
 
 These are starting points. Before standardizing, pilot one representative feature and one maintenance change. Record setup time, human review time, rework, missed requirements and verification results. Keep the process only where the evidence justifies its cost.
 
-## 4. So, which one is the most visionary, mature or popular?
+## So, which one is the most visionary, mature or popular?
 
 There is no single winner because these labels measure different things. The table gives a direct answer for the projects compared above. Popularity figures are GitHub stars observed on **18 October 2026**; they are a rough measure of attention, not active users, deployments or successful outcomes.
 
@@ -92,7 +92,7 @@ There is no single winner because these labels measure different things. The tab
 
 For the AI-DLC roadmap, that distinction matters. AI-DLC does not need to win a star-count contest to be valuable. It needs to turn its ambitious design into a process teams can start small with, understand at each gate and trust because evidence shows the process catches problems at a reasonable cost. If it does that, AI-DLC has a credible path to become one of the most capable lifecycle methods, even if a lighter toolkit remains more popular.
 
-## 5. Where AI-DLC is differentiated
+## Where AI-DLC is differentiated
 
 AI-DLC's clearest distinction is **scope of process**. Its published lifecycle spans five phases and 33 stages, and profiles/scopes can choose a smaller workflow for different work types. The repository describes 14 agents and a persistent audit and knowledge model. Those are concrete design choices that make it more than a prompt template. ([phases and stages](https://github.com/awslabs/aidlc-workflows/blob/main/docs/guide/04-phases-and-stages.md), [README](https://github.com/awslabs/aidlc-workflows#readme))
 
@@ -111,7 +111,7 @@ Its design has potential strengths and real costs:
 
 These are hypotheses about system design, not measured outcomes. The right test is whether teams using AI-DLC produce more reliable changes at an acceptable cost than their current process.
 
-## 6. Roadmap recommendation for AI-DLC
+## Roadmap recommendation for AI-DLC
 
 AI-DLC already has broad lifecycle coverage and a multi-harness ambition. The highest-value roadmap is to deepen trust and ease of use around that foundation rather than expand its surface area by default.
 
@@ -139,7 +139,7 @@ Track which stages teams skip, repeat or edit. Use that evidence to simplify def
 
 Adaptive stage selection and retrospective tuning could become valuable once there is reliable execution data and clear human control. They should be introduced as inspectable recommendations, with reasons and user approval, before they can silently alter governance. A workflow should not claim to learn safely merely because it stores past sessions.
 
-## 7. Outlook: convergence at the boundaries
+## Outlook: convergence at the boundaries
 
 The useful distinction between harness and workflow may blur as coding environments add more planning, approval and automation features. Workflow toolkits will continue to integrate with several environments to reach teams that do not share one harness. That is a plausible direction, not a verified prediction that any one product will absorb the others.
 

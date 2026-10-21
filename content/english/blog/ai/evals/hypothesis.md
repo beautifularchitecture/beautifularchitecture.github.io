@@ -26,7 +26,7 @@ This is Layer 3 of the [eval pyramid](../../ai-outputs-eval/) — property-based
 
 hypothesis has three pieces you need to understand:
 
-### 1. `@given` — the decorator that generates inputs
+### `@given` — the decorator that generates inputs
 
 Instead of writing a test with a fixed input, you declare the _shape_ of valid inputs and let hypothesis generate concrete values:
 
@@ -41,7 +41,7 @@ def test_output_never_contains_secrets(topic: str):
 
 hypothesis will run this test with dozens of automatically generated strings: empty strings, Unicode, whitespace-only, very long strings, strings with special characters — whatever might trigger a failure.
 
-### 2. `strategies` — the building blocks for describing valid inputs
+### `strategies` — the building blocks for describing valid inputs
 
 Strategies are composable. You combine them to describe exactly what kind of inputs your system should handle:
 
@@ -62,7 +62,7 @@ st.tuples(
 )
 ```
 
-### 3. Invariants — the properties that must always hold
+### Invariants — the properties that must always hold
 
 This is where you encode your eval criteria. Each invariant is a function that takes an output and returns a boolean:
 

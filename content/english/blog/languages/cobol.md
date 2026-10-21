@@ -243,7 +243,7 @@ A COBOL program is divided into four main divisions, each with specific sections
 
 In COBOL, keywords (reserved words) are predefined words that have special meaning to the compiler. You cannot use them as variable names or identifiers. They define structure, actions, or data descriptions. Here are the main categories of COBOL keywords, organized for clarity:
 
-### 1. Program Structure Keywords
+### Program Structure Keywords
 
 | Keyword                 | Purpose                                  |
 | ----------------------- | ---------------------------------------- |
@@ -257,7 +257,7 @@ In COBOL, keywords (reserved words) are predefined words that have special meani
 | STOP RUN                | Terminates the program.                  |
 | EXIT PROGRAM            | Returns control from a subprogram.       |
 
-### 2. Input/Output (I/O) Keywords
+### Input/Output (I/O) Keywords
 
 | Keyword      | Purpose                                                 |
 | ------------ | ------------------------------------------------------- |
@@ -273,7 +273,7 @@ In COBOL, keywords (reserved words) are predefined words that have special meani
 | DISPLAY      | Outputs data to the screen or console.                  |
 | ACCEPT       | Reads data from keyboard or system date/time.           |
 
-### 3. Data Definition Keywords (used in DATA DIVISION)
+### Data Definition Keywords (used in DATA DIVISION)
 
 | Keyword                 | Purpose                                          |
 | ----------------------- | ------------------------------------------------ |
@@ -288,7 +288,7 @@ In COBOL, keywords (reserved words) are predefined words that have special meani
 | FILLER                  | Unnamed data field (padding).                    |
 | LEVEL NUMBER            | Hierarchical level indicator (e.g., 01, 05, 10). |
 
-### 4. Procedure/Logic Control Keywords
+### Procedure/Logic Control Keywords
 
 | Keyword                            | Purpose                                          |
 | ---------------------------------- | ------------------------------------------------ |
@@ -302,7 +302,7 @@ In COBOL, keywords (reserved words) are predefined words that have special meani
 | NEXT SENTENCE                      | Transfers control to next sentence.              |
 | STOP RUN                           | Ends program execution.                          |
 
-### 5. String and Data Handling Keywords
+### String and Data Handling Keywords
 
 | Keyword    | Purpose                                              |
 | ---------- | ---------------------------------------------------- |
@@ -312,7 +312,7 @@ In COBOL, keywords (reserved words) are predefined words that have special meani
 | INITIALIZE | Resets data items to default values.                 |
 | SET        | Assigns a value to index, condition, or pointer.     |
 
-### 6. File and Record Control Modifiers
+### File and Record Control Modifiers
 
 | Keyword      | Purpose                                                     |
 | ------------ | ----------------------------------------------------------- |
@@ -322,7 +322,7 @@ In COBOL, keywords (reserved words) are predefined words that have special meani
 | ORGANIZATION | Defines file organization (e.g., LINE SEQUENTIAL, INDEXED). |
 | STATUS       | Captures file operation status codes.                       |
 
-### 7. Conditions and Logical Keywords
+### Conditions and Logical Keywords
 
 | Keyword                               | Purpose                                                |
 | ------------------------------------- | ------------------------------------------------------ |
@@ -333,7 +333,7 @@ In COBOL, keywords (reserved words) are predefined words that have special meani
 | ZERO, SPACES, HIGH-VALUES, LOW-VALUES | Predefined literals.                                   |
 | TRUE, FALSE                           | Boolean literals (not standard in all COBOL versions). |
 
-### 8. Declarative and Special Purpose Keywords
+### Declarative and Special Purpose Keywords
 
 | Keyword          | Purpose                                                          |
 | ---------------- | ---------------------------------------------------------------- |

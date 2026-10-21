@@ -93,25 +93,25 @@ flowchart LR
 
 The model may recommend a next step, but deterministic application services should enforce identity, permissions, business rules and transaction limits. Tool calls should pass the same authorization checks as ordinary application requests.
 
-### 1. Classify the task and consequence
+### Classify the task and consequence
 
 Before retrieving data, identify the task type and what could happen if the response is wrong. An internal glossary lookup, a fraud case summary and a payment release do not need the same context or autonomy.
 
 Define a risk tier using the data involved, the affected party, the reversibility of the outcome, the financial impact and any applicable internal policy. This classification should determine which sources are allowed, whether the model may use tools, what output validation is required and when a person must review the result.
 
-### 2. Establish identity and purpose
+### Establish identity and purpose
 
 Resolve the caller's identity in trusted application code. Derive tenant, customer, account and role scope from the authenticated session or service identity. Do not accept an account identifier from model-generated text as proof of authorization.
 
 Pass only the minimum identity claims needed for the task. Avoid placing full access tokens, secrets or unnecessary personal information in model context. Where a tool needs credentials, let the tool service manage them outside the prompt.
 
-### 3. Select authoritative sources
+### Select authoritative sources
 
 Assign sources by fact type. Account balances should come from a ledger or account service, not an old conversation summary. A current fee should come from the approved product configuration or policy source. A case summary may use case-management records, but the system should keep the original evidence available for review.
 
 For each source, define an owner, intended use, update process, access policy and freshness requirement. Distinguish approved policy from user-provided material, public web content, operational logs and model-generated summaries. The model must not mistake an untrusted document for an instruction from the application.
 
-### 4. Retrieve narrowly and preserve provenance
+### Retrieve narrowly and preserve provenance
 
 Retrieval should return the smallest set of evidence that can answer the task. Include useful metadata such as document title, section, owner, jurisdiction, product, effective date, version and access classification. Keep links or stable identifiers that let a user or auditor find the original source.
 
@@ -119,13 +119,13 @@ Use lexical search for exact identifiers and terminology, semantic search for co
 
 Anthropic's contextual retrieval article explains how chunking can remove information that makes a passage meaningful and describes adding contextual information to chunks as one retrieval improvement. The article also notes that a sufficiently small knowledge base may fit directly in a prompt, while larger collections require a scalable retrieval method ([Anthropic, Contextual Retrieval](https://www.anthropic.com/research/contextual-retrieval)). Choose the simplest approach that meets the measured quality, privacy, latency and cost requirements.
 
-### 5. Check freshness and conflicts
+### Check freshness and conflicts
 
 Attach time and scope to dynamic facts. For example, distinguish a current balance from a balance observed at a particular time, and a policy's current version from a superseded version. Reject or refresh evidence when it exceeds its defined freshness window.
 
 When sources conflict, do not ask the model to silently choose. Apply an explicit precedence rule, retrieve the system of record or return an unresolved status and route the case for review. Record which rule resolved the conflict.
 
-### 6. Assemble a bounded context
+### Assemble a bounded context
 
 Compose context in clear sections. A typical arrangement is:
 
@@ -141,11 +141,11 @@ Place important constraints where the model can readily identify them. Delimit u
 
 OpenAI describes a related practice in its agent-first software engineering work: use a concise map that points an agent to deeper, maintained sources instead of placing an entire knowledge base in one instruction file. The same principle can guide fintech assistants: keep the initial context focused, then retrieve approved policy or product material relevant to the task ([OpenAI, Harness engineering](https://openai.com/index/harness-engineering/)). This is an implementation example, not evidence that one context layout fits every application.
 
-### 7. Validate the response before use
+### Validate the response before use
 
 Check that structured outputs conform to a schema. Verify cited source identifiers against retrieved evidence. Validate amounts, dates, currencies, account identifiers and enum values in deterministic code. Reject unsupported claims when the task requires evidence. Apply business rules outside the model before any consequential action.
 
-### 8. Record an audit trail
+### Record an audit trail
 
 For important workflows, capture the request ID, model and prompt version, policy version, retrieval query, source identifiers and timestamps, tool calls, authorization decisions, output validation results, approvals and final outcome. Follow internal retention and privacy policy; logging should support investigation without becoming a second uncontrolled store of sensitive data.
 

@@ -9,7 +9,7 @@ summary: "Practical overview of NLP concepts, pipelines and tools—covering tok
 
 Natural Language Processing (NLP) is a foundational field in artificial intelligence that enables computers to understand, interpret and generate human language. With the rapid evolution of large language models (LLMs) and generative AI, NLP has become central to applications such as chatbots, virtual assistants, sentiment analysis and automated translation. This document provides a practical overview of NLP concepts, pipelines and tools, including hands-on examples with libraries like NLTK and spaCy. It also explores the rise of LLMs, prompt engineering and modern frameworks that are shaping the future of language-based AI systems.
 
-## 1. Introduction
+## Introduction
 
 ---
 
@@ -54,7 +54,7 @@ Natural Language Processing (NLP) is a foundational field in artificial intellig
 
 ---
 
-## 2. Pipeline of NLP
+## Pipeline of NLP
 
 ---
 
@@ -1017,7 +1017,7 @@ You are an intelligent system that processes natural language queries and select
 - Easy way - using an Agent like ChatGPT. You can't really use it to integrate it into another app.
 - Programmatically integrate using python or similar.
 
-## 7 Tricks for prompt engineering
+## Tricks for prompt engineering
 
 1. Be Descriptive - give a context around the problem
 2. Give Examples

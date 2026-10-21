@@ -15,7 +15,7 @@ AI-DLC is a spec-driven development factory that runs out of the box across Clau
 
 This guide shows you how to **reshape AI-DLC for your team without writing code**. Change which stages run, add agents, tune scopes, teach standing rules, wire deterministic checks, add team knowledge, control Construction autonomy, port to a new harness, or author a plugin—all declaratively.
 
-## 1. Three Roles, Three Guides
+## Three Roles, Three Guides
 
 | Guide | Who | What You Change |
 |---|---|---|
@@ -25,7 +25,7 @@ This guide shows you how to **reshape AI-DLC for your team without writing code*
 
 The rule is simple: **data vs code**. If you edit Markdown with YAML frontmatter or JSON, you're in this guide. If you edit TypeScript, you're in the Developer Reference.
 
-## 2. Core Mental Model: What vs Who
+## Core Mental Model: What vs Who
 
 Two primitives drive everything.
 
@@ -34,7 +34,7 @@ Two primitives drive everything.
 
 Stages name their lead agent. Agents never name stages. This keeps work and workers decoupled—you can reassign by editing a stage, or add an agent without changing workflows until a stage opts in.
 
-### 2.1 How Work Flows
+### How Work Flows
 
 - **Engine** (`core/tools/aidlc-orchestrate.ts`) — Deterministic. Reads `aidlc-state.md` and compiled `stage-graph.json`, picks next step, emits one typed directive. Subcommands: `next`, `continue` (internal), `report`, `park`, `team-board` (read-only), `wait` (bounded read-only).
 - **Conductor** (`skills/aidlc/SKILL.md`) — Thin forwarding loop that executes each directive.
@@ -48,7 +48,7 @@ Everything else shapes their inputs:
 - **Sensors** — Deterministic checks bound to stages (advisory or blocking).
 - **Knowledge** — Domain/project context agents load before working.
 
-## 3. What You Can Change Without Code
+## What You Can Change Without Code
 
 Author in **`core/`** (harness-neutral source). Regenerate per-harness distributions.
 
@@ -67,14 +67,14 @@ Author in **`core/`** (harness-neutral source). Regenerate per-harness distribut
 
 **Team knowledge is the only exception**: it lives at `aidlc/knowledge/` in your project space and is never overwritten by framework updates.
 
-### 3.1 Naming Rules & Validation
+### Naming Rules & Validation
 
 - Stage filename stem must equal frontmatter `slug`. `aidlc-graph compile` rejects mismatches, duplicate slugs, multiple producers of same consumed artifact (names files/consumer).
 - Sensor filename/id consistency is compile-time enforced.
 - Duplicate scope/agent names are loader errors naming both files. Filename↔name drift is reported by `/aidlc --doctor` as advisory.
 - One owner per invariant (approval/transition/presence/plan fingerprint). Same check may appear at multiple boundaries, but duplicating logic is a defect.
 
-### 3.2 Build Model: Author in `core/`, Regenerate
+### Build Model: Author in `core/`, Regenerate
 
 **Never edit `dist/` or `dist-release/`**. They are generated.
 
@@ -91,7 +91,7 @@ bun scripts/package.ts --check
 
 Commit `core/`, `harness/`, `plugins/` only. `--check` builds twice in independent temp roots and byte-compares. When instructed to run `aidlc engine graph compile`, run it against your installed harness projection.
 
-### 3.3 When to Cross Into Developer Reference
+### When to Cross Into Developer Reference
 
 Cross over when changing code, not data:
 
@@ -102,13 +102,13 @@ Cross over when changing code, not data:
 
 Adding stages/agents changes graph data—not the code that reads it. Changing *how* the graph compiles is code.
 
-## 4. Anatomy of a Stage
+## Anatomy of a Stage
 
 A **stage** is the atom of the AI-DLC workflow — *what* happens at one step. Every other change a harness engineer makes builds on the stage file, so read this first.
 
 A stage file is a **single Markdown file**: YAML frontmatter on top, prose body below. The frontmatter declares the graph node (the artifacts the stage consumes and produces, its lead agent, how it executes). The body is the prose the agent follows. Both live in one file on purpose.
 
-### 4.1 Two Readers, One File
+### Two Readers, One File
 
 A stage file has two readers, and they never overlap:
 
@@ -124,7 +124,7 @@ This split is the key to knowing what you're editing:
 
 The two are independent. A real stage is authored at `core/aidlc-common/stages/<phase>/<slug>.md` — for example `stages/inception/domain-design.md` (phases: `initialization`, `ideation`, `inception`, `construction`, `operation`).
 
-### 4.2 The Frontmatter at a Glance
+### The Frontmatter at a Glance
 
 The frontmatter is a flat block of YAML keys. Some are mechanical (`slug`, `phase`) and copied from a neighbouring stage. A handful carry real judgment. Here is a real stage's frontmatter (from `stages/inception/domain-design.md`, trimmed):
 
@@ -246,7 +246,7 @@ This is orientation, not the full contract. For the complete field table with ty
 
 </details>
 
-### 4.3 The Three-Compartment Body
+### The Three-Compartment Body
 
 Below the frontmatter, the body has three compartments, always in this order: `## Steps`, `## Sensors`, `## Learn`.
 
@@ -258,7 +258,7 @@ The three compartments are fixed so a stage's sensor bindings and learning-loop 
 
 **One boundary worth internalizing:** a stage file is a framework artifact, immutable in shape. The body's `## Steps` / `## Sensors` / `## Learn` structure is never rewritten by a workflow. The single sanctioned in-workflow edit is the learning loop appending a new sensor id to the frontmatter `sensors:` import list. Everything else you change in a stage file, you change deliberately as a harness engineer.
 
-### 4.4 consumes and produces from the Graph
+### consumes and produces from the Graph
 
 The dependency graph isn't written anywhere directly — it **emerges** from the `consumes` and `produces` declarations across every stage.
 
@@ -272,7 +272,7 @@ The dependency graph isn't written anywhere directly — it **emerges** from the
 
 These three lists are what wire a stage into the workflow. Get them right and the stage appears in the correct scopes, in the correct order, with its inputs satisfied. Wiring a brand-new stage is covered step by step in [§5 Adding a Stage](#5-adding-a-stage).
 
-### 4.5 stage-graph.json Is Compiled — Never Hand-Edit It
+### stage-graph.json Is Compiled — Never Hand-Edit It
 
 The graph is compiled into a JSON build artifact. In a source build, the generated Claude projection runs the graph from `dist/claude/.claude/tools/data/stage-graph.json`; the installed runtime carries the same relative file under `.claude/tools/data/`. The JSON is a **build artifact, not a source file**. The YAML frontmatter across the stage files is authoritative; the JSON is what you get when you compile it.
 
@@ -301,7 +301,7 @@ In short: harness engineering changes AIDLC's source; the packaging script build
 
 </details>
 
-### 4.6 What a Stage *Contains* versus What It *Does*
+### What a Stage *Contains* versus What It *Does*
 
 This section is about what a stage file *contains* — its format ([Stage Definition](https://github.com/awslabs/aidlc-workflows/blob/main/docs/reference/15-stage-definition.md)). A companion contract covers what a stage *does* at runtime: the approval gate, the question flow, the state checkboxes, the completion message. That behavioural contract is the same for every stage regardless of domain, and it lives in [Stage Protocol](https://github.com/awslabs/aidlc-workflows/blob/main/docs/reference/04-stage-protocol.md). When a stage body says "follow stage-protocol.md for approval gates," that's the contract it points at.
 
@@ -316,13 +316,13 @@ Some protocol modules apply only in particular workflow situations. For example,
 
 </details>
 
-## 5. Adding a Stage
+## Adding a Stage
 
 A new stage is the most structural change a harness engineer makes — you introduce a new step into the methodology. The recipe is end-to-end: pick a phase, author the file, wire the dependency edges, compile the graph, and confirm the stage lands where you expect.
 
 **Is a new stage the right move?** A new stage earns its place when it produces an artifact no existing stage produces, or consumes one in a way no existing stage covers. If you only want to change *what an existing stage does* (reword its steps, retarget its lead agent, attach a sensor), edit that stage file in place — no new node needed. Adding a stage is pure **data work**: a Markdown file with YAML frontmatter, then a recompiled JSON artifact. No TypeScript.
 
-### 5.1 Step 1 — Decide the Phase
+### Step 1 — Decide the Phase
 
 Stage files live under `core/aidlc-common/stages/<phase>/<slug>.md`. The phase is the directory:
 
@@ -337,7 +337,7 @@ core/aidlc-common/stages/
 
 The phase is not cosmetic: it determines which `phases/<phase>.md` rule layer attaches to the stage at compile time (a construction stage inherits the construction rule, an inception stage the inception rule; initialization has no phase rule file). Put the stage where its work actually happens in the lifecycle.
 
-### 5.2 Step 2 — Create the File with Required Frontmatter
+### Step 2 — Create the File with Required Frontmatter
 
 Drop a new `<slug>.md` in the chosen phase directory. The slug is the filename stem and the stage's identity everywhere else — in `requires_stage` edges, scope mappings, and the audit log. Pick it carefully; renaming later ripples.
 
@@ -408,7 +408,7 @@ skip both the diary and the ritual.
 
 The body opens with `## Steps` (the imperative prose the lead agent follows), then `## Sensors` (output location, exact frontmatter imports, upstream targets), then `## Learn` (points to `stage-protocol-learnings.md` §13 only when the module is listed).
 
-### 5.3 Step 3 — Wire the Dependency Edges
+### Step 3 — Wire the Dependency Edges
 
 This is where the stage slots into the workflow. Three fields do the wiring, and they must agree:
 
@@ -418,7 +418,7 @@ This is where the stage slots into the workflow. Three fields do the wiring, and
 
 Get these consistent and the compiler places the stage automatically; you never hand-edit `stage-graph.json` to position it.
 
-### 5.4 Step 4 — Regenerate the Harnesses
+### Step 4 — Regenerate the Harnesses
 
 The YAML you authored in `core/` is authoritative. Run the packager to materialize the ignored local `dist/<harness>/` (Bun copy) and `dist-release/<harness>/` (native), copying your new stage into both channels and recompiling each graph:
 
@@ -435,7 +435,7 @@ aidlc engine graph compile
 
 Never hand-edit `stage-graph.json`; a hand-edit is overwritten on the next compile.
 
-### 5.5 Step 5 — Verify It Appears, and in Which Scopes
+### Step 5 — Verify It Appears, and in Which Scopes
 
 ```bash
 aidlc engine graph topo                      # topological order — your slug should appear
@@ -450,7 +450,7 @@ Two behaviors to note:
 - A new stage takes the next free number in its phase, after the stages already there; no existing stage is renumbered. An edge from an earlier stage *to* the new one is refused at compile (dependencies must be lower-numbered).
 - A brand-new stage does **not** automatically run in any scope. Its frontmatter `scopes:` list names every scope it runs under; a stage that names no scope is `SKIP` everywhere. Authoring the body makes it *exist*; the `scopes:` tag makes it *run*.
 
-### 5.6 The Runner Is Opt-In Sugar
+### The Runner Is Opt-In Sugar
 
 **Adding a stage requires writing a stage file; it does not require writing or registering a runner.** Once the stage compiles into the graph, run it directly with `--single`:
 
@@ -475,7 +475,7 @@ The three **bootstrap initialization stages have no per-stage runner** because t
 
 Runner skills carry no `hooks:` block because the deterministic spine (audit, sensors, runtime-graph compile and state validation) is registered project-wide in `settings.json`. The engine includes the conductor persona in the `run-stage` directive, so the runner does not load that persona itself. The runner body states what it does and the command it drives. Deleting all runner skills leaves every compiled stage runnable through `/aidlc --stage <slug> --single`; the stage file remains the definition.
 
-### 5.7 What Validates Automatically vs. What You Check
+### What Validates Automatically vs. What You Check
 
 **Automatic:**
 - **Graph placement** — once you compile, `requires_stage`/`consumes`/`produces` resolve into the graph (topological order, producer/consumer lookups, cycle detection).
@@ -490,17 +490,17 @@ Runner skills carry no `hooks:` block because the deterministic spine (audit, se
 - **`required` semantics under your scopes** — a `required: true` consume is moot in a scope that skips the producer; confirm the body handles the absence gracefully.
 - **Documentation** — if the new stage changes a hand-enumerated count/table, update the docs in the same change.
 
-### 5.8 The Boundary Case: Data Work vs. Code Work
+### The Boundary Case: Data Work vs. Code Work
 
 Authoring the file and recompiling is data work — Markdown, YAML, JSON, no `.ts`. The line you must not cross silently: if making your stage work requires the graph *compiler* to behave differently (a frontmatter key it doesn't recognize, a new edge type, a new traversal rule), that's a change to the code that reads the data and belongs in the Developer Reference. The reserved-key namespace (`on_failure`, `blocks_on`, `timeout`, `retry`) exists so future extensions land predictably; until a consumer ships, the schema rejects them. `when:` is different: the schema accepts and checks it, but nothing acts on it yet, so a stage with `when:` runs under its `scopes:` as if it weren't there.
 
-## 6. Adding an Agent
+## Adding an Agent
 
 An **agent** is the *who* of the framework — a persona with a domain, a tool allowlist, and a tier. The 14 shipped agents comprise 11 domain experts (product, design, delivery, architecture, AWS platform, compliance, DevSecOps, development, quality, pipeline-deploy, operations), two review-only agents (`aidlc-product-lead-agent`, `aidlc-architecture-reviewer-agent`), and the adaptive-workflows composer (`aidlc-composer-agent`). When your team needs a domain the framework doesn't cover — a data-governance reviewer or a mobile specialist, say — add a persona by dropping a single Markdown file into `core/agents/`. No TypeScript.
 
 The one thing to internalize is the two-step truth: dropping the file makes the agent **visible**; wiring it into a stage makes it **active**. Both steps are required, or you get an agent that exists and never runs.
 
-### 6.1 What a persona file is, and where it lives
+### What a persona file is, and where it lives
 
 Every agent is one flat file at `core/agents/<slug>-agent.md`: YAML frontmatter on top, a Markdown body below. The shipped files all carry the `aidlc-` prefix (`aidlc-architect-agent.md`, `aidlc-developer-agent.md`); a file you add is yours and need not use that prefix.
 
@@ -516,7 +516,7 @@ Customize *what an existing agent knows* through team knowledge ([§10](#10-team
 
 Only the frontmatter is machine-read. The body is prose the agent reads about itself when it activates — its responsibilities, collaboration, memory focus, and working principles — and you write it to match the structure of the shipped files. The packager adds the mandatory delegated knowledge preflight to every harness projection.
 
-### 6.2 The frontmatter, from a real agent
+### The frontmatter, from a real agent
 
 Here is the frontmatter from a real agent, authored at `core/agents/aidlc-architect-agent.md`:
 
@@ -536,7 +536,7 @@ tier: judgment
 ---
 ```
 
-### 6.3 The fields, and the calls you make
+### The fields, and the calls you make
 
 | Field | Required | What it does |
 |---|---|---|
@@ -565,11 +565,11 @@ With no recorded policy, the `balanced` reviewer tier uses Sonnet at `medium` ef
 
 **`maxTurns:` caps the turn budget.** Binding on Claude Code, projected to opencode's native `steps:` key, and inert (persona-prose-only) on Codex CLI, Cursor, GitHub Copilot, and both Kiro surfaces, which expose no per-agent cap key. The two review-only agents ship it today.
 
-### 6.4 MCP servers are inherited, not granted per agent
+### MCP servers are inherited, not granted per agent
 
 The five MCP servers declared in the project-root `.mcp.json` are provisioned to the session, and every agent inherits all of them automatically — there is no per-agent grant to author. To keep a persona *away* from a server, narrow its `tools:` allowlist to a fully-qualified `mcp__<server>__<tool>` list that omits that server (a bare `mcp__<server>` token is a no-op, not a server-level grant). The inheritance and restriction model is exercised by the `t110` registry-integrity test.
 
-### 6.5 Visible is not active: the two-step truth
+### Visible is not active: the two-step truth
 
 Dropping the file makes the agent *visible*; wiring it into a stage makes it *active*. Both steps are required.
 
@@ -580,7 +580,7 @@ This mirrors the framework's core asymmetry — a stage names its agent; an agen
 
 Each agent also pairs with a knowledge directory you author at `core/knowledge/aidlc-<slug>-agent/` (framework methodology) and an optional team overlay at the space level, `aidlc/knowledge/<slug>-agent/` (your standards). The space-level `aidlc/knowledge/` directory is free-form and empty at bootstrap; the team creates the per-agent subdirectory when it has content — the engine does not scaffold it.
 
-### 6.6 The steps, end to end
+### The steps, end to end
 
 1. **Create the agent file** — `core/agents/<slug>-agent.md` with the required frontmatter: `name`, `display_name`, `examples`, `description`, `disallowedTools` (including `Task`), `tier`. An optional `tools:` allowlist narrows the persona; omit it to inherit the full session toolset. An optional `maxTurns: <n>` caps the turn budget. Write the body to match the shipped files' structure (Core Responsibilities, Collaboration, optional Memory Focus, Key Principles).
 2. **Add knowledge files** under `core/knowledge/aidlc-<slug>-agent/` for the methodology the persona should load on activation.
@@ -595,7 +595,7 @@ flowchart LR
     A -->|regenerate| G["stage-graph.json"]
 ```
 
-### 6.7 What validates automatically vs. what you check
+### What validates automatically vs. what you check
 
 **Automatic:**
 
@@ -614,7 +614,7 @@ flowchart LR
 
 A genuinely new persona is a file you own; a new stage's `lead_agent` reference to it is checked at compile time, so a typo fails the compile (`lead_agent "<name>" has no matching .claude/agents/*.md`) rather than 404-ing at run time.
 
-## 7. Scopes
+## Scopes
 
 A **scope** is the dial that decides *which* of the framework's 33 stages run for a given kind of work, and which sit out. A bugfix doesn't need market research or environment provisioning, but it still runs the deployment pipeline and execution stages; a regulated enterprise feature needs the full lifecycle. Rather than asking the user to hand-pick stages every time, AI-DLC ships **eleven named scopes** — each one a curated EXECUTE/SKIP verdict over the full stage set, paired with workflow defaults such as depth, test strategy, and an optional review ceiling. Pick the scope and the rest cascades.
 
@@ -622,7 +622,7 @@ The eleven shipped scopes are `classic`, `enterprise`, `feature`, `mvp`, `poc`, 
 
 For a harness engineer, a scope is pure data, authored the same way every other primitive is — as a file. Adding or tuning a scope requires no TypeScript.
 
-### 7.1 Two-part definition
+### Two-part definition
 
 A scope is authored in two places, and the split is the whole idea: the scope's *identity* lives in its own file, and its *membership* (which stages run under it) lives transposed onto the stages.
 
@@ -660,7 +660,7 @@ scopes:
 
 A stage that names a scope is `EXECUTE` under it; absence is `SKIP`. Packaging *transposes* every stage's `scopes:` list into the compiled EXECUTE/SKIP grid at `<harness-dir>/tools/data/scope-grid.json`. The grid is an ignored generated projection that the runtime reads; you never hand-edit or commit it. The 3 initialization stages name every scope (they always run).
 
-### 7.2 The scope frontmatter fields
+### The scope frontmatter fields
 
 | Field | Required | What it does |
 |---|---|---|
@@ -683,7 +683,7 @@ A stage that names a scope is `EXECUTE` under it; absence is `SKIP`. Packaging *
 
 The loader rejects duplicate scope `name` values across files and names both files in the error. Invalid ceremony values are rejected with the file, key, and the two allowed values.
 
-### 7.3 The ceremony defaults, scope by scope
+### The ceremony defaults, scope by scope
 
 Every shipped scope declares all five ceremony keys explicitly rather than leaning on the default:
 
@@ -705,7 +705,7 @@ Each ceremony has a per-intent override and a global kill switch:
 
 Resolution is kill switch (`1`) → valid intent line → scope default → on.
 
-### 7.4 The judgment calls: depth, skeleton, existing code, guard policy
+### The judgment calls: depth, skeleton, existing code, guard policy
 
 **Depth and test strategy are independent.** Depth controls how much detail each stage's artifacts carry; test strategy controls how many tests get generated. Most shipped scopes leave `testStrategy` off so it inherits from `depth` — `classic` is Standard/Standard and `express` is Minimal/Minimal. `workshop` demonstrates the explicit split with Standard depth and Minimal testing. If your scope wants a split, declare both.
 
@@ -724,13 +724,13 @@ The human can change it for one intent by typing `/aidlc --guard-policy <value>`
 
 `change_control` is the retired spelling of this key, read for one release and never written; a scope file naming both keys with different values is rejected naming the file and both values.
 
-### 7.5 How scopes relate to stages
+### How scopes relate to stages
 
 A scope and a stage point at each other from opposite ends. A **stage** declares its own identity — its phase, its lead agent, the artifacts it consumes and produces, and the scopes it runs under (its `scopes:` list). A **scope** declares its identity, routing metadata, and workflow defaults in its own `.md` file, with no per-stage membership inside it; membership lives on the stages. The binding between them is the scope name.
 
 That separation is the same data-versus-code line the rest of this guide rests on. The scope file is data about *identity*; the stage's `scopes:` list is data about *membership*; the compiled grid is the transpose of the two.
 
-### 7.6 Adding a team scope
+### Adding a team scope
 
 Suppose your team wants a `hotfix` scope — leaner than `bugfix`, for the urgent production patch where you want a regression test and a deploy, nothing else. The change is a new scope file, a `scopes:` tag on each stage that should run, and regenerated local projections.
 
@@ -742,7 +742,7 @@ Suppose your team wants a `hotfix` scope — leaner than `bugfix`, for the urgen
 6. **Update the scope-aware docs and add a routing test.** Several docs enumerate scopes by hand — the User Guide's scope reference and routing table, the customization chapter's valid-values list, and the orchestrator reference's scope-to-stage mapping. Update them in the same change.
 7. **(Optional) Generate a typeable runner.** A scope is fully usable via `/aidlc --scope <name>` the moment its file lands; no runner is needed. If you want a one-word command (`/aidlc-hotfix`), add `runner: true` to the scope frontmatter and run `aidlc engine gen runner-scopes`; `aidlc engine gen runner-scopes --all` emits `skills/aidlc-<scope>/SKILL.md` for every scope file regardless of that flag.
 
-### 7.7 Tuning an existing scope
+### Tuning an existing scope
 
 Tuning is a smaller edit, but it lands on the stage, not the scope. Two changes come up often:
 
@@ -752,7 +752,7 @@ Tuning is a smaller edit, but it lands on the stage, not the scope. Two changes 
 
 A note on layering: tuning the shipped scopes edits framework-shipped files directly. That's legitimate for a fork that wants different defaults, but a framework upgrade may want to reconcile them. Adding a net-new scope file alongside the shipped eleven is the cleaner path when you want a team-specific behavior without touching the defaults everyone else relies on.
 
-### 7.8 What validates automatically vs. what you check
+### What validates automatically vs. what you check
 
 **Automatic:** the valid-scope list is derived from `scopes/*.md` presence at runtime through `validScopes()`, so a new file is valid everywhere at once — `init`, `--scope` change, env-default resolution, and `doctor` all consult the same helper. Error messages list your scope in alphabetical order with no change. Packaging always derives the grid from the current stage YAML, so stale local generated bytes are not release inputs.
 
@@ -763,17 +763,17 @@ A note on layering: tuning the shipped scopes edits framework-shipped files dire
 - **Per-scope phase-sequence coverage.** The shipped phase-sequence test iterates a hardcoded list of the known scope names; add your scope to it in the same change.
 - **The hand-maintained docs.** The User Guide's stage-by-scope matrix and scope routing table are checked against the compiled grid (`t244-scope-matrix-doc-sync`), so a new scope fails that test until its column and row are there.
 
-### 7.9 Where saved scopes come from (runtime, not authored)
+### Where saved scopes come from (runtime, not authored)
 
 The transpose above is the mechanism for *authored* scopes. A scope saved at runtime from a composed plan (`scope save`) has no stage declaring it, so it cannot be transposed: its durable definition lives in the user's own tree at `aidlc/scopes/<name>.md` and compile projects it into the harness grid. You do not author those. A composed plan the person does not save writes no scope at all: it runs on a stock scope with its own stage changes recorded in that piece of work's state.
 
-## 8. Rules and the Learning Loop
+## Rules and the Learning Loop
 
 **Rules** are the standing decisions your team carries into every workflow — the "always do it this way" you would otherwise re-explain at the start of each run. As a harness engineer you author them in two ways: by editing a rule file directly, or by letting the **learning loop** promote an in-workflow correction into a durable rule for you.
 
 Rules are the **feedforward** half of the control loop — prose the agent reads *before* it works. [Sensors](#9-sensors) are the **feedback** half — deterministic checks that fire *after* a write. A rule can name a sensor as its companion; the two halves are designed to pair. **Knowledge** ([§10](#10-team-knowledge)) is "what" (context an agent weighs); rules are "how" (decisions the framework enforces).
 
-### 8.1 The five layers, and which file you edit
+### The five layers, and which file you edit
 
 Rules live as Markdown files under `core/memory/` (the authored source for the space memory layer), one file per scope. There is no `scope:` frontmatter field — this implementation derives scope from the filename, so the file you pick *is* the scope you author at:
 
@@ -795,7 +795,7 @@ Each file is plain prose under topical headings — `## Way of Working`, `## Tes
 
 At runtime the authored `core/memory/` files are the source for the space memory layer. The team/project files you edit live in the project at `aidlc/spaces/<space>/memory/` — space memory is team/project editable and takes effect next step, with no rebuild needed. Layer precedence on conflicts: project > team > org.
 
-### 8.2 Holding Guard Policy for the whole repo
+### Holding Guard Policy for the whole repo
 
 One heading in these files is read as a structured setting rather than prose: `## Guard Policy`. It decides how far the guards stand aside for work in this space, in two respects — the same two respects a scope's `guard_policy` decides ([§7.4](#74-the-judgment-calls-depth-skeleton-existing-code-guard-policy)):
 
@@ -816,7 +816,7 @@ A layer holding `strict` also refuses `/aidlc config set guard.<fence> off`, nam
 
 The retired heading `## Change Control` is still read for one release, so a space whose memory files predate the rename keeps working; a section under the new heading wins when a file carries both.
 
-### 8.3 Strict-additive: layers stack, none silently overrides
+### Strict-additive: layers stack, none silently overrides
 
 The chain resolves through four layers today, with a fifth reserved:
 
@@ -834,7 +834,7 @@ Because nothing overrides at runtime, a rule that *contradicts* a broader-scope 
 
 The deterministic `aidlc-learnings.ts persist` writer does not read `org.md` or independently enforce this comparison; it accepts the selections it receives. The check is an audit aid, not an enforcement boundary. Two read-only `/aidlc --doctor` rows surface state after the fact: a **rule-drift** row flags headings where team or project content overlaps a populated org heading (a candidate contradiction for a human to verify), and a **paired-coverage** row reports how many rules name a sensor that actually resolves. Both are advisory and never change the exit code.
 
-### 8.4 Operating the learning loop
+### Operating the learning loop
 
 The other way a rule gets authored is that you never open a file — you correct an agent during a workflow, confirm the correction at a gate, and the framework writes it for you. That is the learning loop. Most stage runs add nothing, which is healthy; the loop fires only when something during the stage is worth keeping.
 
@@ -858,13 +858,13 @@ The default scope is **project**, the narrowest. A one-click "promote to team" a
 
 Sometimes the thing worth keeping is a *recurring manual check* — you keep eyeing a stage's output for the same gap. When you confirm that kind of learning at the gate, the framework treats it as a sensor binding rather than a rule. It does a two-write install atomically: it scaffolds a sensor manifest under `.claude/sensors/` and appends the new sensor's id to the originating stage's `sensors:` import list, leaving a `SENSOR_PROPOSED` audit row. That is the one sanctioned edit to a stage file outside a framework release — only the import list grows; the stage body is never touched. From there you flesh out the manifest by hand using [Sensors](#9-sensors) — the loop scaffolds the binding; you author the check.
 
-### 8.5 Learnings apply from the next stage delivery
+### Learnings apply from the next stage delivery
 
 A learning captured at a gate lands in an already-selected rule file (`project.md` or `team.md`), and the engine re-reads the selected files' text before each stage delivery. So the rule reaches the agent at the next applicable stage of the current run, and every later workflow. What waits is the selection itself: a brand-new rule file enters the directory walk, and a new Sensor binds, only when the stage graph is next compiled.
 
 The same holds when you author by hand: editing `team.md` mid-workflow reaches the next stage delivery of the run in progress (it does not retroactively change stages already run). Sensor configuration is different from rule text: part of it lives in the compiled graph and part is read again at fire time. To make a Sensor edit — a new Sensor or a change to an already-bound one — take effect predictably, recompile the stage graph. One exception no recompile can reach: on a native install the bundled Sensors' workers are selected by id, so editing a bundled manifest's `command` runs nothing different — a changed check there needs its own Sensor id.
 
-### 8.6 Quick decision guide
+### Quick decision guide
 
 - "Always do X" → a **rule** in space memory (`aidlc/spaces/<active-space>/memory/`), where the framework holds the agent to it.
 - "Here's X context" → **knowledge** under `aidlc/knowledge/` ([§10](#10-team-knowledge)).
@@ -874,11 +874,11 @@ The same holds when you author by hand: editing `team.md` mid-workflow reaches t
 - Be explicit about "never" vs "avoid" and about conflict resolution.
 - One owner per rule; avoid unintentional duplication.
 
-## 9. Sensors
+## Sensors
 
 A **sensor** is a deterministic check that the framework dispatches after a matching file write or during a stage gate. A stage imports the sensor by ID; the sensor's `fire_on` and `matches` settings determine which event and file path trigger it. A rule gives the agent prose guidance — for example, "user stories follow Given/When/Then." A sensor runs code to check a defined condition, such as whether a file contains required headings.
 
-### 9.1 What a sensor is
+### What a sensor is
 
 A sensor manifest is a Markdown file with YAML frontmatter under `core/sensors/`. The manifest describes the check and how to invoke it. It does not name the stages that use it. A stage binds to a sensor by listing the sensor's ID in its `sensors:` frontmatter field.
 
@@ -890,7 +890,7 @@ Three properties define the runtime behavior:
 
 The intent's `audit/` shards record sensor lifecycle events: **`SENSOR_FIRED`** when dispatch starts, followed by **`SENSOR_PASSED`** when the check passes or **`SENSOR_FAILED`** when it reports findings. A failed event links to a detail file under `<record>/.aidlc-engine/sensors/<stage-slug>/`. The detail file records the specific finding, such as missing headings, an unreferenced upstream artifact, or a lint error.
 
-### 9.2 The six sensors that ship
+### The six sensors that ship
 
 Six manifests ship under `sensors/`, each prefixed `aidlc-`:
 
@@ -905,7 +905,7 @@ Six manifests ship under `sensors/`, each prefixed `aidlc-`:
 
 All six shipped manifests define a `matches:` glob. On a write, the hook compares the changed path with that glob. At a gate, the state tool compares declared deliverable paths with the glob. `claim-sources` uses `**/{aidlc-docs,intents}/**`; `required-sections` and `upstream-coverage` use `**/{aidlc-docs,intents,codekb}/**`. Both patterns retain the legacy `aidlc-docs/` arm for pre-migration projects. `traceability` uses `**/traceability.json`. `linter` and `type-check` use `**/*.{ts,js}` and `**/*.{ts,tsx}` respectively. Read `aidlc-required-sections.md` end to end before authoring a sensor; it is the smallest shipped manifest and shows both its frontmatter and prose body.
 
-### 9.3 How binding works: pull authoring
+### How binding works: pull authoring
 
 A manifest carries **no stage-targeting field**. There is no `applies_to:` — the framework deliberately removed it. A stage decides what fires on its outputs by naming the sensor in its own frontmatter:
 
@@ -928,7 +928,7 @@ The stage's `sensors:` list shows which checks are eligible to run for that stag
 
 During graph compilation, the resolver indexes manifests by ID and resolves each stage import. An import with no matching manifest causes a compile error. The compiled graph stores each stage's imports and each sensor's `matches` patterns; the write hook uses the compiled pattern to filter changed paths. The dispatcher rereads the manifest when it runs a sensor. Edits to `command` or `timeout_seconds` apply on the next dispatch. Edits to `matches` or a stage's imports require recompilation. On a native install, the six shipped workers are selected by sensor ID, so changing a shipped manifest's `command` does not select a different worker; give a different check a new sensor ID.
 
-### 9.4 Authoring a new sensor
+### Authoring a new sensor
 
 Adding a sensor is two writes: the manifest, then the binding.
 
@@ -1019,7 +1019,7 @@ $ aidlc engine sensor fire no-tbd --stage glossary-capture --output-path aidlc/s
 
 The detail file lists the finding the worker printed, and the audit shard gets a `SENSOR_FAILED` row naming the fire id, sensor id, stage slug, output path, detail path, and findings count. After the line is fixed, the next fire reports `"result":"passed"` and the earlier detail file is removed. A worker that exits non-zero is recorded as a pass with a note such as `"note":"script-error: exit-1"`, so check that note when a new sensor never fails.
 
-### 9.5 Judgment calls: `fire_on`, `matches`, and `default_severity`
+### Judgment calls: `fire_on`, `matches`, and `default_severity`
 
 Most manifest fields are mechanical. Three fields require an authoring decision.
 
@@ -1029,11 +1029,11 @@ Most manifest fields are mechanical. Three fields require an authoring decision.
 
 **`default_severity` — record or block?** `advisory` records the result and allows the gate to continue. `blocking` requires a verified pass for a gate-fired sensor. Findings, unavailable evaluation, malformed output, or timeout prevent gate entry. A human can fix the finding or choose `Override blocking sensors` in the logged prompt, then retry with the required flag and exact `--user-input`. Autonomous mode does not allow overrides. The schema accepts `blocking` on a write-fired sensor, but write-fired results remain advisory in this release.
 
-### 9.6 When the learning loop installs a sensor for you
+### When the learning loop installs a sensor for you
 
 The **learning loop** is AI-DLC's workflow for capturing a correction or useful check, asking you whether to keep it, then recording your choice for future work. For a sensor, the loop applies when you repeatedly check a stage's output for the same objective issue. For example, if you keep finding that a deployment plan omits a rollback-verification section, you could make that check a sensor proposal at the stage's learning gate. If you confirm it, AI-DLC atomically scaffolds a **project-tier** manifest at `.claude/sensors/aidlc-<id>.md` and adds the sensor ID to the originating stage's `sensors:` list. The manifest describes and binds the check, but you still author its executable check; the learning loop does not invent that logic. AI-DLC records the proposal as **`SENSOR_PROPOSED`** in the audit log, so no sensor binding is added without your confirmation. Recompile the stage graph for the new binding to take effect. You can make the same changes manually; the learning loop is the human-confirmed path.
 
-### 9.7 Guidelines and validation
+### Guidelines and validation
 
 - **Deterministic only** — regex, file presence, counts, command output. If it needs semantic judgment, use a rule or a gate instead.
 - **Clear failures** — name the exact issue and how to fix it (file/section/command).
@@ -1044,13 +1044,13 @@ The **learning loop** is AI-DLC's workflow for capturing a correction or useful 
 
 Filename/id consistency is a compile-time hard error. An unknown sensor ref in a stage fails validation. Invalid `kind`, `fire_on`, or `default_severity` values are rejected with the file and allowed values.
 
-## 10. Team Knowledge
+## Team Knowledge
 
 **Team knowledge** is domain context an agent reads while working: coding standards, architecture preferences, a domain glossary, or patterns your team has settled on. You add it as files for agents to consult. Rules are different: they state decisions the framework expects agents to follow.
 
 If you've read [§8 Rules and the Learning Loop](#8-rules-and-the-learning-loop), keep the distinction in mind throughout: rules are standing decisions the framework enforces; knowledge is reference material an agent weighs while it works. Both shape agent behavior, but they sit on different planes and load differently.
 
-### 10.1 Two tiers: framework knowledge and yours
+### Two tiers: framework knowledge and yours
 
 AI-DLC's knowledge is split into two tiers, and only one of them is yours to edit.
 
@@ -1060,7 +1060,7 @@ AI-DLC's knowledge is split into two tiers, and only one of them is yours to edi
 
 The two-tier split is the same data-versus-code line the rest of this guide rests on, applied to knowledge: the framework owns its methodology, you own your context, and an upgrade can replace one without touching the other.
 
-### 10.2 Team-wide versus agent-specific placement
+### Team-wide versus agent-specific placement
 
 Tier 2 uses a shared directory and optional agent-specific directories under `aidlc/knowledge/`. An agent-specific directory uses the agent's full slug, such as `aidlc-architect-agent/`. Directory placement determines which agents load a file.
 
@@ -1073,7 +1073,7 @@ The directory name must exactly match the agent's full slug — `aidlc-architect
 
 Reach for `aidlc-shared/` only when a standard genuinely applies across all 14 agents. A pattern that matters to the architect and no one else belongs in `aidlc-architect-agent/`, where it adds context to architecture stages without diluting every other agent's window.
 
-### 10.3 How an agent loads knowledge
+### How an agent loads knowledge
 
 You do not register knowledge files separately. The loader finds Markdown files by directory. For dispatched agents, the conductor assembles context in the six-step order below. Tier 2 team knowledge is steps 4 and 5:
 
@@ -1090,7 +1090,7 @@ Steps 4 and 5 are skipped when the corresponding directories are missing or empt
 
 One consequence worth internalizing: agents read knowledge files **literally and at equal weight**. An outdated or contradictory file actively misleads an agent — it carries the same authority as a current one. Treat the Tier 2 tree like code that needs pruning; a short review during retro keeps it honest.
 
-### 10.4 Knowledge or a rule?
+### Knowledge or a rule?
 
 The most common harness-engineer mistake is reaching for knowledge when the intent is a rule, or the reverse. They are not interchangeable, and the loading order above shows why: rules resolve first as a strict-additive chain the framework compiles ahead of the run; knowledge is reference material the agent weighs during the stage.
 
@@ -1106,7 +1106,7 @@ A useful test: **if a human reviewer would reject a stage's output when the inst
 
 So a document describing how your team designs APIs is knowledge: drop it in `aidlc/knowledge/aidlc-architect-agent/`. A non-negotiable like "every architecture decision must record at least two alternatives" is a rule: it belongs in the space memory layer, where the framework will hold the agent to it.
 
-### 10.5 Where the Tier 2 tree comes from
+### Where the Tier 2 tree comes from
 
 The team builds it. On the first `/aidlc` the engine creates a single empty directory — `aidlc/knowledge/` — and stops there. It does not scaffold a tree, create per-agent subdirectories, or seed any READMEs. The Tier 2 layout (`aidlc-shared/` plus one directory per agent) is the convention the personas look for, not a structure the engine writes; you create the directories you have content for. Because the loader walks each agent's own directory by name, create them with the exact slug the loader expects (`aidlc-architect-agent/`, not `architect/`) — a typo'd name is silently skipped with no error.
 
@@ -1132,7 +1132,7 @@ A note on the boundary with the rest of this guide: the agent directories you po
 
 Don't put "always do" in knowledge — that's a memory rule. Knowledge is reference/context. Keep it DRY (summarize and link to existing docs/ADRs), focus on what agents need for *your* codebase, update it when architecture changes, and respect the per-agent split — product doesn't need deep implementation details; developer does.
 
-### 10.6 Spaces: knowledge for more than one team
+### Spaces: knowledge for more than one team
 
 Everything above assumes one team. When **more than one team shares a project**, AI-DLC keeps each team's method, knowledge, and records in its own **space**, at `aidlc/spaces/<name>/`. Each space has `memory/`, `knowledge/`, `codekb/`, and `intents/` directories. The `aidlc/knowledge/` shorthand used in this section means `aidlc/spaces/<active-space>/knowledge/`. With one team, the active space is `default`.
 
@@ -1144,11 +1144,11 @@ What this means for the knowledge and rules you author:
 
 A space simply scopes *whose* data — so two teams can run AI-DLC in one project without their context, practices, or records colliding.
 
-## 11. Construction and the Swarm
+## Construction and the Swarm
 
 Construction is where AI-DLC builds the thing — where the per-Unit stages run, and where the **swarm** can fan that work out across many Units at once. The throughline is the same one the rest of this guide carries: you reshape Construction by editing **data** under `core/` — a rule, a stage, a sensor's check command — and never by editing code. What makes Construction feel different is that two of its most visible behaviours (the autonomy grant, the swarm driver) are governed by concerns that are deliberately *not* data files, and recognising that keeps you from authoring a setting that does not exist.
 
-### 11.1 Three concerns, three owners
+### Three concerns, three owners
 
 The framework splits every decision by what kind of thing it is: determinism belongs in a tool, knowledge belongs to an agent, and judgment belongs to a human. Construction's swarm is that split made concrete.
 
@@ -1163,7 +1163,7 @@ The framework splits every decision by what kind of thing it is: determinism bel
 
 The three rows marked "you" are the body of this section. The other three are covered because you need to understand the runtime your data shapes, but you author none of them.
 
-### 11.2 The autonomy posture — your real lever, written as a rule
+### The autonomy posture — your real lever, written as a rule
 
 The standing recommendation lives under `## Walking Skeleton` in `core/memory/org.md`, refined by `team.md` and `project.md`. New source-producing solo Unit workflows record three independent settings:
 
@@ -1197,7 +1197,7 @@ and any enabled summary confirmation remain human decisions even when we later s
 
 For a trusted project, the same heading can recommend **Continue automatically** after the skeleton is verified. The rule supplies guidance, never a recorded autonomy grant or a silent switch to swarm execution.
 
-### 11.3 Checkpoint and approval evidence
+### Checkpoint and approval evidence
 
 When `run-stage` carries `construction_checkpoint`, the Unit body and reviews have already run; a `rereview` field names the one re-check of code or documents changed since their review, run first without asking (under Guard Policy `strict` only; under `relaxed` and `off` the change is accepted and the approval stands). With `command_authorized: false`, ask the verification-command question and complete the human decision/answer/setter flow before any `verify`, then re-run `next`. Otherwise run `bolt checkpoint --action verify --unit <unit> --kind <unit|skeleton>`; it executes the recorded, human-authorized command, not text selected at verify time. Approve only current verified evidence and show "Verified with `<full command>` (exit 0)" in the approval question. A skeleton always needs the human; ordinary Units follow `human_required`.
 
@@ -1209,7 +1209,7 @@ Plan Approval remains individually bound even when its presentation is grouped. 
 
 After a partial landing, `next` names the remaining Units and valid prepared workers retain the original group's approval and worktrees. Verify the parent intent and worktree permission before continuing; a smaller remaining Unit set does not by itself require preparation again. Delegated workers use their verified parent intent's live fence, so lowering or raising it applies to already prepared workers on their next check. Failure still stops for the human Retry/Abort decision, and a checkpoint Request Changes starts a fresh revision. Recovery of interrupted setup reuses current approval rather than replacing the receipt bound to the worker.
 
-### 11.4 Shaping what can run in parallel — the Bolt-DAG
+### Shaping what can run in parallel — the Bolt-DAG
 
 The swarm fans work out across Units, so the question "what can run at once?" is decided upstream, in inception, by the `units-generation` stage. That stage produces `unit-of-work-dependency.md` (`core/aidlc-common/stages/inception/units-generation.md` declares `produces: unit-of-work-dependency`), and inside that artifact a required fenced `yaml` edge block lists every Unit with its `depends_on` list.
 
@@ -1243,7 +1243,7 @@ flowchart LR
 
 The harness lever here is indirect but real: **you shape what parallelises by shaping the dependency structure `units-generation` captures.** If you author team guidance that favours coarse Units with few cross-dependencies, more Units land in the same batch and run concurrently. Tight, deeply-chained dependencies serialise the work into many small batches. You influence this through the `units-generation` stage prose and the rules the architect agent reads while decomposing — the decomposition itself is a knowledge call the agent makes with the human, and the topology it writes is what the compiler turns into batches. The compile and parse that turn the edge block into `bolt_dag` is code, not something you author.
 
-### 11.5 Wiring convergence — your project's own check is the trusted signal
+### Wiring convergence — your project's own check is the trusted signal
 
 A Code Generation swarm does not bypass planning. Before `prepare`, every emitted Unit must have a current human-approved plan containing the structured Testing Contract, unit-scoped test instructions, and matching approval fingerprint. Before initial protected prepare, the approved parent application source must also be committed and reproducible. The tool validates all Units read-only before creating the first worktree, under both legacy autonomy and new checkpoint policy. Commit only with explicit authorization; neither prepare nor an autonomy grant commits for you.
 
@@ -1258,7 +1258,7 @@ Your harness contribution is making both real and meaningful. A check that alway
 
 A sensor complements the check on the artifact side. The `required-sections` and `upstream-coverage` sensors imported by `units-generation` check artifact shape and coverage at the gate; both are advisory. You can author and bind additional sensors to Construction stages using [§9](#9-sensors). A sensor runs at the event named by its `fire_on` setting. A blocking gate sensor prevents the gate from passing until its findings are fixed or a person overrides them. The project check command remains the convergence signal that decides whether a Unit may merge.
 
-### 11.6 The driver seam — `AIDLC_USE_SWARM`
+### The driver seam — `AIDLC_USE_SWARM`
 
 How the swarm physically fans out is selected by an environment variable, and it is worth being plain that this is an **operator knob**. It is not a data file, and it is not in `settings.json` (it is read conductor-side at fan-out time). You do not author it; you understand it so you know the runtime your data shapes.
 
@@ -1272,11 +1272,11 @@ Both drivers run each Unit's Code Generation (the one per-Unit stage that runs a
 
 One judgment never moves with the driver: a failure **always halts and re-engages the human**, regardless of autonomy mode, per `aidlc-common/protocols/stage-protocol-construction.md` ("Halt-and-ask on failure"). When the referee's `finalize` returns its exit-2 envelope, the conductor takes the baton back to a human. Hands-off mode removes the happy-path gates while keeping the failure halt loud.
 
-### 11.7 Collaboration vs lead-only
+### Collaboration vs lead-only
 
 The `collaborators` setting (scope/intent, [§7](#7-scopes)) controls ensemble vs lead-only for every stage, including within a Bolt. `collaborators: off` hands each stage an empty effective support-agents list, so the lead runs alone; the reviewer mechanism is independent and unaffected. Parallel Bolts follow the same setting.
 
-### 11.8 Where it becomes a code change
+### Where it becomes a code change
 
 The line is clean. Everything above — the autonomy posture rule, the Unit decomposition that produces the edge block, the project check command and protected spec, the complementary sensor — is data you author under `core/` or your project config. You shape Construction without touching code.
 
@@ -1288,13 +1288,13 @@ The swarm's machinery is code, and shaping it is the Developer Reference's terri
 
 The seven `SWARM_*` audit events (six from the referee, plus `SWARM_SOURCE_MERGED` from the source landing) are catalogued in the Developer Reference's State and Audit chapter.
 
-## 12. Porting to a New Harness
+## Porting to a New Harness
 
 AI-DLC ships from **one core, many harnesses** — today Claude Code, Kiro CLI, Kiro IDE, Codex CLI, Cursor, opencode, and GitHub Copilot, and the set is open. The hand-authored source is a harness-neutral `core/` plus a thin `harness/<name>/` surface per CLI; the packager (`scripts/package.ts`) materializes each ignored local Bun copy tree under `dist/<harness>/` and its native counterpart under `dist-release/<harness>/`. Adding another harness normally requires one directory and one manifest row. The engine, methodology, projection ownership, and harness-directory/rules resolution need no `core/` edits. Two harness-specific additions may still be needed: a `--doctor` check for that host's install surfaces (Step 2) and tool-binding subsections in the protocol modules (Step 4).
 
 > Three senses of "harness" in this repo: **`harness/`** (top-level — the per-CLI distribution surfaces this section is about), **`docs/harness-engineering/`** (this guide), and **`tests/harness/`** (the test-suite helper library). Unrelated; only the first is a distribution.
 
-### 12.1 The shape
+### The shape
 
 ```text
 core/                      # harness-neutral source — not edited to add a harness (save the optional --doctor arm)
@@ -1322,7 +1322,7 @@ The transform applies to Markdown and structured command surfaces (`.json`/`.tom
 
 The packager **discovers** harnesses by scanning `harness/` for a `manifest.ts`, so the default `bun scripts/package.ts` and `--check` include a new harness without a packager edit. `--check` generates both channels and plugin projections in independent temporary directories and compares the complete results; it does not use local `dist/` or `dist-release/` output.
 
-### 12.2 Step 1 — the manifest (the declarative 80%)
+### Step 1 — the manifest (the declarative 80%)
 
 Create `harness/<name>/manifest.ts` exporting a `HarnessManifest` (`scripts/manifest-types.ts`). The fields:
 
@@ -1352,7 +1352,7 @@ Create `harness/<name>/manifest.ts` exporting a `HarnessManifest` (`scripts/mani
 
 Claude's manifest is the minimal reference (no rename, no emit); Kiro's adds a rename + `harnessFiles` (agent JSONs and adapter) plus split root/native onboarding; Codex demonstrates native-only root integration and imperative emission. The packager writes `tools/data/harness.json`, `aidlc-stamp.json`, and `aidlc-projection.json` from these fields.
 
-### 12.3 Step 2 — the hook adapter (the per-harness shim)
+### Step 2 — the hook adapter (the per-harness shim)
 
 Core hooks consume Claude-shaped stdin as the normal form. A new harness ships **one authored adapter** (`harness/<name>/hooks/aidlc-<name>-adapter.ts`, listed in `harnessFiles`) that normalizes the harness's hook payloads into that contract and subprocess-pipes to the shared core hook. Never split a core hook into logic+adapter — the core bodies stay byte-shared across all harnesses apart from the explicit invocation-token projection.
 
@@ -1362,19 +1362,19 @@ Six hooks are flow-altering and need their control channels forwarded, not just 
 
 > **The one sanctioned `core/` edit: the doctor arm.** `/aidlc --doctor` health-checks an installed tree, and a new harness adds a per-harness arm there for its own install surfaces (adapter + wiring files present, any binary-version floor). This is deliberate per-harness *logic*, not data — a version check spawns the CLI and compares semver, which no manifest row can express — so it is the blessed exception to "zero `core/` edits". It degrades gracefully: a harness with no arm simply gets the generic checks.
 
-### 12.4 Step 3 — `emit.ts` (the imperative 20%, only if needed)
+### Step 3 — `emit.ts` (the imperative 20%, only if needed)
 
 Structural divergence a declarative row can't express is `emit.ts` — a plugin the manifest references that the packager calls with an `EmitContext` (`repoRoot`, `coreRoot`, `harnessRoot`, `harnessName`, `distRoot`, `harnessDir`, channel-aware `substituteToken`, `tierCap`). The emitter writes its outputs beneath `distRoot`. Codex's is the worked example: `config.toml`, `hooks.json`, the hook-trust pre-seed, the native onboarding skills-path rewrite, the agent-TOML transpositions, and the `.agents/skills/` tree. Harnesses whose surfaces are all authored files (Claude, Kiro) set `emit: null`.
 
 Under `--check`, the packager supplies two independent temporary `distRoot` sets, runs the same emitter once per channel in each build, then compares the two complete generated roots. Always pass emitted command text through `ctx.substituteToken`; otherwise an emitter can silently put a Bun command into the native channel.
 
-### 12.5 Step 4 — the bounded transform classes
+### Step 4 — the bounded transform classes
 
 Permitted transforms are the harness/rules projection, the two invocation tokens, declared tier/frontmatter additions, and the native host-surface rewrites in `rewriteNativeInvocations`. That native pass updates command allowlists, hook/adapter/statusline routes, onboarding runtime text, and native trust entries, then rejects any surviving token or Bun invocation into an AIDLC tool/hook. No blind `sed`.
 
 One more projection keeps each tree to its own tool. The construction, topology, reviewer and swarm protocol modules each end with one `### <tool>` binding subsection per harness, and `scripts/harness-bindings.ts` ships a tree only its own. To port: add your tool's subsection to each of those runs and its heading to `BINDING_HEADINGS`. Until you do, your tree ships every tool's subsection.
 
-### 12.6 Step 5 — tests and the gate
+### Step 5 — tests and the gate
 
 - A package-determinism test (`t145`) runs `package.ts --check`; it covers both channels for every discovered harness plus every plugin projection without requiring generated trees on disk.
 - `t243-install-mechanism` asserts copy projections keep Bun invocations, release projections contain no AIDLC Bun invocation, metadata is safe and exhaustive, and native-only integrations appear only in `dist-release/`.
@@ -1384,7 +1384,7 @@ One more projection keeps each tree to its own tool. The construction, topology,
 
 Run `bun scripts/package.ts <name>` to materialize both local channels, `--check` to prove deterministic generation, and the deterministic suite (`bash tests/run-tests.sh --smoke --unit --integration -P 8`) plus the live journey to gate.
 
-### 12.7 Principles
+### Principles
 
 - **No core edits** — only `harness/<name>/` (plus the one sanctioned doctor arm and the binding subsections).
 - **Thin surface** — adaptation only; logic stays in core, byte-shared apart from the explicit token projection.
@@ -1392,20 +1392,20 @@ Run `bun scripts/package.ts <name>` to materialize both local channels, `--check
 - **Follow references** — mirror the closest existing harness.
 - **Respect tokens** — handle `{{HARNESS_DIR}}`, `{{INVOKE}}`, and `{{TOOL_PREFIX}}` correctly.
 
-## 13. Authoring a Plugin
+## Authoring a Plugin
 
 An **AIDLC plugin** (a **plugin**) is a reusable, optional set of AIDLC contributions — new stages, agents, scopes, sensors, methodology knowledge, and additive modifications to existing core stages — packaged in its own directory, published from its own repository, and **composed** into a user's install over their chosen set of plugins. A plugin never edits `core/`; with every plugin disabled, the install behaves as bare core does (the plugins' files stay installed, so one can be enabled again).
 
 First-party plugins (shipped by the AIDLC team) and third-party plugins (anyone else) are **mechanically identical** — same structure, same seams, same composer, same guarantees. The only difference is provenance: whose repository the plugin lives in and who reviewed it.
 
-### 13.1 When to write a plugin vs. a plain stage or rule
+### When to write a plugin vs. a plain stage or rule
 
 - **A stage/agent/rule** ([§4](#4-anatomy-of-a-stage)–[§9](#9-sensors)) is a permanent part of the framework everyone gets.
 - **A plugin** is optional and independently owned. A consumer installs and selects it for composition; selection controls which of its stages, scopes, runners, and contributions are active. Stage `scopes:` metadata controls where each stage can run. The `when:` predicate is parsed but is not evaluated by the engine yet, so it does not gate execution. Use a plugin for a domain pack (such as an operation phase, compliance checks, or testing) that not every project needs.
 
 Start a new repository with `aidlc-plugin-create.ts`; the `test-pro` reference plugin walks the richer case end to end.
 
-### 13.2 The directory and manifest
+### The directory and manifest
 
 A plugin is a directory (and a git repository) with a declarative manifest and core-shaped subtrees:
 
@@ -1456,7 +1456,7 @@ test-pro/
 
 Ship only the keys your plugin uses. `test-pro` ships a support agent, a plugin scope, and per-agent methodology knowledge; it still reuses `aidlc-quality-agent` as the lead. **Memory projection remains deferred** — do not declare `contributes.memory` yet: the authoring tools reject it until the default-space method-seed merge ships. And there are **no number ranges**: stage numbers are display-only, so a plugin does not claim a number range in its manifest.
 
-### 13.3 Add a new stage
+### Add a new stage
 
 A plugin stage is an ordinary stage file with two extra rules:
 
@@ -1488,7 +1488,7 @@ ars:
 
 Two optional keys complete the entry. `role:` changes how the stage is screened: `initialization` and `core` always run, `structural` defaults to SKIP and is left to judgment at the gate, and `phase-gate` runs only when other work in its phase runs. `project_types: [brownfield]` mirrors a `condition:` that restricts the stage to one kind of project. A shipped priors entry always wins, so the block only matters on your own stages.
 
-### 13.4 Modify an existing core stage (a contribution)
+### Modify an existing core stage (a contribution)
 
 This is the contribution seam — additively change a core stage **without editing it**. A contribution lives at `<plugin>/contributions/<phase>/<slug>.md`, exactly one directory below `contributions/`: a file placed higher or nested deeper is never read, so the validator reports it and compose drop-logs it. Here is `test-pro`'s contribution to `nfr-requirements`:
 
@@ -1546,7 +1546,7 @@ An engine reinstall copies the stock `dist/<harness>/` graph and core stage sour
 
 Re-composing a newer version of your plugin takes your newer stages, scopes, agents, knowledge, sensors, and tools wherever the installed copy is still the one your plugin installed. Compose proves that with `tools/data/plugin-owned-<key>.json`, the same hash-proven record `plugin sync` writes. A copy the person changed stays as it is; the drops log names the file and the step. Structural additions (`adds.*`) your new version no longer declares are not removed by compose alone; `plugin sync` strips them before it re-composes.
 
-### 13.5 Packaging the other primitives
+### Packaging the other primitives
 
 - **Agents.** Drop `agents/<plugin>-<role>-agent.md` with `plugin:` set. The plugin prefix replaces core's `aidlc-` filename prefix, and the filename stem must equal frontmatter `name` (e.g. `agents/test-pro-metrics-agent.md` has `name: test-pro-metrics-agent`). It is discovered automatically after compose, and your plugin's stages may name it as `lead_agent`/`support_agents`. OpenCode composition also creates the native `.opencode/agents/` subagent twin and denies nested `task` delegation.
 - **Sensors.** Ship the manifest `sensors/aidlc-<id>.md` **and** its script under `tools/`; the manifest declares the sensor and the script implements its check. The manifest must be directly under `sensors/` and its basename must match `aidlc-<id>.md`. Composition rejects a misnamed or nested manifest and reports the problem through `/aidlc --doctor`; it will not silently install a sensor that cannot be discovered. Bind the sensor to your own stages via `sensors:`, or to a core stage via a contribution's `adds.sensors`.
@@ -1579,7 +1579,7 @@ console.log(JSON.stringify({
 
 Omit `severity` for the default `error` behavior; use `advisory` for a visible finding that must not fail doctor. Keep the script read-only and dependency-free.
 
-### 13.6 Distribution and install
+### Distribution and install
 
 The shipped builder emits your plugin as **a real host plugin** for one harness at a time, including `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`, Copilot's `.plugin/plugin.json`, and Kiro's folder projection:
 
@@ -1634,7 +1634,7 @@ AIDLC_PLUGIN_ROOT="<project>/.kiro/aidlc-plugins/<name>" AIDLC_PROJECT_DIR="<pro
 
 **Trust is host-native** — you don't build anything: Claude (org admin sets `strictKnownMarketplaces`, managed, unoverridable), Codex (one-time trust prompt per plugin, content-hash-pinned), Kiro (n/a, folder-drop, no host gate).
 
-### 13.7 Creating, validating, building, and testing your plugin
+### Creating, validating, building, and testing your plugin
 
 The authoring flow, cheapest to most realistic:
 
@@ -1688,7 +1688,7 @@ Plugin tests under `plugins/<name>/tests/*.test.ts` are discovered automatically
 bash tests/run-tests.sh --integration --filter "plugin-<name>"
 ```
 
-### 13.8 Rules of the road
+### Rules of the road
 
 - **Number is display-only.** Author a sensible `number:`; claim no range; inserting a stage never renumbers core.
 - **Artifact namespacing.** Every artifact you produce is `<plugin>-` prefixed; it may not collide with a core artifact or another plugin's.
@@ -1696,7 +1696,7 @@ bash tests/run-tests.sh --integration --filter "plugin-<name>"
 - **One base at most.** A plugin builds on core and at most one base plugin: `"dependencies": ["core", "acme@^1.2.0"]`. Sync composes the base first, so your stages can order after its stages (`requires_stage`), read its artifacts, name its agents, and include its stages in your scopes with `include_stages`. Validate and test base references with `--with <base-root>`. A missing or incompatible base means your plugin is not composed (a prior version stays as it was) and the person sees why; other plugins can still compose.
 - **Additive only.** Contributions add — they cannot override or remove a core stage's fields, agent, or prose. A genuine need to *change* upstream behavior is a framework design decision, not a plugin concern.
 
-## 14. Practical Tips & Next Steps
+## Practical Tips & Next Steps
 
 - **Edit source, never dist** — Work in `core/`, `harness/`, `plugins/`. Regenerate with `bun scripts/package.ts`; verify `--check`.
 - **Compile early** — After stage/scope/agent/sensor changes run `aidlc engine graph compile` (catches slug mismatches, duplicate producers, unknown refs).

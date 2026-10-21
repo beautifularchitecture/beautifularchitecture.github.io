@@ -14,7 +14,7 @@ Kubernetes (K8s) is an open-source container orchestration platform that automat
 
 A Kubernetes cluster is composed of two main types of nodes:
 
-### 1. Control Plane Nodes
+### Control Plane Nodes
 
 Control plane nodes are responsible for managing the overall state of the cluster. They make global decisions about the cluster (such as scheduling), maintain cluster state and handle cluster events. Key components running on control plane nodes include:
 
@@ -24,7 +24,7 @@ Control plane nodes are responsible for managing the overall state of the cluste
 - **kube-controller-manager:** Runs controllers that handle routine tasks (e.g., node management, replication).
 - **cloud-controller-manager:** Integrates with cloud provider APIs (if applicable).
 
-### 2. Worker Nodes
+### Worker Nodes
 
 Worker nodes (sometimes called minions) are where the actual application workloads run. Each worker node contains the necessary services to run containers and communicate with the control plane. Key components include:
 
@@ -638,7 +638,7 @@ In this example:
 
 ## Kubernetes Design Patterns
 
-### 1. Sidecar Pattern
+### Sidecar Pattern
 
 A helper container runs alongside the main application container to enhance or extend its functionality.
 
@@ -672,7 +672,7 @@ spec:
       emptyDir: {}
 ```
 
-### 2. Ambassador Pattern
+### Ambassador Pattern
 
 A proxy container that simplifies access to external services, handling connection logic, retries, and circuit breaking.
 
@@ -705,7 +705,7 @@ spec:
         name: envoy-proxy-config
 ```
 
-### 3. Adapter Pattern
+### Adapter Pattern
 
 Transforms the output or interface of a container to match a standard format.
 
@@ -738,7 +738,7 @@ spec:
       emptyDir: {}
 ```
 
-### 4. Init Container Pattern
+### Init Container Pattern
 
 Performs initialization tasks before the main container starts.
 
@@ -785,7 +785,7 @@ spec:
             - containerPort: 8080
 ```
 
-### 5. Multi-Container Pod Pattern
+### Multi-Container Pod Pattern
 
 Multiple containers work together in a single Pod, sharing resources and lifecycle.
 
@@ -821,7 +821,7 @@ spec:
       emptyDir: {}
 ```
 
-### 6. Self-Aware Pattern
+### Self-Aware Pattern
 
 Pods that understand their Kubernetes context through the Downward API.
 
@@ -873,7 +873,7 @@ spec:
               fieldPath: metadata.annotations
 ```
 
-### 7. Controller Pattern
+### Controller Pattern
 
 Custom controllers watch for changes and reconcile desired state.
 
@@ -933,7 +933,7 @@ spec:
 
 ## Storage Patterns
 
-### 1. Local Storage Pattern
+### Local Storage Pattern
 
 For applications requiring high-performance local storage.
 
@@ -962,7 +962,7 @@ spec:
                 - worker-node-1
 ```
 
-### 2. Shared Storage Pattern
+### Shared Storage Pattern
 
 For applications requiring shared access across multiple Pods.
 
@@ -999,7 +999,7 @@ spec:
       storage: 100Gi
 ```
 
-### 3. Dynamic Provisioning Pattern
+### Dynamic Provisioning Pattern
 
 Automatically provision storage when needed.
 
@@ -1030,7 +1030,7 @@ spec:
       storage: 50Gi
 ```
 
-### 4. Backup and Snapshot Pattern
+### Backup and Snapshot Pattern
 
 ```yaml
 apiVersion: snapshot.storage.k8s.io/v1

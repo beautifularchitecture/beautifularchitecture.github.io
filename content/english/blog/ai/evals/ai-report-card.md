@@ -94,7 +94,7 @@ The report card's scores are built on the six-layer evaluation pyramid from the 
 
 ## Workflow Components
 
-### 1. Reference Context
+### Reference Context
 
 The source of truth the artifact is judged against. There are many shapes:
 
@@ -126,7 +126,7 @@ Examples of **optional** reference context (standalone checks that need nothing 
 
 The pipeline therefore treats reference context as a list that may be empty: a policy whose checks are all standalone can grade an artifact with no spec attached, and the same policy engine switches to comparative mode the moment a check declares a dependency on one.
 
-### 2. Candidate Artifact
+### Candidate Artifact
 
 What the AI produced. The grader must normalise every shape into a common representation before it can run a check:
 
@@ -139,7 +139,7 @@ What the AI produced. The grader must normalise every shape into a common repres
 | Agent trajectories  | Tool-call correctness, step efficiency, recovery behaviour (the [trajectory pattern](../evals/#part-3-evaluating-agents-specifically)) |
 | Reports / prose     | Length bounds, banned phrases, rubric-graded quality where semantics matter                                                            |
 
-### 3. Evaluation Policy
+### Evaluation Policy
 
 The ruleset. This is where "strict for security, lenient for formatting" lives. A policy is a set of **categories**, each with:
 
@@ -150,7 +150,7 @@ The ruleset. This is where "strict for security, lenient for formatting" lives. 
 
 The gauge does two things. It changes which checks run (security at strict runs the full banned-pattern and PII sweep; formatting at lenient runs nothing more than a parse check). And it changes the bar (strict fails at any violation, lenient only fails on gross problems).
 
-### 4. Normalise & Parse
+### Normalise & Parse
 
 Every input — reference context, candidate artifact and evaluation policy — passes through this box first. Its job is one artifact, one grammar: convert the common shapes (markdown, code, JSON, config) into a single normalised representation so any check can run on any artifact without caring which format it started in.
 

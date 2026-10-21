@@ -382,7 +382,7 @@ The attester should be deterministic, not another LLM. Otherwise the system is c
 
 Do not begin by converting every document your organisation owns. A huge, unreviewed agent-generated corpus merely scales ambiguity. Start with one recurring decision or operational workflow where agents currently waste time assembling context.
 
-### 1. Choose a bounded, high-value domain
+### Choose a bounded, high-value domain
 
 Good candidates have a clear owner, recurring questions and multiple connected sources:
 
@@ -393,11 +393,11 @@ Good candidates have a clear owner, recurring questions and multiple connected s
 
 Avoid starting with “all company knowledge”. The first bundle is a product. It needs users, an owner, a definition of done and a maintenance loop.
 
-### 2. Identify canonical sources before authoring
+### Identify canonical sources before authoring
 
 For each proposed concept, name the source that wins when facts conflict. A wiki page, database schema, ADR, policy document, code repository or owner can all be authoritative for different things. If there is no canonical source, capture that uncertainty explicitly rather than presenting an agent-generated summary as fact.
 
-### 3. Define a small local vocabulary
+### Define a small local vocabulary
 
 OKF does not impose types, which gives teams flexibility but also responsibility. Begin with a short, documented vocabulary such as:
 
@@ -408,11 +408,11 @@ Decision Record, Reference, Attested Computation
 
 Do not build a grand ontology before publishing useful knowledge. Add types only when a consumer needs to route, validate or present them differently.
 
-### 4. Write the navigation path first
+### Write the navigation path first
 
 Create the root `index.md`, then only the folder indexes that a reader needs. If an engineer or agent cannot find a concept from the index without a semantic search, the bundle is not yet serving its navigation purpose.
 
-### 5. Curate concepts around decisions, not documents
+### Curate concepts around decisions, not documents
 
 One concept should answer one durable question well. A 2,000-line “payments knowledge” page produces poor diffs, poor retrieval and weak ownership. Prefer a small linked set:
 
@@ -424,7 +424,7 @@ One concept should answer one durable question well. A 2,000-line “payments kn
 
 The agent can follow links only when it needs more detail. The human reviewer can approve a focused change.
 
-### 6. Add trust signals according to risk
+### Add trust signals according to risk
 
 Not every concept needs every v0.2 field on day one. A useful policy is:
 
@@ -437,13 +437,13 @@ Not every concept needs every v0.2 field on day one. A useful policy is:
 
 The important part is that an agent sees what it does not know. Absence of verification should change its behaviour: ask for review, retrieve the canonical source or avoid an irreversible action.
 
-### 7. Automate repeatable enrichment, not judgement
+### Automate repeatable enrichment, not judgement
 
 Export pipelines and agents are excellent at producing first drafts from schemas, API descriptions and code. They can add links, detect stale sources and prepare pull requests. They should not be the unreviewed authority for ambiguous domain meaning.
 
 Use automation to make curation cheaper, then retain human review where the cost of a wrong assertion is high.
 
-### 8. Treat the bundle as a releaseable product
+### Treat the bundle as a releaseable product
 
 Use Git history, code review and CI checks. Validate at least:
 

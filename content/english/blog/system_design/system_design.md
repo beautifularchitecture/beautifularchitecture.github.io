@@ -45,12 +45,12 @@ In system design, **HTTPS certificates** are essential for securing communicatio
 
 ## Key Points about HTTPS Certificates
 
-### 1. **What is an HTTPS Certificate?**
+### **What is an HTTPS Certificate?**
 
 - **HTTPS certificates** are **X.509 certificates** used in **TLS (Transport Layer Security)** for encrypting and securing HTTP traffic.
 - They contain the **public key** of a server and are signed by a trusted **Certificate Authority (CA)** to confirm the authenticity of the server.
 
-### 2. **Role in HTTPS Communication:**
+### **Role in HTTPS Communication:**
 
 - **Encryption**: HTTPS certificates use **TLS** to encrypt data in transit, ensuring that information exchanged between client and server is private and secure.
 - **Authentication**: The certificate proves the server's identity, assuring clients that they are communicating with the correct, trusted server.
@@ -84,23 +84,23 @@ In system design, **HTTPS certificates** are essential for securing communicatio
 
 ## Use Cases in System Design
 
-### 1. **Web Applications**
+### **Web Applications**
 
 - HTTPS certificates are used to secure user data, such as login credentials and payment details, during transmission between the browser and server.
 - **SSL/TLS** ensures that users can trust the site and prevents **man-in-the-middle attacks**.
 
-### 2. **API Security**
+### **API Security**
 
 - APIs use HTTPS certificates to secure communication between clients and services, ensuring that data transmitted between services is encrypted and authenticated.
 - **API Gateways** often enforce HTTPS for all incoming and outgoing traffic to secure internal and external communications.
 
-### 3. **Microservices Communication**
+### **Microservices Communication**
 
 - In microservices architectures, services communicate securely using **TLS** certificates.
 - Certificates can be used with **mTLS (Mutual TLS)**, where both the client and the server authenticate each other.
 - This is common for ensuring trust between services within a **private network**.
 
-### 4. **Certificate Pinning**
+### **Certificate Pinning**
 
 - To prevent attacks, some systems implement **certificate pinning** to ensure that only a specific, trusted certificate can be used, even if it’s issued by a trusted CA.
 
@@ -108,16 +108,16 @@ In system design, **HTTPS certificates** are essential for securing communicatio
 
 ## Design Considerations for HTTPS Certificates
 
-### 1. **Certificate Management:**
+### **Certificate Management:**
 
 - **Renewal**: Certificates must be renewed periodically (typically every 1-2 years).
 - **Revocation**: Certificates must be revoked if compromised and Certificate Revocation Lists (CRLs) or **OCSP (Online Certificate Status Protocol)** can be used to check the certificate status.
 
-### 2. **Load Balancers and API Gateways:**
+### **Load Balancers and API Gateways:**
 
 - **SSL Termination**: In many architectures, HTTPS connections are terminated at a **load balancer** or **API Gateway**. This means the secure connection between the client and the gateway is decrypted and the communication between services may continue over plain HTTP or encrypted further.
 
-### 3. **Security Best Practices:**
+### **Security Best Practices:**
 
 - Use strong encryption algorithms (e.g., **TLS 1.2 or 1.3**).
 - **Perfect Forward Secrecy (PFS)** should be enabled to ensure that past sessions are not compromised even if the server's private key is leaked.
@@ -178,7 +178,7 @@ In system design, **HTTPS certificates** are essential for securing communicatio
 
 <img width="3000" height="3336" alt="image" src="https://github.com/user-attachments/assets/2e8bf550-4932-4c84-a2ca-b3034b57c1f8" />
 
-### 1. Client Hello
+### Client Hello
 
 The client initiates the handshake by sending:
 
@@ -191,7 +191,7 @@ The client initiates the handshake by sending:
 - Ensures each session is **unique**, even if the same algorithms are used.
 - Helps prevent **replay attacks** by making the handshake unpredictable.
 
-### 2. Server Hello + Certificate
+### Server Hello + Certificate
 
 The server responds with:
 
@@ -207,7 +207,7 @@ The server responds with:
   - Is it still valid (not expired)?
   - Does the domain match?
 
-### 3. Key Exchange and Session Key Derivation
+### Key Exchange and Session Key Derivation
 
 Depending on the chosen cipher suite (e.g., ECDHE), the client and server:
 
@@ -242,7 +242,7 @@ Depending on the chosen cipher suite (e.g., ECDHE), the client and server:
 - Provides **forward secrecy**: even if long-term keys are compromised, past sessions remain secure.
 - Ensures that each session has **unique encryption keys**.
 
-### 4. Finished Messages
+### Finished Messages
 
 - Both sides send encrypted "Finished" messages to confirm that the handshake was successful.
 - From this point on, all communication is encrypted using the derived session keys.
@@ -276,36 +276,36 @@ Depending on the chosen cipher suite (e.g., ECDHE), the client and server:
 
 <img width="1452" height="2322" alt="image" src="https://github.com/user-attachments/assets/93556c5e-3e0b-42a2-90e0-aae7c0ad1da6" />
 
-### 1. Client Hello
+### Client Hello
 
 - Client sends supported cipher suites and `client_random`.
 
-### 2. Server Hello + Certificate
+### Server Hello + Certificate
 
 - Server responds with:
   - Chosen cipher suite
   - `server_random`
   - Server certificate
 
-### 3. Server Requests Client Certificate
+### Server Requests Client Certificate
 
 - Server sends a `CertificateRequest` message.
 
-### 4. Client Sends Certificate
+### Client Sends Certificate
 
 - Client sends its certificate for authentication.
 
-### 5. Key Exchange
+### Key Exchange
 
 - Both sides exchange ephemeral public keys (e.g., via ECDHE).
 - Each side computes the shared secret using its private key and the other’s public key.
 
-### 6. Certificate Verification
+### Certificate Verification
 
 - Server verifies the client’s certificate.
 - Client verifies the server’s certificate.
 
-### 7. Finished Messages
+### Finished Messages
 
 - Both sides send encrypted "Finished" messages.
 - Secure communication begins using derived session keys.
@@ -981,27 +981,27 @@ Big O notation is used to describe the efficiency of an algorithm in terms of ti
 
 ## 3️⃣ Additional Scaling Techniques (Beyond the Cube)
 
-### 3.1 Scaling by Caching
+### Scaling by Caching
 
 Reduce load by storing frequently accessed results.  
 **Examples:** CDN, Redis, in-memory caches
 
-### 3.2 Scaling by Asynchrony & Queues
+### Scaling by Asynchrony & Queues
 
 Smooth out load spikes by processing tasks asynchronously.  
 **Examples:** Message brokers, event-driven architecture
 
-### 3.3 Scaling by Algorithmic Efficiency
+### Scaling by Algorithmic Efficiency
 
 Reduce the amount of work or make it faster.  
 **Examples:** Better data structures, batching, indexing
 
-### 3.4 Scaling by Concurrency Model
+### Scaling by Concurrency Model
 
 Handle more work in parallel.  
 **Examples:** Async I/O, multi-threading, actor model
 
-### 3.5 Scaling Geographically
+### Scaling Geographically
 
 Deploy systems in multiple regions for latency and failover benefits.  
 **Examples:** Multi-region deployments, edge computing

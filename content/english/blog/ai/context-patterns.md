@@ -34,7 +34,7 @@ The practical window for complex reasoning tasks may be as low as 16k-32k tokens
 
 These are the foundational patterns from the learning path. Start here.
 
-### 1. The Pyramid
+### The Pyramid
 
 Start with general background and progressively add specific details. Give the model altitude before asking it to land. Mirrors how experts brief each other: context first, task second.
 
@@ -49,7 +49,7 @@ The most common mistake is putting a role description at the top ("You are a sen
 
 **When to use:** Starting a new conversation, building system prompts, preparing context for code generation or review.
 
-### 2. Select, Don't Dump
+### Select, Don't Dump
 
 Include the smallest set of high-signal tokens that helps the model do the task. More context usually means weaker attention.
 
@@ -64,7 +64,7 @@ Pull out the relevant function or section rather than including the whole file. 
 
 **When to use:** Always. This is the default stance for every context assembly decision.
 
-### 3. Compress & Restart
+### Compress & Restart
 
 When conversations grow long, summarize what matters and start fresh. Context quality degrades well before hitting advertised limits.
 
@@ -79,7 +79,7 @@ The summary should be structured (lists, key-value pairs), not narrative. Struct
 
 **When to use:** Long-running agent loops, conversations spanning many turns, anytime output quality degrades mid-session.
 
-### 4. Write Outside the Window
+### Write Outside the Window
 
 Persist important context to external storage. The context window is working memory, not long-term memory.
 
@@ -93,7 +93,7 @@ A coding agent's `AGENTS.md` file is the canonical example: read into context at
 
 **When to use:** Multi-session work where continuity matters, projects with accumulated knowledge, agent systems that need to learn from past mistakes.
 
-### 5. Grounding
+### Grounding
 
 Retrieval gets information into context. Grounding makes the model actually use it. Without explicit anchoring instructions, the model will often ignore what you retrieved and fall back to training data.
 
@@ -107,7 +107,7 @@ Anthropic's contextual retrieval adds context to each retrieved chunk explaining
 
 **When to use:** Any application where accuracy matters more than creativity, questions about proprietary or recent information, customer support, legal compliance.
 
-### 6. Anchor Turn
+### Anchor Turn
 
 Front-load all source reads into one turn so every subsequent turn works from cache.
 
@@ -126,7 +126,7 @@ An agent producing 8 course modules from research files without an anchor turn c
 
 ## Part 2: Advanced and Specialized Patterns
 
-### 7. Isolate
+### Isolate
 
 Give sub-agents their own focused contexts instead of sharing one massive window. Anthropic's multi-agent research system uses 15x more tokens total but gets better results because each agent sees only what it needs.
 
@@ -140,7 +140,7 @@ The key insight: the orchestrator's context stays lean because it works with sum
 
 **When to use:** Tasks that decompose naturally into independent subtasks, when a single agent's context would exceed the effective window.
 
-### 8. Recursive Delegation
+### Recursive Delegation
 
 Let agents spawn child agents with scoped sub-contexts. Instead of stuffing everything into one window, the parent splits work, delegates with focused context, and aggregates results.
 
@@ -156,7 +156,7 @@ The context at every node stays focused and manageable while the total informati
 
 **When to use:** Tasks exceeding any single agent's effective context, work that decomposes naturally into a hierarchy.
 
-### 9. Progressive Disclosure
+### Progressive Disclosure
 
 Start with an index of available context. Let the model pull in details on demand instead of loading everything upfront.
 
@@ -169,7 +169,7 @@ For coding agents: provide the file tree + function/class signatures. For RAG sy
 
 **When to use:** Large codebases or document collections, exploratory tasks where relevance isn't known upfront.
 
-### 10. Executable Ground Truth
+### Executable Ground Truth
 
 When correctness depends on precise logic, put the truth in executable code rather than prose or hand-written expected values. The model can write around the script, but the script owns the answer.
 
@@ -179,7 +179,7 @@ This changes the model's job: instead of mentally verifying arithmetic or invent
 
 **When to use:** Calculators, pricing flows, tax rules, eligibility logic, financial projections. E2E tests where expected values derive from domain rules.
 
-### 11. Schema Steering
+### Schema Steering
 
 A JSON schema tells the model what to think about, in what order, and with what vocabulary. Define the structure and the model's reasoning follows.
 
@@ -193,7 +193,7 @@ Field descriptions matter most. Compare `"severity": string` with `"severity": {
 
 **When to use:** Data extraction from unstructured sources, classification, any integration where downstream code expects structured data.
 
-### 12. Context Caching
+### Context Caching
 
 Reuse computed context across requests to reduce costs and latency. Structure prompts so the stable prefix gets cached and only the variable part changes.
 
@@ -203,7 +203,7 @@ The key discipline is ordering: put everything stable first, everything variable
 
 **When to use:** Agent loops repeating the same instructions, applications with large static knowledge bases, high-volume services where the same content appears in every request.
 
-### 13. Attention Anchoring
+### Attention Anchoring
 
 Place critical information at the start and end of context. Models over-attend to the beginning and end of their context window ("lost in the middle"). Work with this bias instead of against it.
 
@@ -215,7 +215,7 @@ When the information needed to answer a question was placed in the middle of a l
 
 **When to use:** Long contexts where not all positions receive equal attention, when one piece of information must not be missed.
 
-### 14. Temporal Decay
+### Temporal Decay
 
 Weight recent context higher and systematically age out old information. Old messages can stay available but should compete less with the current task.
 
@@ -227,7 +227,7 @@ Three implementations:
 
 **When to use:** Long-running agent loops spanning multiple tasks, conversations where users change direction mid-session.
 
-### 15. Tool Descriptions as Context
+### Tool Descriptions as Context
 
 Tool definitions are context. The description tells the model when to use a tool and how. Most descriptions only say what the tool does; the ones that work also say when to use it and when not to.
 
@@ -237,7 +237,7 @@ Compare `def search_documents(query: str): """Search for documents matching the 
 
 **When to use:** Any agent or tool-using system, tools whose names don't fully capture scope and boundaries.
 
-### 16. Few-Shot Selection
+### Few-Shot Selection
 
 Choose examples that resemble the current input. The wrong examples teach the model the wrong behavior.
 
@@ -251,7 +251,7 @@ Static examples work for homogeneous inputs. Dynamic selection retrieves example
 
 **When to use:** Classification or extraction tasks where input categories have meaningfully different characteristics, high-stakes tasks requiring format consistency.
 
-### 17. Context Budget
+### Context Budget
 
 Treat the context window as a finite resource with planned allocations. Decide upfront how many tokens each section gets, then enforce it.
 
@@ -261,7 +261,7 @@ Standard sections and allocation order: output reservation (set `max_tokens` fir
 
 **When to use:** Any production system where context inputs are variable and unbounded, agent loops where context grows.
 
-### 18. Role Framing
+### Role Framing
 
 Defining a role in the system prompt does more than set a tone. It activates a vocabulary, constrains scope, and steers which heuristics the model applies. The specificity of the role determines how much steering actually lands.
 
@@ -271,7 +271,7 @@ Include the functional identity, the audience, domain constraints, and explicit 
 
 **When to use:** Specialized applications where generic helpful assistant behavior is too broad, tasks where output priorities matter.
 
-### 19. Multi-Modal Context
+### Multi-Modal Context
 
 Images consume tokens aggressively and at unpredictable rates. A single 1024x1024 screenshot consumes roughly 1,600 tokens with Claude and 765 tokens with GPT-4o at high detail.
 
@@ -285,7 +285,7 @@ If the same image is used in multiple requests, extract once and reuse the text 
 
 **When to use:** Any pipeline processing multiple images per request, document processing, when context budget pressure is visible.
 
-### 20. Negative Constraints
+### Negative Constraints
 
 "Don't do X" is weaker than it looks. Negative instructions activate attention on the prohibited thing and leave the model without a path forward. Reserve them for hard stops; use positive framing everywhere else.
 
@@ -297,7 +297,7 @@ The reframe test: for every "do not" in a system prompt, ask what the model shou
 
 **When to use:** Hard stops with security or compliance consequences, review passes on prompts with more than 2-3 "do not" instructions.
 
-### 21. Context Handoff
+### Context Handoff
 
 When one agent passes work to another, most of the context gets lost. The handoff boundary is where multi-agent systems silently degrade.
 
@@ -311,7 +311,7 @@ A structured handoff (JSON, markdown with headers, typed state object) survives 
 
 **When to use:** Multi-agent systems where one agent's output becomes another's input, agent-to-human handoffs, long-running workflows that pause and resume.
 
-### 22. Context Poisoning
+### Context Poisoning
 
 A hallucination in the context window becomes ground truth for every subsequent turn. The model generated it, so it trusts it, and the error compounds silently until the output is confidently wrong about something that was never true.
 
@@ -325,7 +325,7 @@ Prevention strategies: separate generated context from provided context with exp
 
 **When to use:** Multi-turn conversations where the model's own output becomes input for subsequent turns, agent loops where intermediate reasoning accumulates.
 
-### 23. Retrieval as Context Curation
+### Retrieval as Context Curation
 
 Every retrieval decision is a context engineering decision: what to retrieve, how much, in what order, and what to leave out. The vector store returns candidates; you decide what earns a place in the window.
 
@@ -338,7 +338,7 @@ Four decisions that matter:
 
 **When to use:** Any system where retrieved content enters the context window, when you notice the model ignoring retrieved content.
 
-### 24. Instruction Hierarchy
+### Instruction Hierarchy
 
 Not all context is created equal. System instructions, user messages, retrieved documents, and tool outputs compete for attention. Without explicit priority signals, the model resolves conflicts unpredictably.
 
@@ -353,7 +353,7 @@ State the hierarchy directly: "If the user's request conflicts with these instru
 
 **When to use:** Any system with content from multiple trust levels, customer-facing applications where prompt injection is a risk.
 
-### 25. Scratchpad
+### Scratchpad
 
 Maintain structured working state inside the context window: a running plan, findings, decisions made so far. Without an explicit scratchpad, the model reconstructs its state from raw conversation history on every turn and gets worse at it as the conversation grows.
 
@@ -368,7 +368,7 @@ Place it in a consistent, high-attention position: either in the system prompt a
 
 **When to use:** Multi-step agent tasks spanning more than 5-8 turns, tasks with intermediate decisions that subsequent steps depend on.
 
-### 26. Retrieval Subagent
+### Retrieval Subagent
 
 Split context retrieval into a focused agent that returns exact evidence. The main agent should receive selected files, ranges, and facts after the search noise has been discarded.
 
@@ -378,7 +378,7 @@ The retrieval subagent returns: files, line ranges, symbols, and short reasons f
 
 **When to use:** Large codebases where finding the right files is substantial, agent flows where search output routinely pollutes the reasoning context.
 
-### 27. Validate Compression
+### Validate Compression
 
 Treat every summary as a risky rewrite. Validate compressed context against the next task before you trust it.
 
@@ -388,7 +388,7 @@ Validation checks: Are task-critical facts still present and specific? Are decis
 
 **When to use:** Long-running agent tasks summarizing state, handoffs between agents or sessions, summaries that replace source material.
 
-### 28. Causal Memory Selection
+### Causal Memory Selection
 
 Select memories by their measured effect on the answer. A memory belongs in context only if it improves the next step.
 
@@ -398,7 +398,7 @@ Three tests: relevance (applies to current task), helpfulness (improves expected
 
 **When to use:** Long-lived agents with persistent memory, retrieval systems where stale memories look semantically relevant, domains where wrong remembered facts can change the action.
 
-### 29. State Sanitization
+### State Sanitization
 
 Clean unsafe or adversarial state before it enters memory, summaries, or handoffs. Sanitizing only the final summary is too late.
 
@@ -408,7 +408,7 @@ Sanitize source state before compression, then validate the compressed output fo
 
 **When to use:** Any agent that persists memory across turns or sessions, systems that summarize raw conversation into durable state.
 
-### 30. Trace the Work
+### Trace the Work
 
 Persist the agent's evidence trail alongside the artifact it changed. Future agents need the reasoning path and the final diff together.
 

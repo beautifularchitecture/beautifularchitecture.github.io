@@ -24,7 +24,7 @@ lets plan - i want to build the following - a portal that will
 
 lets build a plan, roadmap, tell me the modules for this project. in markdown. I am planning to do it in AI using agents skills etc... and make it a portal
 
-## 1. The Problem
+## The Problem
 
 > _The Unified SEO · AEO · GEO Intelligence Platform_
 
@@ -55,7 +55,7 @@ Over 60% of Google searches now end without a click (Sparktoro/Semrush data). If
 
 ---
 
-## 2. Core Concepts: SEO, AEO, and GEO
+## Core Concepts: SEO, AEO, and GEO
 
 ### The Three Layers
 
@@ -97,7 +97,7 @@ While people often use these terms interchangeably, there's a meaningful distinc
 
 ---
 
-## 3. How AI Search Works
+## How AI Search Works
 
 ### Featured Snippets (Traditional AEO)
 
@@ -134,7 +134,7 @@ Voice assistants (Google Assistant, Siri, Alexa) typically pull from featured sn
 
 ---
 
-## 4. Why This Matters Now
+## Why This Matters Now
 
 - Perplexity grew from 10M to 100M+ monthly queries in under 18 months
 - ChatGPT Search launched to 100M+ users in 2024 and expanded rapidly through 2025
@@ -145,7 +145,7 @@ Voice assistants (Google Assistant, Siri, Alexa) typically pull from featured sn
 
 ---
 
-## 5. The Anatomy of an AI-Optimised Piece of Content
+## The Anatomy of an AI-Optimised Piece of Content
 
 ```mermaid
 flowchart TD
@@ -172,7 +172,7 @@ flowchart TD
 
 ---
 
-## 6. AEO: Complete How-To Guide
+## AEO: Complete How-To Guide
 
 ### Step 1: Question-Based Keyword Research
 
@@ -249,7 +249,7 @@ To get or improve a knowledge panel:
 
 ---
 
-## 7. GEO: Complete How-To Guide
+## GEO: Complete How-To Guide
 
 ### Step 1: Topical Authority Clusters
 
@@ -370,7 +370,7 @@ The single most powerful GEO tactic is creating content that cannot be found any
 
 ---
 
-## 8. Technical Optimisation
+## Technical Optimisation
 
 ### Page Speed
 
@@ -397,7 +397,7 @@ Update the published/modified date when content is substantively refreshed. Add 
 
 ---
 
-## 9. Schema Markup & Structured Data
+## Schema Markup & Structured Data
 
 Schema markup is the bridge between your content and machine-readable structure. It explicitly tells search engines and AI systems what your content is _about_, not just what it _says_.
 
@@ -512,7 +512,7 @@ Schema markup is the bridge between your content and machine-readable structure.
 
 ---
 
-## 10. E-E-A-T
+## E-E-A-T
 
 Google's E-E-A-T framework (Experience, Expertise, Authoritativeness, Trustworthiness) is a proxy for the signals both traditional search and generative AI use to weight content.
 
@@ -542,7 +542,7 @@ Is the content honest, accurate, and safe?
 
 ---
 
-## 11. Prompt Engineering for Your Content
+## Prompt Engineering for Your Content
 
 When an LLM retrieves your page and reads it, it is essentially processing your text as input context. The clearer, more structured, and more answerable your text is, the better the model can extract value from it.
 
@@ -558,7 +558,7 @@ When an LLM retrieves your page and reads it, it is essentially processing your 
 
 ---
 
-## 12. Tracking & Measuring Performance
+## Tracking & Measuring Performance
 
 ### AEO Metrics
 
@@ -592,7 +592,7 @@ When an LLM retrieves your page and reads it, it is essentially processing your 
 
 ---
 
-## 13. Tools Reference
+## Tools Reference
 
 ### Research & Discovery
 
@@ -639,7 +639,7 @@ When an LLM retrieves your page and reads it, it is essentially processing your 
 
 ---
 
-## 14. Common Mistakes to Avoid
+## Common Mistakes to Avoid
 
 - **Treating AEO/GEO as separate from SEO** — they require a solid SEO foundation
 - **Targeting keywords instead of questions** — "cybersecurity tips" vs "How can a small business improve cybersecurity without a large IT budget?"
@@ -652,7 +652,7 @@ When an LLM retrieves your page and reads it, it is essentially processing your 
 
 ---
 
-## 15. The Future of AEO & GEO
+## The Future of AEO & GEO
 
 ### Agentic AI
 
@@ -672,7 +672,7 @@ Emerging AI transparency regulations (particularly in the EU under the AI Act) m
 
 ---
 
-## 16. Quick-Reference Checklists
+## Quick-Reference Checklists
 
 ### ✅ AEO Checklist
 
@@ -720,7 +720,7 @@ Emerging AI transparency regulations (particularly in the EU under the AI Act) m
 
 ---
 
-## 17. Platform Overview
+## Platform Overview
 
 https://aeo-app.ai is a B2B SaaS platform giving digital marketing agencies, in-house SEO teams, and enterprise content teams a unified command centre for SEO, AEO, and GEO.
 
@@ -757,7 +757,7 @@ mindmap
 
 ---
 
-## 18. Market Opportunity
+## Market Opportunity
 
 | Segment                           | TAM               | SAM        | SOM (Y3) |
 | --------------------------------- | ----------------- | ---------- | -------- |
@@ -770,7 +770,7 @@ mindmap
 
 ---
 
-## 19. Competitive Positioning
+## Competitive Positioning
 
 ```mermaid
 quadrantChart
@@ -809,7 +809,7 @@ quadrantChart
 
 ---
 
-## 20. Stakeholders
+## Stakeholders
 
 ```mermaid
 flowchart TD
@@ -840,7 +840,7 @@ flowchart TD
 
 ---
 
-## 21. User Personas Examples:
+## User Personas Examples:
 
 ### Persona 1: The Agency Director
 
@@ -865,7 +865,7 @@ flowchart TD
 
 ---
 
-## 22. Core Product Features
+## Core Product Features
 
 ```mermaid
 flowchart TD
@@ -915,7 +915,7 @@ flowchart TD
 
 ---
 
-## 23. GEO Visibility Score™
+## GEO Visibility Score™
 
 The **GEO Visibility Score™** is https://aeo-app.ai's proprietary metric — a 0–100 composite score representing how visible a brand is across AI-generated search responses.
 
@@ -970,7 +970,7 @@ flowchart TD
 
 ---
 
-## 24. AEO Command Centre — SERP Feature Detection Logic
+## AEO Command Centre — SERP Feature Detection Logic
 
 ```mermaid
 flowchart TD
@@ -999,7 +999,7 @@ flowchart TD
 
 ---
 
-## 25. Content Optimiser — Scoring Rubric
+## Content Optimiser — Scoring Rubric
 
 ```mermaid
 xychart-beta horizontal
@@ -1020,7 +1020,7 @@ xychart-beta horizontal
 
 ---
 
-## 26. Schema Builder
+## Schema Builder
 
 ```mermaid
 flowchart LR
@@ -1041,7 +1041,7 @@ flowchart LR
 
 ---
 
-## 27. AI Crawler Audit Tool
+## AI Crawler Audit Tool
 
 ```mermaid
 flowchart TD
@@ -1067,7 +1067,7 @@ flowchart TD
 
 ---
 
-## 28. Metrics, Dashboards & KPIs
+## Metrics, Dashboards & KPIs
 
 ### Executive Dashboard
 
@@ -1175,7 +1175,7 @@ flowchart TD
 
 ---
 
-## 29. System Architecture (AWS Microservices)
+## System Architecture (AWS Microservices)
 
 ### High-Level Architecture
 
@@ -1380,7 +1380,7 @@ flowchart TD
 
 ---
 
-## 30. Data Architecture & Flows
+## Data Architecture & Flows
 
 ### GEO Tracking Data Flow
 
@@ -1509,7 +1509,7 @@ erDiagram
 
 ---
 
-## 31. Security & Compliance
+## Security & Compliance
 
 ```mermaid
 flowchart TD
@@ -1544,7 +1544,7 @@ flowchart TD
 
 ---
 
-## 32. Infrastructure & Scalability
+## Infrastructure & Scalability
 
 ### Auto-Scaling Strategy
 
@@ -1592,7 +1592,7 @@ At $299/month average plan, infrastructure is ~1.8% of revenue. Gross margin tar
 
 ---
 
-## 33. Integrations
+## Integrations
 
 ```mermaid
 flowchart LR
@@ -1640,7 +1640,7 @@ flowchart LR
 
 ---
 
-## 34. Pricing & Packaging
+## Pricing & Packaging
 
 ```mermaid
 flowchart LR
@@ -1696,7 +1696,7 @@ flowchart LR
 
 ---
 
-## 35. Product Roadmap
+## Product Roadmap
 
 ```mermaid
 gantt
@@ -1733,7 +1733,7 @@ gantt
 
 ---
 
-## 36. Risks & Mitigations
+## Risks & Mitigations
 
 | Risk                                        | Likelihood | Impact | Mitigation                                                                                               |
 | ------------------------------------------- | ---------- | ------ | -------------------------------------------------------------------------------------------------------- |
@@ -1746,7 +1746,7 @@ gantt
 
 ---
 
-## 37. Acceptance Criteria
+## Acceptance Criteria
 
 ### Phase 1 MVP Go/No-Go Criteria
 

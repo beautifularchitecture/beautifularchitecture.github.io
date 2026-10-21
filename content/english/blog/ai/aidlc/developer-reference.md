@@ -14,13 +14,13 @@ AI-DLC is one hand-authored, harness-neutral core that ships to many harnesses (
 
 Where the harness engineer edits Markdown with YAML frontmatter and JSON, the developer edits TypeScript — the orchestrator, the hooks, the CLI tools, the stage-graph compile pipeline, the audit taxonomy, and the test suite. This post folds the whole Developer Reference into one narrative, chapter by chapter, so the boundary between a data edit and a code change is always in view.
 
-## 1. How to Read This Reference
+## How to Read This Reference
 
 This reference documents the internal architecture and implementation of AI-DLC. It is meant for contributors changing the AI-DLC codebase itself: the orchestrator, hooks, CLI tools, the stage-graph compile pipeline, the audit taxonomy, and the test suite.
 
 If you are **using** AI-DLC to build software, the [User Guide](https://welldesignedsystem.github.io/docs/guide/) is your starting point. If you are **reshaping how AI-DLC behaves** through configuration — adding a stage or an agent, defining a scope, authoring rules and sensors, adding team knowledge — the [Harness Engineer Guide](https://welldesignedsystem.github.io/blog/ai/aidlc/harness-engineering/) is the place to begin; those are data changes, not code changes, and its chapters narrate the workflow before pointing back here for the exhaustive schema.
 
-### 1.1 The four path conventions
+### The four path conventions
 
 AI-DLC is authored once and generated per harness, so a file is named by one of four conventions, by intent:
 
@@ -31,7 +31,7 @@ AI-DLC is authored once and generated per harness, so a file is named by one of 
 
 Where this reference shows a bare `.claude/` path, read it as the runtime location for the Claude harness specifically; the same file is authored in `core/` and ships to each harness's own directory.
 
-### 1.2 What this reference covers
+### What this reference covers
 
 The chapters follow the reference's own order:
 
@@ -62,7 +62,7 @@ The chapters follow the reference's own order:
 | §24 | Harness reference: the Kiro IDE hook payload |
 | §25 | Examples and research: the plugin fixture and design notes |
 
-### 1.3 How to navigate
+### How to navigate
 
 - **Where does a new concern (a rule, a methodology fact, a knowledge fact) belong?** Read [§2 configuration layers](#22-configuration-layers) — the two-axis model (authorship × consumption) with boundary tests routes any new concern to the correct file.
 - **Adding a new stage?** Read [§5 Stage Protocol](#5-the-stage-protocol), then the relevant phase file in [§6](#6-stages-by-phase), then [§13 Contributing](#13-contributing).
@@ -73,7 +73,7 @@ The chapters follow the reference's own order:
 - **Working on hooks?** Read [§8 Hooks and Tools](#8-hooks-and-tools) and [§11 Testing](#11-the-testing-system).
 - **Changing the orchestrator?** Read [§4 Orchestrator](#4-the-orchestrator) and [§2 Architecture](#2-architecture). If you are adding or modifying audit events, start with [§14 State Machine](#14-the-state-machine) — the drift test catches you if you do not.
 
-### 1.4 Relationship to the User Guide
+### Relationship to the User Guide
 
 The [User Guide](https://welldesignedsystem.github.io/docs/guide/) explains **what** AI-DLC does and **how to use it**. This Developer Reference explains **how it works** and **how to change it**. Some topics appear in both:
 

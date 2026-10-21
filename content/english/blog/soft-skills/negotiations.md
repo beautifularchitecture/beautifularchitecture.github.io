@@ -8,7 +8,7 @@ summary = "Practical negotiation tactics, psychology, and frameworks from BATNA 
 
 Every term, tactic, law, and psychological principle you need — from BATNA to the Flinch, from contract law to cognitive bias.
 
-## 1. The Vocabulary of Power — Core Terminology
+## The Vocabulary of Power — Core Terminology
 
 Before you can negotiate effectively, you must speak the language. These are the terms that separate amateurs from professionals — concepts that define every deal ever struck.
 
@@ -65,7 +65,7 @@ Most real negotiations contain both elements.
 
 ---
 
-## 2. The Psychology Behind Every Deal
+## The Psychology Behind Every Deal
 
 Negotiation is applied psychology. Understanding how the human mind distorts perception, processes risk, and responds to social pressure is as important as knowing your numbers.
 
@@ -125,7 +125,7 @@ Counter-intuitively, _perspective-taking_ (analytically understanding what the o
 
 ---
 
-## 3. Tactics & Counter-Tactics
+## Tactics & Counter-Tactics
 
 ### Offensive Tactics
 
@@ -185,7 +185,7 @@ Testing a position without committing to it: "What if we were to consider someth
 
 ---
 
-## 4. The Legal Framework
+## The Legal Framework
 
 Negotiation does not occur in a legal vacuum. Understanding the legal principles that govern agreements is essential — especially when negotiations produce contracts.
 
@@ -247,7 +247,7 @@ Agreements to resolve disputes through arbitration rather than litigation. Incre
 
 ---
 
-## 5. The Negotiation Process — Stage by Stage
+## The Negotiation Process — Stage by Stage
 
 ### Stage 1: Preparation
 
@@ -291,7 +291,7 @@ The deal is only as good as what happens after. Specify deliverables, timelines,
 
 ---
 
-## 6. Types of Negotiation
+## Types of Negotiation
 
 ### By Structure
 
@@ -337,7 +337,7 @@ Zero-sum mindset. Information is withheld. Positions are defended. Concessions a
 
 ---
 
-## 7. Advanced Concepts
+## Advanced Concepts
 
 ### Game Theory in Negotiation
 
@@ -372,7 +372,7 @@ Highly unequal power is more common than equal power. The weaker party must comp
 
 ---
 
-## 8. Communication & Body Language
+## Communication & Body Language
 
 ### The Words You Choose
 
@@ -409,7 +409,7 @@ Negotiators talk too much. Most people listen to respond, not to understand. Tru
 
 ---
 
-## 9. Common Mistakes & How to Avoid Them
+## Common Mistakes & How to Avoid Them
 
 **Failing to prepare your BATNA**
 Entering without alternatives is entering naked. Develop at least one concrete alternative before any significant negotiation.
@@ -440,7 +440,7 @@ A deal agreed in principle falls apart in documentation when language is ambiguo
 
 ---
 
-## 10. The Master Frameworks
+## The Master Frameworks
 
 ### The Harvard Principled Negotiation Framework
 
@@ -488,11 +488,11 @@ The biggest leverage is often found in the setup dimension — before formal tal
 
 ---
 
-## 11. Real-World Examples & Case Studies
+## Real-World Examples & Case Studies
 
 The principles of negotiation come alive in practice. These case studies demonstrate how the concepts — anchoring, BATNA, integrative bargaining, and tactical empathy — play out in real deals across contexts.
 
-### 11.1 Anchoring in Action
+### Anchoring in Action
 
 **The Alaska Purchase (1867)** — Russia approached the United States to sell Alaska, initially asking $7 million. Secretary of State William Seward opened with $7.2 million — a counter-offer that anchored upward. Russia, anticipating rejection, accepted $7.2 million for 586,412 square miles (about 2 cents per acre). At the time, critics called it "Seward's Folly." Today, Alaska's resource value exceeds hundreds of billions. The anchor moved the entire framing from "we need to sell" to "we're getting a bargain."
 
@@ -502,7 +502,7 @@ The principles of negotiation come alive in practice. These case studies demonst
 
 **Salary Negotiation First Offer** — A candidate with 5 years of experience interviews for a role. The hiring manager asks, "What salary are you looking for?" The candidate says, "I'm looking for a package in the range of $95,000 to $105,000, depending on the full benefits picture." The manager responds with an initial offer at $92,000 — below even the candidate's low anchor. The candidate counter-offers at $100,000, citing market data. They meet at $97,000. The candidate's stated range anchored the conversation, but the manager's first concrete offer ($92,000) pulled the final number down by $3,000 from where it could have been.
 
-### 11.2 BATNA Mastery
+### BATNA Mastery
 
 **The Disney-Theater Negotiation (2015)** — Disney demanded that theaters commit to showing _Avengers: Age of Ultron_ at premium pricing for a longer window, including higher revenue shares for matinee showings. Major theater chains (Regal, AMC, Cinemark) formed a coalition and communicated they would refuse to screen the film under those terms. Disney's BATNA was weak — without theater distribution, a $400M+ film would flop. The theaters' collective BATNA was strong — they could show other films. Disney retreated from its matinee demand and reached agreement. The theaters strengthened their BATNA through coalition building.
 
@@ -512,7 +512,7 @@ The principles of negotiation come alive in practice. These case studies demonst
 
 **Freelancer Walking Away** — A freelance designer is offered $3,000 for a website project by a client who insists that's their maximum budget. The designer has two other active proposals in the pipeline worth $4,500 each. The designer says: "I appreciate the project, but at $3,000 it's outside my range given my current commitments. I can revisit this if your budget changes." The client, afraid of losing the designer, comes back with $3,800. The designer accepts. The BATNA (other projects) gave the designer the confidence to walk, which triggered a counter-offer.
 
-### 11.3 Integrative Wins — Creating Value
+### Integrative Wins — Creating Value
 
 **The Boeing-Lufthansa Deal** — Boeing negotiated a $6B aircraft order with Lufthansa. Rather than competing only on price, Boeing offered Lufthansa: (1) a 10% price discount, (2) priority delivery slots (flying the aircraft earlier), (3) custom cabin configurations, and (4) pilot training support. Lufthansa valued priority slots and training more than pure discount. Boeing valued the guaranteed order volume. By expanding the issues beyond price, both parties extracted value they uniquely valued — a textbook logroll.
 
@@ -522,7 +522,7 @@ The principles of negotiation come alive in practice. These case studies demonst
 
 **The Mergers of equals — Equal Partners** — When equals merge (e.g., AOL-Time Warner, Sprint-Nextel, HP-Compaq), the integration challenge is immense. In HP-Compaq (2002), HP CEO Carly Fiorina framed the deal not as HP acquiring Compaq, but as "two companies combining to compete against IBM." Both CEOs' jobs were on the line. Fiorina negotiated: HP shareholders get 64% of the combined entity, Compaq gets 36%. The integrative frame — "we're competing together" rather than "one wins" — got shareholder approval. The integration succeeded long-term.
 
-### 11.4 Salary & Job Offer Negotiations
+### Salary & Job Offer Negotiations
 
 **The Tech Lead Who Negotiated 40% Higher** — A software engineer with 6 years of experience received an offer at $130,000 from Company A. Before accepting, she told Company A: "I have another offer at $150,000. I prefer your company — is there flexibility on compensation?" Company A countered at $145,000. She accepted at $145,000 — 11.5% above the original offer and just 3.3% below her competing offer, which she never had to actually take. The strategy: leading with the BATNA (competing offer) without revealing the identity of the competitor.
 
@@ -532,7 +532,7 @@ The principles of negotiation come alive in practice. These case studies demonst
 
 **The Counter Offer After Acceptance** — A marketing professional accepted an offer at $75,000 from Company B. Two weeks later, Company A (her preferred company) came back with an offer at $82,000. She told Company B: "I've received another offer at $82,000. I genuinely prefer working here. Can you match?" Company B matched to $82,000. Her BATNA (Company A) triggered a competitive response. Strategy: even after accepting, a new BATNA can be introduced if the timeline allows.
 
-### 11.5 Car Buying & Retail Negotiation
+### Car Buying & Retail Negotiation
 
 **The $7,000 Below Sticker Deal** — A buyer negotiating for a Toyota Highlander (sticker $42,000) used a specific tactic: they visited three dealerships, got written quotes from each, and brought Dealership B's quote ($39,500) to Dealership A. "I can buy this car today for $39,500 at your competitor. Match or beat it and I'll buy from you." Dealership A matched $39,500. The buyer saved $2,500 (6%) below sticker by creating competitive pressure between sellers.
 
@@ -542,7 +542,7 @@ The principles of negotiation come alive in practice. These case studies demonst
 
 **The eBay "Best Offer" Strategy** — A seller lists vintage audio equipment for $800 firm. A buyer offers $500 with message: "I can pay immediately. I've been looking for this exact model for months." The seller counters at $700. The buyer responds: "I understand. I'll take it at $650 — final offer." The buyer avoided single-issue negotiation by offering quick payment as additional value. The seller gained certainty of sale. Both walked away feeling they got a deal.
 
-### 11.6 Real Estate Negotiations
+### Real Estate Negotiations
 
 **The Inspection Contingency Leverage** — A buyer agrees to purchase a home at $550,000. During inspection, the inspector finds: foundation crack requiring $15,000 repair, HVAC system near end of life ($8,000), and outdated electrical panel ($4,000). The buyer presents: "We're requesting $27,000 in credits or repairs based on the inspection report. Alternatively, we can walk per our contingency." The seller, facing a slow market, counters at $12,000 in credits. They settle at $20,000. The buyer's BATNA (walking away) transformed the conversation.
 
@@ -552,7 +552,7 @@ The principles of negotiation come alive in practice. These case studies demonst
 
 **The New Construction Upgrade Negotiation** — A buyer purchases a new construction home at base price $450,000. The builder has 12 unsold homes in the development. The buyer negotiates: "I'll sign today at base price, but I want $25,000 in upgrades: premium flooring, upgraded appliances, smart home package." The builder, facing carrying costs on unsold inventory, agrees. The builder moves inventory; the buyer gets $25K in value for zero additional cash. Strategy: use the seller's time pressure (carrying costs) to extract non-price value.
 
-### 11.7 Corporate M&A Negotiations
+### Corporate M&A Negotiations
 
 **The Voluntary FTC Remedy in FTC v. Meta (2023)** — When the FTC attempted to block Meta's acquisition of Within (a VR fitness app), Meta's negotiation strategy was to offer behavioral remedies: unlimited licensing of VR tech to competitors, independent monitoring, and compliance commitments. The FTC rejected. Meta then simply abandoned the acquisition rather than fight. The lesson: knowing your reservation price (walk-away point) — Meta decided the legal fight wasn't worth the uncertainty and cost. They walked. Strategy: don't over-invest in a deal that no longer makes sense.
 
@@ -562,7 +562,7 @@ The principles of negotiation come alive in practice. These case studies demonst
 
 **The Family Business Buyout** — A founder selling to a private equity buyer had strong emotional attachment to employees. The PE firm offered $40M. The founder's lawyer built the BATNA: "We have a strategic buyer willing to pay $38M and keep the management team intact." The PE firm countered at $45M with a management retention pool. The founder accepted. The key: creating a competing alternative (strategic buyer) even when the emotional preference was PE (faster close). The alternative improved the primary offer by $5M. Strategy: alternatives can be constructed even in emotional sales.
 
-### 11.8 Diplomatic & Government Negotiations
+### Diplomatic & Government Negotiations
 
 **Camp David Accords (1978)** — President Carter mediated between Egypt's Sadat and Israel's Begin. The negotiation: both sides had weak direct BATNAs (Egypt needed peace, Israel needed security). Carter used a "pure protocol" tactic: isolated the leaders in Camp David with no staff, no media. He created a joint framework that addressed both sides' core interests (Egypt: sovereignty; Israel: security) by reframing the outcome: "This is the only path to a lasting Middle East peace." Carter's leverage was his personal credibility and the "shadow of the future" — this might be the last chance. Outcome: first Arab-Israeli peace treaty in 30 years.
 
@@ -572,7 +572,7 @@ The principles of negotiation come alive in practice. These case studies demonst
 
 **The Iran Nuclear Deal (JCPOA, 2015)** — The P5+1 (U.S., UK, France, Germany, Russia, China) negotiated with Iran. Each side had clear BATNAs: Iran wanted sanctions relief; the P5+1 wanted verified limitation of nuclear program. The breakthrough came when both sides agreed to a phased approach: initial sanctions relief in exchange for initial nuclear constraints, then expanded relief for expanded constraints. The integrative solution: value the timing differently — Iran needed early relief; the West needed verifiable long-term constraints. Phasing matched interests.
 
-### 11.9 Tactical Playbook — Specific Moves
+### Tactical Playbook — Specific Moves
 
 **The Labeling Tactic in Action** — A project manager negotiating a contract extension with a difficult client. The client keeps raising new demands at each meeting. The PM says: "It sounds like you're under a lot of pressure from your leadership to show cost savings this quarter. Is that what's driving these additional requests?" The client pauses and says: "Actually, yes — my CFO is demanding 15% reductions." The PM responds: "Let's solve that together. What if we restructure the scope to hit that target while preserving the core deliverables?" Labeling revealed the underlying interest (internal political pressure), allowing the PM to address it directly.
 
@@ -584,7 +584,7 @@ The principles of negotiation come alive in practice. These case studies demonst
 
 **The Higher Authority Reversal** — A procurement manager agrees to terms with a vendor, then says: "This looks good, but I need to run this by our CFO. She tends to push back on anything that looks expensive. What arguments should I use with her?" The vendor, wanting the deal, now helps the procurement manager justify the deal to their own internal stakeholder. The higher authority reversal makes the vendor an ally in internal selling.
 
-### 11.10 What Went Wrong — Negotiation Failures
+### What Went Wrong — Negotiation Failures
 
 **The Too-High Anchor — Theranos-Private Equity** — Elizabeth Holmes set an anchor for Theranos at $9B valuation. When private equity firms conducted due diligence and discovered the technology didn't work, the anchor was so extreme that it poisoned the entire conversation. The lesson: extreme anchors that lack credibility get dismissed entirely. A credible anchor must be defensible.
 

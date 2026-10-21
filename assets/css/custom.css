@@ -1,5 +1,27 @@
 /* Add your own custom styles here */
 
+/* Number blog sections without requiring numbers in Markdown headings */
+.content.mb-10 {
+  counter-reset: blog-section;
+}
+
+.content.mb-10 h2 {
+  counter-increment: blog-section;
+  counter-reset: blog-subsection;
+}
+
+.content.mb-10 h2::before {
+  content: counter(blog-section) ". ";
+}
+
+.content.mb-10 h3 {
+  counter-increment: blog-subsection;
+}
+
+.content.mb-10 h3::before {
+  content: counter(blog-section) "." counter(blog-subsection) " ";
+}
+
 /* Responsive iframe container used by layouts/shortcodes/iframe.html */
 .responsive-iframe {
   position: relative;

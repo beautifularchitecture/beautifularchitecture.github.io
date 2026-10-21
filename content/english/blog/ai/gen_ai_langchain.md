@@ -361,7 +361,7 @@ nearest = pgvector_store.similarity_search_by_vector(new_embedding, k=1)
 
 ## Some Strategis for various usecases:
 
-### 1. Information in Confluence/knowledge bases:
+### Information in Confluence/knowledge bases:
 
 - Start using Standard and Structured templates for documentation - serve as **context needed for the LLM**.
 - follow best practices of **prompt engineering** check results in Copilot after generation.
@@ -370,7 +370,7 @@ nearest = pgvector_store.similarity_search_by_vector(new_embedding, k=1)
 
 ---
 
-### 2. Representing Information based on Retrieval strategy
+### Representing Information based on Retrieval strategy
 
 - Sometimes representing information in **table** form is effective. Most of time **Markdown** is okay.
 - Sometimes it more effective to use an RDBMS, Object Store or NoSQL where applicable.
@@ -378,7 +378,7 @@ nearest = pgvector_store.similarity_search_by_vector(new_embedding, k=1)
 
 ---
 
-### 3. Chunking with Overlap (Strategy for Splitting Text into Meaningful Chunks)
+### Chunking with Overlap (Strategy for Splitting Text into Meaningful Chunks)
 
 - create an **overlap** between chunks or documents.
 - **Advantages:**
@@ -390,7 +390,7 @@ nearest = pgvector_store.similarity_search_by_vector(new_embedding, k=1)
 
 ---
 
-### 4. Language or Format-Aware Chunking (Strategy for Splitting Text into Meaningful Chunks)
+### Language or Format-Aware Chunking (Strategy for Splitting Text into Meaningful Chunks)
 
 - Split based on the type of content:
   - **Markdown or structured text:** split by headings, sections, or paragraphs.
@@ -399,7 +399,7 @@ nearest = pgvector_store.similarity_search_by_vector(new_embedding, k=1)
 
 ---
 
-### 5. Maintaining References (Strategy for Splitting Text into Meaningful Chunks)
+### Maintaining References (Strategy for Splitting Text into Meaningful Chunks)
 
 - Retain a **reference to the original document** after splitting.
 - Useful for workflows like **Reflexion**, where you might need to trace information back to the source.
@@ -407,7 +407,7 @@ nearest = pgvector_store.similarity_search_by_vector(new_embedding, k=1)
 
 ---
 
-### 6. Strategies for Mathematical operations
+### Strategies for Mathematical operations
 
 - GPT models excel at predicting the next word and reasoning, but are not reliable for accurate mathematical calculations.
 - Strategies to handle mathematical operations:
@@ -419,7 +419,7 @@ nearest = pgvector_store.similarity_search_by_vector(new_embedding, k=1)
 
 ---
 
-### 7. Strategies for Security Compliance
+### Strategies for Security Compliance
 
 - **hybrid model approach**: classify and filter sensitive or secure data before sending to public or third-party models.
 - **rewrite-retrieve-read** and **multi-query retrieval** patterns to detect and mitigate queries with ill intent or attempts to extract confidential information.
@@ -432,7 +432,7 @@ nearest = pgvector_store.similarity_search_by_vector(new_embedding, k=1)
 
 ---
 
-### 8. Strategy for Vector DB - Document Change Tracking
+### Strategy for Vector DB - Document Change Tracking
 
 How to handle part of the document or chunk getting updated:
 
@@ -449,7 +449,7 @@ vectorstore.similarity_search(query, filter={"is_active": True})
 
 ## Some Design Patterns:
 
-### 1. MultiVector Retrieval
+### MultiVector Retrieval
 
 ![Multi-Vector Retrieval](../img/multivectorretrieval.png)
 
@@ -501,7 +501,7 @@ retriever = MultiVectorRetriever(
 
 ---
 
-### 2. Recursive Abstractive Processing for Tree-Organized Retrieval —
+### Recursive Abstractive Processing for Tree-Organized Retrieval —
 
 ![Raptor](../img/RAPTOR.png)
 
@@ -562,7 +562,7 @@ for r in results:
 
 ---
 
-### 3. ColBERT (Contextually Late Interactions using BERT): Optimizing Embeddings
+### ColBERT (Contextually Late Interactions using BERT): Optimizing Embeddings
 
 ![ColBERT](../img/ColBERT.png)
 
@@ -606,7 +606,7 @@ for r in results:
 
 ---
 
-### 4. strategies to get Control over Prompting:
+### strategies to get Control over Prompting:
 
 1. Query Transformation
 
@@ -654,7 +654,7 @@ for r in results:
 
 ---
 
-### 6. Multi-Query Retrieval
+### Multi-Query Retrieval
 
 ![multiquery.png](../img/multiquery.png)
 
@@ -676,7 +676,7 @@ for r in results:
 
 ---
 
-### 7. RAG-Fusion
+### RAG-Fusion
 
 ![RAPTOR.png](../img/RAPTOR.png)
 Sometimes **information space is large** and **spread out** or **diverse** and a single query is **insufficient** to capture all relevant context.
@@ -750,7 +750,7 @@ retrieval_chain = query_gen | retriever.batch | reciprocal_rank_fusion
 
 ---
 
-### 8. Hypothetical Document Embeddings (HyDE)
+### Hypothetical Document Embeddings (HyDE)
 
 **HyDE** is a retrieval strategy that leverages LLMs to improve vector-based search by creating a **hypothetical document** from the user’s query. The idea is that the LLM can expand, paraphrase, or contextualize the query into a richer representation that is more semantically similar to relevant documents in the dataset.
 HyDE effectively **bridges the gap between natural language queries and document embeddings**, improving the relevance of retrieved documents in retrieval-augmented generation (RAG) systems.
@@ -774,7 +774,7 @@ HyDE effectively **bridges the gap between natural language queries and document
 
 Query routing is a strategy used in retrieval or search systems to **direct a user query to the most relevant subset of data or service**. The goal is to improve retrieval efficiency, relevance and response time. There are two main strategies: **logical routing** and **semantic routing**.
 
-### 9. Logical Routing
+### Logical Routing
 
 Logical routing directs queries based on **predefined rules, categories, or metadata** associated with the documents or data sources.
 
@@ -794,7 +794,7 @@ class RouteQuery(BaseModel):
 
 ---
 
-### 10. Semantic Routing
+### Semantic Routing
 
 Semantic routing directs queries based on **meaning or intent**, often using embeddings, LLMs, or vector similarity, rather than strict keywords or rules.
 
@@ -838,7 +838,7 @@ def prompt_router(query):
 
 ---
 
-### 11. Text-to-Metadata Conversion
+### Text-to-Metadata Conversion
 
 Vector stores often support **metadata-based filtering**, allowing more precise searches. During the embedding process:
 
@@ -874,7 +874,7 @@ An LLM can translate a natural language query into metadata filters automaticall
 
 ---
 
-### 12. Text-to-SQL
+### Text-to-SQL
 
 Relational databases require SQL queries, which are not naturally compatible with human language. Text-to-SQL allows LLMs to translate user queries into SQL queries.
 
@@ -893,7 +893,7 @@ Relational databases require SQL queries, which are not naturally compatible wit
 
 ---
 
-### 13. Additional Prompt & Agent Patterns
+### Additional Prompt & Agent Patterns
 
 #### Chatbot with Memory
 
@@ -930,7 +930,7 @@ Relational databases require SQL queries, which are not naturally compatible wit
   - **Edit State:** Modify intermediate results or context.
   - **Fork:** Branch the workflow for alternative solutions or exploration.
 
-### 17. Other Patterns
+### Other Patterns
 
 - **Agent Orchestration:** Coordinate multiple agents (LLMs, tools, humans) for complex workflows.
 - **Meta-Prompting:** Use one LLM to generate or optimize prompts for another model.
@@ -943,13 +943,13 @@ Relational databases require SQL queries, which are not naturally compatible wit
 
 Spring AI or any other framework for that matter, inspired by Anthropic's research, implements five foundational agentic patterns for building effective LLM-based systems. These patterns balance simplicity, composability and reliability, making them suitable for enterprise-grade AI applications.
 
-### 1. Chain Workflow
+### Chain Workflow
 
 - **Description:** Breaks down complex tasks into sequential, manageable steps. Each step's output becomes the input for the next.
 - **When to Use:** Tasks with clear sequential steps, where accuracy is prioritized over latency.
 - **Example:** Prompt chaining using a series of system prompts, each processed by the LLM in order.
 
-### 2. Parallelization Workflow
+### Parallelization Workflow
 
 - **Description:** Executes multiple LLM operations concurrently, aggregating outputs for efficiency.
 - **Variants:**
@@ -958,19 +958,19 @@ Spring AI or any other framework for that matter, inspired by Anthropic's resear
 - **When to Use:** Large volumes of similar items, independent perspectives, or time-critical tasks.
 - **Example:** Parallel analysis of stakeholder groups, with each group processed simultaneously.
 
-### 3. Routing Workflow
+### Routing Workflow
 
 - **Description:** Uses LLMs to classify and route inputs to specialized prompts or handlers for targeted processing.
 - **When to Use:** Complex tasks with distinct input categories requiring specialized handling.
 - **Example:** Routing customer queries to billing, technical, or general support agents based on input analysis.
 
-### 4. Orchestrator-Workers Workflow
+### Orchestrator-Workers Workflow
 
 - **Description:** Central LLM (orchestrator) decomposes tasks and coordinates specialized worker agents for subtasks. Results are aggregated for final output.
 - **When to Use:** Complex, adaptive tasks where subtasks can't be predicted upfront or require different approaches.
 - **Example:** Generating both technical and user-friendly documentation by orchestrating multiple worker agents.
 
-### 5. Evaluator-Optimizer Workflow
+### Evaluator-Optimizer Workflow
 
 - **Description:** Dual-LLM process where one model generates responses and another evaluates and provides feedback in an iterative loop, refining outputs until satisfactory.
 - **When to Use:** Tasks with clear evaluation criteria, requiring iterative refinement and measurable improvement.
