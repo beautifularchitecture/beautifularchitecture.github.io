@@ -8,13 +8,11 @@ summary = "A practical guide to reliable, secure and auditable AI context."
 
 Context engineering is the work of deciding what information an AI system receives at each step, how the system obtains that information and what it keeps for later. The goal is not to fill the model's context window. The goal is to provide the information needed for the current task while limiting irrelevant, stale or conflicting material.
 
-This post starts with the framework in [LangChain's article on context engineering](https://www.langchain.com/blog/context-engineering-for-agents), then follows its references to explain the ideas behind the framework. The article groups context work into four operations: write, select, compress and isolate.
-
 ## Context is working memory
 
 An LLM receives a finite context window with each invocation. That window may contain instructions, conversation messages, retrieved knowledge, memory, tool definitions and tool results. For an agent, the contents change as the agent calls tools and receives feedback.
 
-LangChain compares the context window to computer memory: it is the working area available to the model for the next step. Context engineering is the process of choosing what enters that working area. The relevant material varies by task and by agent step. [LangChain defines context engineering](https://www.langchain.com/blog/context-engineering-for-agents) around that choice.
+As Andrej Karpathy puts it, an LLM is like a CPU and its context window is like RAM. The context window has limited capacity, so the system must choose what information to make available for the next step. 
 
 Three broad context types recur in LLM applications:
 
@@ -26,13 +24,13 @@ These categories can overlap in a system. A memory may contain a user preference
 
 ## Why context needs active management
 
-Agents can run across many model calls. Every call may add messages, tool definitions, observations and intermediate conclusions. A long trajectory can exceed the model's context limit, raise token costs and latency or reduce answer quality before the limit is reached. [LangChain describes these pressures](https://www.langchain.com/blog/context-engineering-for-agents) and links them to four failure modes described by [Drew Breunig](https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html).
-
 ### Context poisoning
 
 Context poisoning occurs when an incorrect claim or observation is saved in the context and then reused. A mistaken tool result or a model's unsupported conclusion can become part of a plan or summary. Later steps may treat it as established information and repeat or build on the error.
 
-The practical implication is that persistent context needs provenance and correction paths. Systems should distinguish observed tool results from model-generated conclusions and should revise or remove stale claims when later evidence contradicts them. The failure mode and an example involving an agent's game state are discussed in [How Long Contexts Fail](https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html).
+The practical implication is that persistent context needs provenance and correction paths. Systems should distinguish observed tool results from model-generated conclusions and should revise or remove stale claims when later evidence contradicts them. 
+
+A hypothetical payment agent might hallucinate that a new wire-transfer beneficiary was verified, then save the claim in its case notes. A later agent could trust the poisoned note and release a scammer's transfer, turning one invented fact into a customer's lost savings.
 
 ### Context distraction
 
@@ -64,6 +62,20 @@ LangChain uses four verbs to describe common approaches: **write** context outsi
 | Isolate | What should remain separate? | Per-agent context, structured state and execution sandboxes |
 
 Drew Breunig's follow-up article turns these four operations into six context management tactics: **RAG** selects relevant knowledge, **tool loadouts** select relevant tools, **context quarantine** isolates work in separate threads, **pruning** removes unneeded material, **summarization** condenses accrued context and **offloading** stores information outside the active prompt. The tactics map to LangChain's four operations; they are not competing categories. [How to Fix Your Context](https://www.dbreunig.com/2025/06/26/how-to-fix-your-context.html) discusses each tactic with examples.
+
+### Five implementation strategies
+
+The four operations describe what context management needs to accomplish. These five strategies describe ways to implement those decisions in an agent workflow, including a financial services workflow where relevance, traceability and access boundaries matter.
+
+| Strategy | How it applies | Related operation |
+| --- | --- | --- |
+| Retrieve and trim | Retrieve records relevant to the current task, then remove passages, fields or messages the next step does not need. | Select and compress |
+| Structured bundling | Assemble related inputs into a consistent structure, such as separate fields for the request, retrieved evidence, account state and required output. | Select and isolate |
+| Breadcrumbs | Carry forward a compact task trail with key decisions, evidence references and pending actions so later steps can resume without replaying the full history. | Write and compress |
+| Tool-gated context | Expose a tool's description and relevant data only when the workflow permits that tool for the current step. Enforce permissions in the tool or application as well as in the prompt. | Select and isolate |
+| Policy-wrapped context | Apply standing instructions that govern how the model uses the task context and produces an output. Instructions can cover security, compliance and governance, as well as implementation conventions scoped to files or tasks, such as JPA standards for files matching an `entities/*.java` pattern. | Select and isolate |
+
+These strategies can be combined. For example, a workflow can retrieve and trim transaction evidence, bundle the selected evidence with the request, record a breadcrumb that points to the source records, expose an approved tool for the current step and apply the instructions that govern the action and output. The workflow should preserve source references so reviewers can distinguish evidence from summaries or model-generated conclusions.
 
 ### Write: preserve information outside the active prompt
 
