@@ -1,375 +1,153 @@
 +++
-date = '2025-10-20T09:00:00+10:00'
+date = '2026-10-21T09:00:00+10:00'
 draft = false
 title = 'Context Engineering - Organizing ideas for PDD'
 tags = ['Context Engineering','Prompt Engineering','Generative AI','RAG','AI Agents','Security','Governance']
-summary = "A practical guide to designing reliable, secure and auditable context for AI systems."
+summary = "A practical guide to reliable, secure and auditable AI context."
 +++
 
-## Introduction
+Context engineering is the work of deciding what information an AI system receives at each step, how the system obtains that information and what it keeps for later. The goal is not to fill the model's context window. The goal is to provide the information needed for the current task while limiting irrelevant, stale or conflicting material.
 
-An AI model's response depends on both its learned parameters and the information supplied for the current model call. A polished prompt cannot replace facts the model was never given. Reliable AI therefore requires engineering the working context around each call. The following table shows what may be included and how each component can affect the result.
+This post starts with the framework in [LangChain's article on context engineering](https://www.langchain.com/blog/context-engineering-for-agents), then follows its references to explain the ideas behind the framework. The article groups context work into four operations: write, select, compress and isolate.
 
-| Component | Examples | Why it matters to the outcome |
+## Context is working memory
+
+An LLM receives a finite context window with each invocation. That window may contain instructions, conversation messages, retrieved knowledge, memory, tool definitions and tool results. For an agent, the contents change as the agent calls tools and receives feedback.
+
+LangChain compares the context window to computer memory: it is the working area available to the model for the next step. Context engineering is the process of choosing what enters that working area. The relevant material varies by task and by agent step. [LangChain defines context engineering](https://www.langchain.com/blog/context-engineering-for-agents) around that choice.
+
+Three broad context types recur in LLM applications:
+
+- **Instructions** tell the model how to act. They include prompts, persistent rules, examples and tool descriptions.
+- **Knowledge** supplies facts relevant to the task. It can include retrieved documents and information retained from prior interactions.
+- **Tool feedback** reports what happened when the agent used a tool, such as search results, API responses or execution output.
+
+These categories can overlap in a system. A memory may contain a user preference that acts as an instruction in one task and a fact in another. The design question is which information should be available for a particular model call.
+
+## Why context needs active management
+
+Agents can run across many model calls. Every call may add messages, tool definitions, observations and intermediate conclusions. A long trajectory can exceed the model's context limit, raise token costs and latency or reduce answer quality before the limit is reached. [LangChain describes these pressures](https://www.langchain.com/blog/context-engineering-for-agents) and links them to four failure modes described by [Drew Breunig](https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html).
+
+### Context poisoning
+
+Context poisoning occurs when an incorrect claim or observation is saved in the context and then reused. A mistaken tool result or a model's unsupported conclusion can become part of a plan or summary. Later steps may treat it as established information and repeat or build on the error.
+
+The practical implication is that persistent context needs provenance and correction paths. Systems should distinguish observed tool results from model-generated conclusions and should revise or remove stale claims when later evidence contradicts them. The failure mode and an example involving an agent's game state are discussed in [How Long Contexts Fail](https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html).
+
+### Context distraction
+
+Context distraction occurs when a large history draws the model toward repeating prior actions instead of reasoning from the current task. A larger context window permits more material to fit, but capacity alone does not ensure that all included material remains useful.
+
+Summarization and fact retrieval are two reasons to use long context, according to Breunig's analysis. When an agent needs to reason over a growing trajectory, retain the parts needed to continue the task and condense or remove the rest. Performance limits vary by model and task, so evaluate the actual application instead of assuming that filling the window is harmless.
+
+### Context confusion
+
+Context confusion occurs when irrelevant information affects the model's response. Irrelevant tool descriptions are one example: a model that receives many overlapping tools has more opportunities to choose a tool that does not fit the request. Retrieving only tools relevant to the current task is one proposed response; LangChain points to research on retrieval-augmented selection of tool descriptions.
+
+The wider lesson is to avoid presenting every available instruction, document and tool on every turn. Select the smallest useful set for the current step, then measure whether the selection improves the outcome.
+
+### Context clash
+
+Context clash occurs when instructions or facts in the context disagree. Contradictions can arise between old and new user statements, retrieved documents, tool outputs or intermediate model answers. A multi-turn exchange can also preserve an early, mistaken answer after the user provides the missing details.
+
+Provenance, timestamps and explicit precedence rules help make conflicts visible. The system should not silently merge incompatible claims. Where the conflict affects the task and cannot be resolved from trusted evidence, the agent should ask for clarification or report the uncertainty. Breunig's article describes examples where information split across turns produced worse results because earlier assumptions remained in the conversation.
+
+## Four operations for context engineering
+
+LangChain uses four verbs to describe common approaches: **write** context outside the active window, **select** useful context for the next call, **compress** context to retain its important information and **isolate** context so each part is exposed only where needed.
+
+| Operation | Question to answer | Typical mechanisms |
 | --- | --- | --- |
-| Task and instructions | <ul><li>The user's goal</li><li>System and developer instructions</li><li>Constraints and safety requirements</li></ul> | Defines what the model should do and the boundaries it should follow. Unclear or conflicting instructions can produce irrelevant or inconsistent answers. |
-| Relevant data and retrieved evidence | <ul><li>Current user, project, document or workflow state</li><li>Applicable requirements, product rules and approved policies</li><li>Source, version, effective date and scope</li></ul> | Grounds the response in facts that apply to the task. Missing, stale or out-of-scope evidence can lead to incorrect conclusions even when the instructions are clear. |
-| Conversation history and workflow state | <ul><li>Prior messages and confirmed details</li><li>Decisions already made</li><li>Unresolved questions and next steps</li></ul> | Preserves continuity, but older statements can become outdated. For example, earlier conversation history may say a software deployment completed, while the current deployment service reports that it is still running. The application should treat the current service state as authoritative; relying on the old message could lead the model to report the wrong status. |
-| Available tools | <ul><li>Tool descriptions and permitted operations</li><li>Results returned by tools</li></ul> | Gives the model a way to retrieve current facts or request an action. Tool permissions and results affect what the model can know or propose, but application services must still authorize every action. |
-| Output requirements | <ul><li>Required response format or schema</li><li>Required citations or uncertainty statements</li></ul> | Makes the result usable by the next system or person and clarifies how evidence and uncertainty should be communicated. |
-| Application-side controls | <ul><li>Identity and access checks</li><li>Business-rule validation</li><li>Approval gates and action limits</li></ul> | These controls are enforced by the application rather than by the model's natural-language context. They limit which data can be retrieved and which actions can execute, preventing a model response from being treated as authorization. |
-| Model-call settings | <ul><li>Output-token limit</li><li>Other provider-supported generation settings</li></ul> | These settings configure how the model produces a response. They can affect response length or generation behavior, but they do not supply missing facts or replace application controls. |
+| Write | What should be retained for later? | Scratchpads, task state and persistent memory |
+| Select | What does this step need? | Retrieval, state filtering and tool selection |
+| Compress | What can be shortened or removed? | Summaries, message trimming and output filtering |
+| Isolate | What should remain separate? | Per-agent context, structured state and execution sandboxes |
 
-This discipline is called **context engineering**. It matters because an incorrect answer or action can affect access to services, operational decisions, user trust or important records. The same design practices apply to lower-risk uses such as internal search, document summarisation and developer assistance, with controls scaled to the consequences of failure.
+Drew Breunig's follow-up article turns these four operations into six context management tactics: **RAG** selects relevant knowledge, **tool loadouts** select relevant tools, **context quarantine** isolates work in separate threads, **pruning** removes unneeded material, **summarization** condenses accrued context and **offloading** stores information outside the active prompt. The tactics map to LangChain's four operations; they are not competing categories. [How to Fix Your Context](https://www.dbreunig.com/2025/06/26/how-to-fix-your-context.html) discusses each tactic with examples.
 
-This guide explains what context engineering is, how it differs from prompt engineering, which strategies shape useful context, how to design a context pipeline and what to test before production.
+### Write: preserve information outside the active prompt
 
-## What context engineering means
+Writing context means saving useful information somewhere the agent can access later instead of relying on the current prompt to remain available.
 
-**Context engineering is the deliberate design of the information and capabilities supplied to a model for a particular inference step.** Context may include:
+**Scratchpads** preserve working information for a task or conversation. An agent can save a plan, decisions, intermediate findings or a checklist to a file or runtime state. A later step can retrieve the relevant part. LangChain cites Anthropic's research agent, which stores its plan in memory so that the plan remains available if a long trajectory is truncated.
 
-- System and developer instructions
-- The user's request and relevant conversation history
-- User, project, system and workflow state
-- Retrieved policy, product, procedure or case material
-- Tool descriptions, tool results and permitted actions
-- Structured outputs from application services
-- Memory carried from earlier interactions
-- Safety constraints, output schemas and escalation rules
+**Long-term memory** preserves information across tasks or sessions. The research LangChain cites includes Reflexion, which reuses self-generated reflections, and Generative Agents, which periodically synthesizes memories from prior experiences. These examples distinguish retaining a task's working notes from retaining information intended to shape future interactions.
 
-The context is assembled repeatedly as a workflow runs. An agent may retrieve a policy, call a read-only service, receive results and then make another model call. Each step has a different information need. Context engineering decides what the model sees at each step, where each item came from, how current it is and whether the model is allowed to act on it.
+Memory can store different kinds of information. LangChain's memory reference distinguishes **semantic** memory (facts), **episodic** memory (examples of past events) and **procedural** memory (instructions about how to behave). Each kind serves a different retrieval purpose. A user preference, a successful example and an operating rule should not be treated as interchangeable records.
 
-Anthropic describes prompt engineering as writing and organising instructions, and context engineering as curating the wider set of tokens available at inference time. That distinction is useful: instructions influence behaviour, while context supplies the evidence, state and tools with which the model works ([Anthropic, Effective context engineering for AI agents](https://www.anthropic.com/research/effective-context-engineering-for-ai-agents)).
+Writing information does not guarantee that it will help. A memory system needs rules for what qualifies for storage, how the record can be updated and how errors or outdated information are corrected. The references in LangChain's article describe memory mechanisms; they do not establish that any one storage design is right for every application.
 
-## Context engineering and prompt engineering
+### Select: retrieve only what the next step needs
 
-Prompt engineering remains an important part of the work. Clear instructions, examples, output constraints and explicit uncertainty handling improve model behaviour. Context engineering includes those prompts and also addresses everything surrounding them.
+Selection brings information into the active context. The agent may read a scratchpad, load a subset of runtime state, retrieve documents or choose from a large tool catalog.
 
-| Concern | Prompt engineering | Context engineering |
-| --- | --- | --- |
-| Main question | How should the model be instructed? | What should the model know and be able to do now? |
-| Typical objects | Role, task, examples, output format | Instructions, history, retrieved evidence, user state, tools, permissions, memory and provenance |
-| Scope | Usually a prompt or message template | The full request-to-response or agent workflow |
-| Timing | Often designed during development | Assembled and updated at each model step |
-| Failure example | Ambiguous instruction produces an unclear answer | Correct instruction receives outdated requirements or another user's data |
-| Typical response | Rewrite, clarify or constrain the prompt | Fix retrieval, identity scoping, freshness, tool design, state handling or prompt wording |
+For a small, stable set of rules, an agent may always receive a few designated instruction files. For a large memory collection, selection needs a retrieval strategy. Embeddings can find semantically related records, while knowledge graphs can represent and traverse relationships. These techniques can help locate candidates, but retrieval still needs to be checked for relevance and unintended disclosure.
 
-Consider a user asking whether a software deployment can be rolled back. A prompt can tell the model to answer accurately and cite the approved procedure. The system still needs to identify the authenticated user, retrieve the current rollback procedure, check the deployment's live status and distinguish a general explanation from an action that changes a production system. Prompt wording cannot create those controls.
+Tool selection is also context selection. Overlapping descriptions can confuse an agent, so a system can retrieve a small set of tool definitions based on the request rather than expose the full catalog. LangChain links to the [Toolshed research](https://arxiv.org/abs/2410.14594) on retrieval over tool knowledge bases and identifies semantic search as one approach to selecting tools. Breunig calls the selected set a **tool loadout** and links to research on retrieving relevant tool descriptions for each request.
 
-Prompt engineering is a component of context engineering. It is not a substitute for data design, retrieval, access control, workflow logic, monitoring or evaluation.
+Retrieval quality is not just an indexing problem. In code agents, for example, matching a query to code chunks may miss structural relationships or relevant files. LangChain's article quotes a Windsurf engineer describing a combined approach: syntax-aware parsing, search, graph-based retrieval and reranking. The appropriate mix depends on the repository and task. The important design principle is to evaluate the retrieved context against the actual work the agent must perform.
 
-## Why context needs active design
+### Compress: keep the useful signal
 
-### The model has incomplete knowledge
+Compression reduces the amount of context while attempting to preserve what the next step needs. Two common methods are summarization and trimming.
 
-A model's training data is not a reliable source of current system state, current product specifications or an organisation's approved procedure. Even when a model has a large context window, the application must supply the authoritative information needed for the task.
+**Summarization** uses a model or another process to distill a long interaction into a shorter representation. A summary can preserve the goal, decisions, evidence, unresolved questions and next steps while leaving out repetitive tool output. Summaries can be applied to a whole trajectory, to a phase boundary or to an individual tool result. Recursive and hierarchical approaches summarize in stages when the source material is too large to handle in one pass.
 
-### More context can lower answer quality
+Summaries are lossy. A summary that omits a constraint, decision or source detail can cause later steps to behave incorrectly. Define what a useful summary must preserve, then test summaries against tasks that depend on those details. LangChain notes that some systems invest in task-specific summarization because the right details can be difficult to preserve automatically.
 
-Context capacity is finite. Long histories, duplicate documents, irrelevant tool results and repeated instructions compete for attention. Anthropic describes context rot as reduced recall accuracy as the number of tokens in a context grows. A larger context window is useful capacity, not a reason to include every available record ([Anthropic](https://www.anthropic.com/research/effective-context-engineering-for-ai-agents)).
+**Trimming** removes context using rules rather than asking a model to rewrite it. A system might discard older messages, cap retained tool output or remove fields that are not needed by the next step. Trimming can be predictable, but a rule can remove information that later proves important. Apply trimming where the data's role is understood and verify its effect on task performance.
 
-### Context changes while an agent works
+Pruning can also target retrieved documents rather than conversation history. Breunig points to [Provence](https://arxiv.org/abs/2501.16214), a research approach for reducing retrieved passages to the portions most relevant to a question. Any pruning component should be evaluated for both relevance and information loss.
 
-Every tool call can add new facts, uncertainty or instructions from external sources. Long-running agents must decide what to retain, summarise, retrieve again or discard. A transcript that simply grows without limits can bury the information needed for the next decision.
+LangGraph's documentation, linked from LangChain's article, describes utilities for summarizing and trimming message history. Those are implementation examples; the underlying decision—what to keep for the next invocation—applies to other orchestration systems as well.
 
-### The model does not enforce access policy
+### Isolate: separate information by task and access
 
-The application must determine what the current user and workflow may access. A model should not receive records just because they could be relevant. Retrieval must be scoped by identity, tenant, purpose and entitlement before data reaches the model.
+Isolation keeps context in separate places and exposes it selectively. Isolation can reduce cross-task interference, limit what a model sees and let a system handle large data without placing all of it in the prompt.
 
-### Facts depend on provenance and time
+**Separate agents** can investigate different subproblems with their own instructions, tools and context windows. A lead agent can then receive concise findings instead of every intermediate search result. Anthropic's multi-agent research system describes this pattern for broad research questions: subagents explore independently and return compressed findings for synthesis. The same article reports significant token costs and coordination challenges, so parallel agents are most suitable when subtasks are independent enough to benefit from separate work.
 
-Policies, configuration values, system states and requirements change over time. A response based on the wrong version can be materially wrong even if every retrieved sentence is relevant. The application should preserve source identifiers, timestamps and applicable scope so that a reviewer can reconstruct the evidence available at the time.
+Breunig calls the use of separate threads **context quarantine**. Quarantined work can reduce unrelated history in each subtask, but it is a poor fit when workers need to share a large amount of evolving context. The system still needs to decide which findings cross each boundary and how the receiving agent checks their quality.
 
-## A practical context architecture
+**Separate runtime state** can keep tool output or sensitive data in fields that are not automatically sent to the model. A workflow can expose only the fields required for a given step. State schemas make the distinction explicit: one field may hold conversation messages while another stores data for later processing.
 
-Treat context as a controlled data product built for one model step. A useful pipeline is:
+**Separate execution environments** can hold token-heavy objects such as files, images or other data outside the model's prompt. The agent can use code or tools to operate on that data and return a small result to the model. LangChain points to Hugging Face's CodeAgent and sandbox examples as illustrations of this design.
 
-```mermaid
-flowchart LR
-    A[Authenticated request] --> B[Purpose and risk classification]
-    B --> C[Identity and entitlement checks]
-    C --> D[Retrieve approved evidence]
-    D --> E[Validate freshness and provenance]
-    E --> F[Assemble bounded context]
-    F --> G[Model inference]
-    G --> H[Validate output and proposed action]
-    H --> I{Action allowed?}
-    I -->|Read or explain| J[Return answer with sources]
-    I -->|Consequential action| K[Policy gate and human approval]
-    K --> L[Execute through authorised service]
-    J --> M[Audit and monitor]
-    L --> M
-```
+Isolation is a context design technique, not a substitute for access control. Systems still need to enforce permissions when tools read or modify external data. The cited examples show ways to limit what enters a model invocation; they do not by themselves define a complete security model.
 
-The model may recommend a next step, but deterministic application services should enforce identity, permissions, business rules and action limits. Tool calls should pass the same authorization checks as ordinary application requests.
+## Context engineering in a stateful agent
 
-### Classify the task and consequence
+An agent's runtime state can serve as both a scratchpad and a boundary between information that is available and information that is currently exposed. LangGraph uses state passed between graph steps and supports checkpointing so state can persist across a thread. Its long-term memory supports information stored across sessions. Each node can decide which state fields or memories to use for its model call.
 
-Before retrieving data, identify the task type and what could happen if the response is wrong. An internal glossary lookup, a production incident summary and a change to a live system do not need the same context or autonomy.
+This pattern separates storage from presentation. The system can retain a large state object while building a smaller prompt for each step. It can also add nodes that summarize a tool result, retrieve memory, select tools or request human input before continuing. LangChain's article describes these as framework capabilities; teams using another framework can implement equivalent decisions in their own orchestration layer.
 
-Define a risk tier using the data involved, the affected parties, the reversibility and impact of the outcome and any applicable internal policy. This classification should determine which sources are allowed, whether the model may use tools, what output validation is required and when a person must review the result.
+## Observe and evaluate context changes
 
-### Establish identity and purpose
+Context engineering is iterative. First inspect what the agent receives and how context changes across calls. Track token use, tool inputs and outputs, retrieval results and the content passed between steps. Traces help identify whether a failure came from missing context, irrelevant retrieval, a misleading tool result or an ineffective summary.
 
-Resolve the caller's identity in trusted application code. Derive user, workspace, project and role scope from the authenticated session or service identity. Do not accept an identifier from model-generated text as proof of authorization.
+Then evaluate whether a context change improves the task. Compare the original and revised design against representative examples. Measure outcome quality and relevant operational costs, such as latency and token use. For open-ended agents, evaluation should allow different valid paths to the same result; judging only whether an agent followed one fixed sequence can reject correct behavior. Anthropic's account of its research agent describes combining test cases, output rubrics and human review to assess accuracy, completeness, source quality and tool efficiency.
 
-Pass only the minimum identity claims needed for the task. Avoid placing full access tokens, secrets or unnecessary personal information in model context. Where a tool needs credentials, let the tool service manage them outside the prompt.
+LangChain recommends using tracing and evaluations to find where context work is useful and to test its effects. Its own products are examples of those practices, not a requirement to use a particular vendor. The general loop is: inspect the context, identify a failure, change one context decision and compare results.
 
-### Select authoritative sources
+## A practical design sequence
 
-Assign sources by fact type. Deployment status should come from the deployment service, not an old conversation summary. Current system limits should come from approved configuration. An incident summary may use incident-management records, but the system should keep the original evidence available for review.
+For each agent step, make the context decisions explicit:
 
-For each source, define an owner, intended use, update process, access policy and freshness requirement. Distinguish approved policy from user-provided material, public web content, operational logs and model-generated summaries. The model must not mistake an untrusted document for an instruction from the application.
+1. **Define the step's purpose.** State what the model must decide or produce at this point in the workflow.
+2. **List required inputs.** Identify the instructions, knowledge, memories, tool descriptions and feedback needed for that decision.
+3. **Choose where each item lives.** Keep durable information in an appropriate store or state field instead of relying on the full conversation history.
+4. **Select the smallest relevant set.** Retrieve documents, memories and tools based on the current task.
+5. **Set retention and compression rules.** Decide what to write, summarize, trim or expire, and preserve information needed for later verification.
+6. **Define isolation boundaries.** Decide which agents, workflow steps and tools can access each part of the context.
+7. **Trace and evaluate.** Inspect representative runs, test context changes and refine the design based on observed outcomes.
 
-### Retrieve narrowly and preserve provenance
+The central trade-off is between providing enough context to act correctly and limiting material that can distract, conflict or carry an error forward. More context is useful only when the additional information improves the result.
 
-Retrieval should return the smallest set of evidence that can answer the task. Include useful metadata such as document title, section, owner, scope, effective date, version and access classification. Keep links or stable identifiers that let a user or auditor find the original source.
+## Sources
 
-Use lexical search for exact identifiers and terminology, semantic search for concept matches and metadata filters for scope. A reranker can improve ordering after initial retrieval. For high-impact tasks, retrieve exact policy clauses and do not rely on a generated summary as the sole evidence.
-
-Anthropic's contextual retrieval article explains how chunking can remove information that makes a passage meaningful and describes adding contextual information to chunks as one retrieval improvement. The article also notes that a sufficiently small knowledge base may fit directly in a prompt, while larger collections require a scalable retrieval method ([Anthropic, Contextual Retrieval](https://www.anthropic.com/research/contextual-retrieval)). Choose the simplest approach that meets the measured quality, privacy, latency and cost requirements.
-
-### Check freshness and conflicts
-
-Attach time and scope to dynamic facts. For example, distinguish a live deployment status from a status observed earlier, and a policy's current version from a superseded version. Reject or refresh evidence when it exceeds its defined freshness window.
-
-When sources conflict, do not ask the model to silently choose. Apply an explicit precedence rule, retrieve the system of record or return an unresolved status and route the case for review. Record which rule resolved the conflict.
-
-### Assemble a bounded context
-
-Compose context in clear sections. A typical arrangement is:
-
-1. Task and expected outcome
-2. Non-negotiable constraints and response schema
-3. Authenticated, task-scoped facts
-4. Retrieved evidence with provenance and dates
-5. Tool descriptions and action limits
-6. Relevant conversation state
-7. Uncertainty and escalation instructions
-
-Place important constraints where the model can readily identify them. Delimit untrusted user content and retrieved documents as data. Do not merge external text into privileged instructions. Keep the context short enough to inspect and evaluate while retaining the evidence necessary for the task.
-
-OpenAI describes a related practice in its agent-first software engineering work: use a concise map that points an agent to deeper, maintained sources instead of placing an entire knowledge base in one instruction file. The same principle can guide AI systems in any domain: keep the initial context focused, then retrieve approved reference material relevant to the task ([OpenAI, Harness engineering](https://openai.com/index/harness-engineering/)). This is an implementation example, not evidence that one context layout fits every application.
-
-### Validate the response before use
-
-Check that structured outputs conform to a schema. Verify cited source identifiers against retrieved evidence. Validate dates, version identifiers, configuration values and enum values in deterministic code. Reject unsupported claims when the task requires evidence. Apply business rules outside the model before any consequential action.
-
-### Record an audit trail
-
-For important workflows, capture the request ID, model and prompt version, policy version, retrieval query, source identifiers and timestamps, tool calls, authorization decisions, output validation results, approvals and final outcome. Follow internal retention and privacy policy; logging should support investigation without becoming a second uncontrolled store of sensitive data.
-
-## Core context engineering strategies
-
-These strategies work together to shape the context for a specific task. Apply them according to the information the task needs, the risk of an incorrect result and the controls available in the application.
-
-### Retrieve and trim
-
-Retrieve only the information needed to complete the current task, then remove irrelevant or redundant material before sending it to the model.
-
-- Apply identity, tenant and permission filters before retrieved records enter the context.
-- Use the task to guide retrieval, and include scope such as product, location, version or effective date when those details affect relevance.
-- Prefer current, authoritative evidence. Exclude stale or superseded material, or label it clearly when historical context is necessary.
-- Remove duplicate passages and unrelated fields while retaining the evidence needed to support the answer or action.
-- Preserve source identifiers, timestamps and relevant metadata when trimming so results remain traceable.
-- Treat retrieved documents as untrusted data. Retrieval does not make their contents safe or authoritative instructions.
-
-### Structured bundling
-
-Organise the selected context into clearly labelled sections instead of combining instructions, evidence and conversation history into an undifferentiated block.
-
-- Separate task instructions, user-provided input, retrieved evidence, state, available tools and required output.
-- Use consistent labels and delimiters so the model can distinguish trusted instructions from untrusted content.
-- Represent workflow state as concise fields, such as confirmed facts, open questions, decisions and the next permitted step.
-- Attach source, version, scope and effective-time metadata to evidence where those properties matter.
-- Specify the required response shape, such as a schema or explicit fields, when downstream software will process the result.
-- Keep the original record available by reference when a summary or compact state is used.
-
-### Breadcrumbs
-
-Provide concise pointers to deeper sources rather than loading an entire knowledge base into the initial context.
-
-- Give a short map of available guides, systems or source collections and when each one applies.
-- Include stable identifiers or links, titles and enough metadata to select the right source.
-- Retrieve the referenced details only after identifying what the task needs.
-- Preserve breadcrumbs to original records when context is summarised, so a reviewer or later step can verify important claims.
-- Check that pointers resolve to current, permitted sources; stale or inaccessible references should be surfaced rather than silently ignored.
-- Evaluate routing separately from answer quality, since selecting the wrong source can undermine the rest of the workflow.
-
-### Tool guardrail context
-
-Describe the tools available to the model and the boundaries for using them, while enforcing those boundaries in the application and downstream services.
-
-- State each tool's purpose, permitted inputs, expected outputs and whether it can change external state.
-- Make the allowed scope explicit, including resource, user or tenant boundaries and any limits on operation or volume.
-- Separate read operations from write operations where practical, and expose only the functions needed for the task.
-- Require the model to gather information and present a proposed action before high-impact or irreversible operations.
-- Explain when approval is required and what details an approval must cover.
-- Return clear errors and execution receipts so the model can report failures without inventing a successful outcome.
-- Enforce authorization, validation, rate limits and action limits in code; natural-language context alone is not a security boundary.
-
-### Policy wrapper
-
-Frame the task with the applicable policy, scope and decision rules so the model knows what it may do, what evidence it needs and when it must stop or escalate.
-
-- Identify the policy source and version, and retrieve current policy when rules can change.
-- State the task's permitted scope, required evidence and constraints in direct, actionable terms.
-- Clarify how to handle missing, conflicting or out-of-scope information, including when to ask for clarification or escalate.
-- Distinguish policy requirements from user requests and untrusted retrieved content.
-- Require the model to identify unsupported conclusions and avoid presenting assumptions as established facts.
-- Keep eligibility, authorization and other consequential rule checks in deterministic application logic rather than relying on the model to interpret the wrapper correctly.
-- Record the policy version and relevant evidence for consequential outcomes so the decision can be reviewed.
-
-## What to do
-
-- Start with a defined task, intended user, failure impact and measurable acceptance criteria.
-- Give the model only the data and tools required for that task.
-- Enforce user and tenant access in application and data services before retrieval results enter the prompt.
-- Use authoritative systems for system state, configuration, permissions and current policy.
-- Attach source, version, scope and effective time to important evidence.
-- Separate instructions from untrusted user input and retrieved content.
-- Treat tool output as data that may be incomplete, stale or malicious.
-- Keep tools narrow, well described and idempotent where possible. Make tool errors explicit and safe to handle.
-- Keep permission checks, calculations, eligibility rules and action limits in deterministic services.
-- Require human approval for actions whose impact, irreversibility or legal effect exceeds the approved automation boundary.
-- Test retrieval quality, answer grounding, privacy boundaries and actions as separate system properties.
-- Monitor evidence freshness, retrieval misses, unsupported answers, tool errors, approval overrides and policy failures.
-- Version prompts, retrieval configuration, source corpora and tool schemas so a result can be reproduced.
-- Define a safe fallback when context is missing, conflicting or unavailable.
-
-## What not to do
-
-- Do not treat the context window as a dumping ground for every document, message and tool result.
-- Do not assume a long context window guarantees that the model will find or correctly use every relevant fact.
-- Do not use prompt instructions as an authorization control. Enforce permissions in the services that hold the data or perform the action.
-- Do not retrieve data across user, workspace or tenant boundaries and ask the model to filter it afterward.
-- Do not mix untrusted documents with privileged instructions or allow retrieved text to redefine the task.
-- Do not use a vector similarity score as proof that a retrieved policy is current, complete or applicable.
-- Do not let the model invent missing facts, policy exceptions, configuration values or system outcomes.
-- Do not let a model-produced summary become the sole record for a regulated or consequential decision.
-- Do not grant broad write permissions when the task needs read access or one specific operation.
-- Do not let model output directly publish content, change permissions or close a workflow without application-side validation.
-- Do not treat a generic human approval as sufficient when the reviewer cannot see the exact action, its impact and the supporting evidence.
-- Do not log raw sensitive context indefinitely without a defined purpose, access policy and retention rule.
-- Do not ship based only on a few successful demonstrations. Evaluate representative, adversarial and boundary cases.
-
-## Cross-domain considerations
-
-### Data minimisation and privacy
-
-Decide which personal, operational or business data the task truly needs. Mask or omit fields that do not contribute to the task. Use environment and vendor controls appropriate to the data classification. Keep secrets and credentials out of prompts. Prevent one user's context, memory or retrieval results from being reused for another user.
-
-### User and workspace isolation
-
-Enforce access scope in the retrieval layer and the underlying service. Include workspace and subject identifiers in authorization checks. Test with users who have similar names, shared workspaces, delegated access and revoked access. A model instruction saying “only use this user's information” is not an isolation boundary.
-
-### Scope, version and applicability
-
-Policies, product rules and technical requirements can vary by location, user type, product, system version and effective date. Include relevant dimensions in retrieval filters and in the evidence itself. If the system cannot establish applicability, it should ask for the missing detail or route the task for review.
-
-### Impact and fairness
-
-For use cases that can influence eligibility, prioritisation, access to services or other important outcomes, identify the decision owner and required review path. Keep the evidence and rule version used in the decision. Evaluate outcomes across relevant user groups using approved governance processes. Do not present generated explanations as proof that a decision was correct or fair.
-
-### Consequential and irreversible actions
-
-An action should be bound to an authenticated identity, permitted resource, exact parameters and applicable limits. Validate the action independently of model output, prevent duplicate execution and preserve an idempotency key or equivalent control. Show the exact action to the approver and record a durable outcome.
-
-### Adversarial content
-
-Emails, uploaded documents, web pages, issue descriptions and free-text notes can contain malicious instructions. Treat them as untrusted evidence. Do not give the model access to tools that can alter systems or expose sensitive data merely because it reads potentially hostile content. Test direct and indirect prompt injection as part of system security testing.
-
-### Third-party and model dependencies
-
-Record which model providers, retrieval services and external tools process each type of data. Assess availability, data handling, service concentration, change management and exit options under the organisation's third-party risk process.
-
-### Audit, retention and incident response
-
-Define what is captured, who can access it, how long it is retained and how an incident can be reconstructed. Avoid indiscriminate storage of full prompts if a narrower event record can support investigation. Align evidence retention with applicable legal, regulatory and internal requirements for the use case and location.
-
-The NIST Generative AI Profile groups suggested risk-management actions around governance, content provenance, pre-deployment testing and incident disclosure, providing a cross-sector reference for building these controls into the AI lifecycle ([NIST AI 600-1](https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf)). It is a framework, not a substitute for applicable laws, regulations or organisational policy.
-
-## Security: context is part of the attack surface
-
-Prompt injection can enter directly through a user request or indirectly through retrieved documents, email, web pages or tool output. OWASP's 2025 guidance describes prompt injection as a risk that can influence model behavior and downstream decisions, and notes that RAG does not fully mitigate it ([OWASP LLM01:2025 Prompt Injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)).
-
-Context controls can reduce exposure, but they cannot guarantee that a model will reliably distinguish every malicious instruction from benign content. Use defense in depth:
-
-- Limit each tool to the minimum functions and data needed.
-- Enforce authorization in downstream systems for every request.
-- Keep read and write capabilities separate where practical.
-- Require approval for sensitive or irreversible operations.
-- Validate inputs and outputs with application logic and established security controls.
-- Set rate limits, spending limits, timeouts and circuit breakers.
-- Monitor tool activity and investigate anomalous sequences.
-- Test attacks that try to cross data boundaries, override instructions or induce unauthorised actions.
-
-OWASP's Excessive Agency guidance specifically calls out excessive functionality, permissions and autonomy. It recommends downstream authorization and discusses monitoring, rate limiting and human review as safeguards ([OWASP LLM06:2025 Excessive Agency](https://genai.owasp.org/llmrisk/llm062025-excessive-agency/)). These protections belong in the application and service architecture, not solely in natural-language instructions.
-
-## Evaluation: test the context pipeline, not just the final prose
-
-An answer can sound convincing while being based on the wrong user, wrong policy version or incomplete evidence. Evaluate each stage of the workflow.
-
-### Retrieval evaluation
-
-- Did retrieval find the authoritative source?
-- Did it select the correct version, scope, product and effective date?
-- Did it omit irrelevant or superseded material?
-- Did access filtering prevent cross-user, cross-workspace or cross-tenant retrieval?
-- Did the system behave safely when no matching evidence existed?
-
-### Context assembly evaluation
-
-- Were required facts present and correctly labelled?
-- Were untrusted sources clearly separated from application instructions?
-- Did the context preserve uncertainty and source attribution?
-- Did context size and duplication stay within measured limits?
-- Did a conversation summary preserve essential decisions and unresolved questions?
-
-### Model response evaluation
-
-- Are claims supported by supplied evidence?
-- Are calculations and structured fields correct?
-- Does the answer state uncertainty when evidence is missing or conflicting?
-- Does the model avoid making up policy, user or system facts?
-- Does the response fit the expected schema and user communication standards?
-
-### Tool and action evaluation
-
-- Did the model choose an allowed tool and supply valid arguments?
-- Did the service independently verify identity, entitlement and business rules?
-- Did the system stop when approval was absent or stale?
-- Were duplicate actions prevented?
-- Did a failure leave the workflow in a safe and recoverable state?
-
-### Adversarial and operational evaluation
-
-Include indirect prompt injection, malformed files, stale policies, ambiguous identities, conflicting records, revoked permissions, missing sources, tool timeouts and unusual but valid real-world cases. Measure cost, latency, failure rates and escalation rates alongside answer quality. Re-run the suite when the model, prompt, corpus, chunking, retrieval logic, tool schema or policy changes.
-
-Keep a versioned test set with expected source evidence and allowed actions. For high-impact uses, involve domain, compliance, security and operations reviewers in defining failure severity and release criteria. A model's aggregate accuracy score cannot establish that a particular action or user decision is safe.
-
-## An implementation sequence
-
-1. **Choose one bounded use case.** State the user, task, data, consequence and measure of success.
-2. **Map data and actions.** Identify systems of record, sensitive fields, retrieval sources, tool permissions and downstream effects.
-3. **Set the automation boundary.** Define what the model may read, recommend and execute, and where approval is required.
-4. **Build a small context pipeline.** Start with explicit instructions, scoped retrieval and the smallest useful tool set.
-5. **Add provenance and freshness.** Carry source identifiers, version, scope and time through to the response and audit events.
-6. **Create evaluation cases.** Include normal requests, edge cases, missing evidence, access violations and adversarial inputs.
-7. **Test with human review.** Compare model output to authoritative sources and validate the action boundary before rollout.
-8. **Monitor and improve.** Review failures, retrieval misses, escalations, latency, cost and user corrections. Update the source and workflow instead of patching every issue with another prompt sentence.
-
-## Conclusion
-
-Prompt engineering makes instructions clearer. Context engineering makes the whole working environment more reliable: the right evidence, current state, safe tools, bounded history and verifiable controls are present for each step.
-
-Context design must be paired with deterministic authorization, source provenance, privacy controls, action limits, human oversight where warranted and continuous evaluation. The model can help interpret information and propose next steps. The surrounding system remains responsible for deciding what information is allowed, which actions are permitted and how outcomes are recorded.
-
-## References
-
-- [Anthropic: Effective context engineering for AI agents](https://www.anthropic.com/research/effective-context-engineering-for-ai-agents)
-- [Anthropic: Contextual Retrieval](https://www.anthropic.com/research/contextual-retrieval)
-- [OpenAI: Harness engineering](https://openai.com/index/harness-engineering/)
-- [OWASP: LLM01:2025 Prompt Injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)
-- [OWASP: LLM06:2025 Excessive Agency](https://genai.owasp.org/llmrisk/llm062025-excessive-agency/)
-- [NIST: Artificial Intelligence Risk Management Framework, Generative Artificial Intelligence Profile](https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf)
+- [Context Engineering — LangChain](https://www.langchain.com/blog/context-engineering-for-agents)
+- [How Long Contexts Fail — Drew Breunig](https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html)
+- [How to Fix Your Context — Drew Breunig](https://www.dbreunig.com/2025/06/26/how-to-fix-your-context.html)
+- [Building Effective Agents — Anthropic](https://www.anthropic.com/engineering/building-effective-agents)
+- [How We Built Our Multi-Agent Research System — Anthropic](https://www.anthropic.com/engineering/multi-agent-research-system)
+- [Evaluate a Complex Agent — LangSmith documentation](https://docs.langchain.com/langsmith/evaluate-complex-agent)
