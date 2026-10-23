@@ -10,21 +10,17 @@ Context engineering is the design of systems that provide an LLM with right-size
 
 ## Context is working memory
 
-An LLM receives a finite context window with each invocation. That window may contain following:
- - instructions
- - knowledge
- - tool definition/results   
- - memory/conversation messages
+An LLM receives a finite context window with each invocation. The window can contain three broad types of context:
 
-For an agent, the contents change as the agent calls tools and receives feedback.
+| Context type | What it contains | Examples |
+| --- | --- | --- |
+| Instructions | Information that guides how the model should act or respond. | System and task prompts, persistent rules, examples and tool descriptions |
+| Knowledge | Information the model can use to answer or complete the task. | Facts, retrieved documents and relevant memories from earlier interactions |
+| Tool feedback | Information returned after the agent uses a tool. | Search results, API responses, database records and execution output |
 
-As Andrej Karpathy puts it, an LLM is like a CPU and its context window is like RAM. The context window has limited capacity, so the system must choose what information to make available for the next step. 
+An agent's context changes as it calls tools and receives feedback.
 
-Three broad context types recur in LLM applications:
-
-- **Instructions** tell the model how to act. They include prompts, persistent rules, examples and tool descriptions.
-- **Knowledge** supplies facts relevant to the task. It can include retrieved documents and information retained from prior interactions.
-- **Tool feedback** reports what happened when the agent used a tool, such as search results, API responses or execution output.
+As Andrej Karpathy puts it, an LLM is like a CPU and its context window is like RAM. The context window has limited capacity, so the system must choose what information to make available for the next step.
 
 These categories can overlap in a system. A memory may contain a user preference that acts as an instruction in one task and a fact in another. The design question is which information should be available for a particular model call.
 
