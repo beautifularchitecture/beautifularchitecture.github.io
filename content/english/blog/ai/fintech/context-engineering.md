@@ -8,15 +8,21 @@ summary = "A practical guide to reliable, secure and auditable AI context."
 
 Context engineering is the design of systems that provide an LLM with right-sized information, in the right format, at the right time, to accomplish a task.
 
+[LangChain attributes this definition to Andrej Karpathy](https://www.langchain.com/blog/context-engineering-for-agents):
+
+> “Context engineering is the delicate art and science of filling the context window with just the right information for the next step.”
+
+The amount and relevance of context affect the answer. With no task-specific context, an LLM may give a generic answer; with too little context, its answer may be vague or incomplete. Right-sized, relevant context helps it give a specific answer. Too much or conflicting context can distract the model and increase the risk of unsupported or hallucinated details.
+
 ## Context is working memory
 
 An LLM receives a finite context window with each invocation. The window can contain three broad types of context:
 
 | Context type | What it contains | Examples |
 | --- | --- | --- |
-| Instructions | Information that guides how the model should act or respond. | System and task prompts, persistent rules, examples and tool descriptions |
-| Knowledge | Information the model can use to answer or complete the task. | Facts, retrieved documents and relevant memories from earlier interactions |
-| Tool feedback | Information returned after the agent uses a tool. | Search results, API responses, database records and execution output |
+| Instructions | Information that guides how the model should act or respond. | <ul><li>System and task prompts</li><li>Persistent rules</li><li>Examples of desired responses</li><li>Tool descriptions</li></ul> |
+| Knowledge | Information the model can use to answer or complete the task. | <ul><li>Facts</li><li>Retrieved documents</li><li>Relevant memories from earlier interactions</li><li>Database or API data supplied to the model</li></ul> |
+| Tool feedback | Information returned after the agent uses a tool. | <ul><li>Search results</li><li>API responses</li><li>Database query results</li><li>Code execution output</li></ul> |
 
 An agent's context changes as it calls tools and receives feedback.
 
