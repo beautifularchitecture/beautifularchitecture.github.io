@@ -6,11 +6,17 @@ tags = ['Context Engineering','Prompt Engineering','Generative AI','RAG','AI Age
 summary = "A practical guide to reliable, secure and auditable AI context."
 +++
 
-Context engineering is the work of deciding what information an AI system receives at each step, how the system obtains that information and what it keeps for later. The goal is not to fill the model's context window. The goal is to provide the information needed for the current task while limiting irrelevant, stale or conflicting material.
+Context engineering is the design of systems that provide an LLM with right-sized information, in the right format, at the right time, to accomplish a task.
 
 ## Context is working memory
 
-An LLM receives a finite context window with each invocation. That window may contain instructions, conversation messages, retrieved knowledge, memory, tool definitions and tool results. For an agent, the contents change as the agent calls tools and receives feedback.
+An LLM receives a finite context window with each invocation. That window may contain following:
+ - instructions
+ - knowledge
+ - tool definition/results   
+ - memory/conversation messages
+
+For an agent, the contents change as the agent calls tools and receives feedback.
 
 As Andrej Karpathy puts it, an LLM is like a CPU and its context window is like RAM. The context window has limited capacity, so the system must choose what information to make available for the next step. 
 
@@ -30,7 +36,7 @@ Context poisoning occurs when an incorrect claim or observation is saved in the 
 
 The practical implication is that persistent context needs provenance and correction paths. Systems should distinguish observed tool results from model-generated conclusions and should revise or remove stale claims when later evidence contradicts them. 
 
-A hypothetical payment agent might hallucinate that a new wire-transfer beneficiary was verified, then save the claim in its case notes. A later agent could trust the poisoned note and release a scammer's transfer, turning one invented fact into a customer's lost savings.
+Famous example: where A Gemini agent playing Pokémon - where many parts of the context (goals, summary) are “poisoned” with misinformation about the game state, which can often take a very long time to undo. As a result, the model can become fixated on achieving impossible or irrelevant goals.
 
 ### Context distraction
 
