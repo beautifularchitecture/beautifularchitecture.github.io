@@ -6,11 +6,9 @@ tags = ['Context Engineering','Prompt Engineering','Generative AI','RAG','AI Age
 summary = "A practical guide to reliable, secure and auditable AI context."
 +++
 
+“Context engineering is the delicate art and science of filling the context window with just the right information for the next step.” - Andrej Karpathy
+
 Context engineering is the design of systems that provide an LLM with right-sized information, in the right format, at the right time, to accomplish a task.
-
-[LangChain attributes this definition to Andrej Karpathy](https://www.langchain.com/blog/context-engineering-for-agents):
-
-> “Context engineering is the delicate art and science of filling the context window with just the right information for the next step.”
 
 The amount and relevance of context affect the answer. With no task-specific context, an LLM may give a generic answer; with too little context, its answer may be vague or incomplete. Right-sized, relevant context helps it give a specific answer. Too much or conflicting context can distract the model and increase the risk of unsupported or hallucinated details.
 
