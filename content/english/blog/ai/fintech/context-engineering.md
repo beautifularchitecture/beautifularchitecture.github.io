@@ -1,5 +1,5 @@
 +++
-date = '2026-10-21T09:00:00+10:00'
+date = '2024-10-21T09:00:00+10:00'
 draft = false
 title = 'Context Engineering - Organizing ideas for PDD'
 tags = ['Context Engineering','Prompt Engineering','Generative AI','RAG','AI Agents','Security','Governance']
@@ -8,13 +8,18 @@ summary = "A practical guide to reliable, secure and auditable AI context."
 
 “Context engineering is the delicate art and science of filling the context window with just the right information for the next step.” - Andrej Karpathy
 
-Context engineering is the design of systems that provide an LLM with right-sized information, in the right format, at the right time, to accomplish a task.
+Context engineering is the design of systems that provide an LLM with **right-sized information**, **in the right format**, **at the right time**, to accomplish a task.
 
-The amount and relevance of context affect the answer. With no task-specific context, an LLM may give a generic answer; with too little context, its answer may be vague or incomplete. Right-sized, relevant context helps it give a specific answer. Too much or conflicting context can distract the model and increase the risk of unsupported or hallucinated details.
+As Andrej Karpathy puts it, "**an LLM is like a CPU and its context window is like RAM.**" 
 
+The context window has limited capacity, so the system must choose what information to make available for the next step.
+
+- [Context Window Comparison](https://benchlm.ai/tools/context-window)
+  
 ## Context is working memory
 
 An LLM receives a finite context window with each invocation. The window can contain three broad types of context:
+
 
 | Context type | What it contains | Examples |
 | --- | --- | --- |
@@ -24,9 +29,13 @@ An LLM receives a finite context window with each invocation. The window can con
 
 An agent's context changes as it calls tools and receives feedback.
 
-As Andrej Karpathy puts it, an LLM is like a CPU and its context window is like RAM. The context window has limited capacity, so the system must choose what information to make available for the next step.
-
 These categories can overlap in a system. A memory may contain a user preference that acts as an instruction in one task and a fact in another. The design question is which information should be available for a particular model call.
+
+The amount and relevance of context affect the answer. 
+- With no task-specific context, an LLM may give a generic answer; 
+- with too little context, its answer may be vague or incomplete. 
+- Right-sized, relevant context helps it give a specific answer. 
+- Too much context can distract the model and increase the risk of hallucinated details.
 
 ## Why context needs active management
 
