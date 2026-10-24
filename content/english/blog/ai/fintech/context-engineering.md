@@ -22,7 +22,7 @@ Earlier years you had the problem of smaller context size, which was solved by m
 - **Context rot.** Even on simple tasks[Chroma's context rot study](https://research.trychroma.com/context-rot) tested a range of frontier models and found that performance becomes less reliable as input length grows.
 - **Cost and latency.** Every token in the window is paid for and processed on every call (see *Cost, latency and caching*).
 
-Capacity is not the same as attention. The **goal** is the **smallest** set of **high-signal information** that lets the **next step succeed**. 
+Capacity is different from attention. The **goal** is the **smallest** set of **high-signal information** that lets the **next step succeed**. 
 
 ## Types of memories
 
@@ -30,24 +30,21 @@ Memories can be classified by **how long they last** and by **what kind of infor
 
 ### By duration
 
-| Type | What it holds | Where it lives | Typical lifespan |
-| --- | --- | --- | --- |
-| Short-term (working) memory | The current conversation, scratchpad notes, plan and intermediate results | Active context and runtime state | One task or thread |
-| Long-term memory | Facts, examples and rules that should shape future tasks | External store, loaded selectively | Across sessions |
+#### Short-term memory
+- is what the agent is **working with right now**. 
+- It is the **conversation history**, the **scratchpad** and the **task state**. 
+- It is usually **scoped to a single thread**, and **checkpointing** lets a thread resume without replaying everything. 
+- Its main **risk** is **growth**: left unmanaged, it fills the window with stale assumptions and large tool outputs (see context distraction).
 
-**Short-term memory** is what the agent is working with right now. It is the conversation history, the scratchpad and the task state. It is usually scoped to a single thread, and checkpointing lets a thread resume without replaying everything. Its main risk is growth: left unmanaged, it fills the window with stale assumptions and large tool outputs (see context distraction).
-
-**Long-term memory** persists after the task ends. It is not kept in the prompt. It is written to a store and selected back into context only when relevant. Its main risks are different: storing something wrong, keeping it too long, or retrieving it in the wrong situation.
+#### Long-term memory
+- It is not kept in the prompt. 
+- persists after the task ends. It is written to a store and selected back into context only when relevant. 
+- Its main risks are different: **storing something wrong**, **keeping it too long**, or **retrieving it in the wrong situation**.
 
 ### By content
 
 LangChain's memory reference borrows three categories from human memory. They are useful because each serves a different purpose and calls for a different retrieval method.
-
-| Type | What it stores | Example in a financial services agent | Typical use in context |
-| --- | --- | --- | --- |
-| Semantic | Facts and preferences | "Customer prefers email contact. Primary account is in AUD." | Personalize responses, avoid re-asking |
-| Episodic | Past events and examples | "Last month a similar dispute was resolved by requesting the merchant's receipt." | Few-shot examples, precedent |
-| Procedural | Rules for how to behave | "Escalate any transaction above the review threshold to a human." | Instructions and policy |
+The content type does not determine how long an item is kept. The system's retention policy does. 
 
 #### Semantic memory: facts
 
@@ -75,6 +72,15 @@ Memories can be written at two points:
 - **After the task (in the background).** A separate process reviews the interaction and extracts memories afterwards. This keeps the main task fast and lets the extraction logic be tuned separately, but new memories are not available until the process finishes.
 
 Neither is universally better. The choice depends on how quickly a memory must be usable and how much the system can afford to add to each interaction.
+
+| Content type | Short-term: current task or thread | Long-term: retained beyond the task |
+| --- | --- | --- |
+| Semantic | Conversation: "I prefer email contact." | Saved preference: "Prefers email contact" (source and date recorded). |
+| Episodic | Task note: the agent requested the merchant's receipt. | Past similar dispute: resolved by requesting the merchant's receipt. |
+| Procedural | Current prompt: "Escalate transactions above the review threshold to a human." | Reviewed policy: "Escalate transactions above the review threshold to a human." |
+
+Here, "short-term" and "long-term" describe retention scope, not fixed time limits. Long-term does not mean permanent: systems need a defined process for reviewing, correcting and expiring stored information.
+
 
 ## What goes into context
 
