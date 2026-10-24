@@ -16,10 +16,10 @@ Karpathy's earlier "LLM OS" framing offers a useful mental model: **an LLM is li
 
 ## Why it matters: bigger windows do not remove the problem
 
-It is tempting to think that a larger context window makes context management unnecessary. The evidence points the other way:
+Earlier years you had the problem of smaller context size, which was solved by models introducing large context size. It is tempting to think that a larger context window makes context management unnecessary. The evidence points the other way:
 
 - **Position effects.** The ["Lost in the Middle"](https://arxiv.org/abs/2307.03172) more often lots of models use information near the start and end of a long input more reliably than information in the middle.
-- **Context rot.** [Chroma's context rot study](https://research.trychroma.com/context-rot) tested a range of frontier models and found that performance becomes less reliable as input length grows, even on simple tasks.
+- **Context rot.** Even on simple tasks[Chroma's context rot study](https://research.trychroma.com/context-rot) tested a range of frontier models and found that performance becomes less reliable as input length grows.
 - **Cost and latency.** Every token in the window is paid for and processed on every call (see *Cost, latency and caching*).
 
 Capacity is not the same as attention. The **goal** is the **smallest** set of **high-signal information** that lets the **next step succeed**. 
