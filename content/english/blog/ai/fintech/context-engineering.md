@@ -48,21 +48,22 @@ The content type does not determine how long an item is kept. The system's reten
 
 #### Semantic memory: facts
 
-Semantic memory holds facts about a user, an entity or a domain, such as preferences, attributes and stable details. It can be kept as a single profile that is updated over time, or as a collection of separate records that are searched when needed. A profile is easy to read but can grow unwieldy and is harder to update without overwriting something correct. A collection scales better but depends on retrieval quality, and records may contradict each other as the facts change.
-
-The main risk is staleness. A fact that was true when it was written may no longer be true, and the model has no way to know unless the record carries a timestamp and source. Semantic memories also overlap with retrieved knowledge. As a rule of thumb, semantic memory holds facts the agent learned from interactions, while retrieved knowledge comes from a curated source of record.
+- Semantic memory holds facts **about a user, an entity or a domain**, such as preferences, attributes and stable details. It can be kept as:
+- A **single profile**: _updated over time_, _is easy to read_ but can grow unwieldy and is harder to update without overwriting something correct. 
+- A **collection or seperate records**: searched when needed, scales better but depends on retrieval quality, and records may contradict each other as the facts change.
+- The main risk is **staleness**: A fact that was true when it was written may no longer be true, and the model has no way to know unless the **record carries a timestamp and source**. Semantic** memories also overlap with retrieved knowledge**. As a rule of thumb, semantic memory holds facts the agent learned from interactions, while retrieved knowledge comes from a curated source of record.
 
 #### Episodic memory: past events
-
-Episodic memory stores what happened: a previous task, how it was handled and what the outcome was. Its most common use is as few-shot examples, where a past success is retrieved and shown to the model as a pattern to follow. It lets an agent improve from experience without changing its instructions.
-
-Episodes are only useful if they are retrieved for situations that are really similar. A poorly matched example can pull the model toward the wrong approach. Episodes should record the outcome as well as the actions, so a failed attempt is not reused as a model to follow.
+- Episodic memory stores what happened: **a previous task**, how it was handled and what **the outcome** was. 
+- Its most common use is as few-shot examples, where a past success is retrieved and shown to the model as a pattern to follow. 
+- It lets an agent improve from experience without changing its instructions.
+- The risk is **retrieving past experience that isn’t similar to current situation**: A poorly matched example can pull the model toward the wrong approach. Episodes should record the outcome as well as the actions, so a failed attempt is not reused as a model to follow.
 
 #### Procedural memory: how to behave
-
-Procedural memory holds the rules and instructions that govern behavior. In practice this is the system prompt, policy files and scoped conventions, such as the JPA standards applied to files matching an `entities/*.java` pattern. It differs from the other two types in that it is often meant to change how the agent behaves rather than what it knows.
-
-Some systems let the agent refine its own instructions based on feedback, similar to reflection approaches such as Reflexion. This is powerful but sensitive. An agent that can rewrite its own rules can also write a wrong or unsafe rule into persistent context. In regulated settings, procedural memory should be changed through reviewed processes and versioned, not edited silently by the model.
+- Procedural memory holds the **rules and instructions that govern behavior**. 
+- In practice this is the system prompt, policy files and scoped conventions, such as the JPA standards applied to files matching an `entities/*.java` pattern. 
+- **It differs from the other two types in that it is often meant to change how the agent behaves rather than what it knows.**
+- The main risk is **persisting a bad rule**: Some systems let the agent refine its own instructions based on feedback, similar to reflection approaches such as Reflexion. This is powerful but sensitive. An agent that can rewrite its own rules can also write a wrong or unsafe rule into persistent context. In regulated settings, procedural memory should be changed through reviewed processes and versioned, not edited silently by the model.
 
 ### How memories are written
 
@@ -70,17 +71,6 @@ Memories can be written at two points:
 
 - **During the task (in the hot path).** The agent decides to save something and does so before responding. This makes the memory available immediately and visible to the user, but adds latency and asks the model to manage memory while also doing the task.
 - **After the task (in the background).** A separate process reviews the interaction and extracts memories afterwards. This keeps the main task fast and lets the extraction logic be tuned separately, but new memories are not available until the process finishes.
-
-Neither is universally better. The choice depends on how quickly a memory must be usable and how much the system can afford to add to each interaction.
-
-| Content type | Short-term: current task or thread | Long-term: retained beyond the task |
-| --- | --- | --- |
-| Semantic | Conversation: "I prefer email contact." | Saved preference: "Prefers email contact" (source and date recorded). |
-| Episodic | Task note: the agent requested the merchant's receipt. | Past similar dispute: resolved by requesting the merchant's receipt. |
-| Procedural | Current prompt: "Escalate transactions above the review threshold to a human." | Reviewed policy: "Escalate transactions above the review threshold to a human." |
-
-Here, "short-term" and "long-term" describe retention scope, not fixed time limits. Long-term does not mean permanent: systems need a defined process for reviewing, correcting and expiring stored information.
-
 
 ## What goes into context
 
@@ -306,7 +296,7 @@ Practical measures:
 
 ## Cost, latency and caching
 
-Context design is also cost design. Every token in the window is billed and processed on every call, and long contexts increase latency. In agent loops the effect compounds, because the growing history is re-sent at each step. Multi-agent systems multiply this further: Anthropic reports that its research system uses substantially more tokens than a single-agent chat, so the quality gain must justify the spend.
+Context design is also cost design. Tokens in the window contribute to processing and cost, although prompt caching can reduce both for repeated content. Long contexts can increase latency. In agent loops, costs can compound as history is sent again at each step; caching can reduce the cost of repeated prefixes. Multi-agent systems can multiply token use further: Anthropic reports that its research system uses substantially more tokens than a single-agent chat, so the quality gain must justify the spend.
 
 **Prompt caching** can reduce both cost and latency substantially for the repeated part of a prompt. Providers typically cache a stable **prefix**, and a cache hit requires the beginning of the prompt to match exactly. This leads to a design rule:
 
