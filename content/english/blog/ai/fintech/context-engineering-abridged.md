@@ -1,6 +1,6 @@
 +++
 date = '2024-10-24T09:00:00+10:00'
-draft = true
+draft = false
 title = 'Context Engineering - Ideas Organised'
 tags = ['Context Engineering','Prompt Engineering','Generative AI','RAG','AI Agents','Security','Governance','MCP', 'PDD', 'Abridged']
 summary = "A practical guide to reliable, secure and auditable AI context."
@@ -52,13 +52,11 @@ Semantic memory holds facts about **an entity or a domain**, such as **preferenc
 #### Episodic memory: past events
 - stores **a previous task** and **the outcome**. 
 - **risk**: retrieval mismatch.
-Episodes should record the action and outcomes, so a failed attempt is not reused as a model to follow.
 
 #### Procedural memory: how to behave
 - holds the **rules and instructions that govern behavior**. 
 - such as the instructions applied based on glob patterns - so JPA standards applied to files matching an `entities/*.java` pattern. 
-- defines **how the agent behaves rather than what it knows.**
-- **risk**: **persisting a bad rule**. 
+- defines **how** the agent behaves rather than **what** it knows.
 
 ## What goes into context
 
@@ -87,12 +85,12 @@ These four failure modes:
 - how does it happen? A **mistaken tool result** or a **model's unsupported conclusion** (claim without evidence) can become part of a **plan or summary**. 
 - Later steps may **treat it as established information** and **repeat** or **build on the error**.
 - A well-known example [Gemini 2.5 Pro playing Pokémon](https://arxiv.org/abs/2507.06261), Parts of the context became "poisoned" with misinformation about the game state. Because the agent kept re-reading its own notes, the false information was slow to undo, and the model could become fixated on goals that were impossible or irrelevant.
-- The practical implication is that persistent context needs provenance and **correction paths**. Systems should **distinguish** observed **tool results** from **model-generated conclusions** and should **revise or remove stale claims** when later evidence contradicts them.
+- solution is context needs a correction paths. should revise or remove stale claims when later evidence contradicts them **Context Pruning**.
 
 ### Context distraction
 
 - Context distraction occurs when a **growing history pulls the model** toward **repeating past** actions instead of reasoning freshly about the current task. 
-- **retain the parts needed to continue the task and condense or remove the rest**
+- **retain the parts needed to continue the task and condense or remove the rest**  aka Context Isolation.
 
 ### Context confusion
 
