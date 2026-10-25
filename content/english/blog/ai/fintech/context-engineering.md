@@ -1,7 +1,7 @@
 +++
 date = '2024-10-24T09:00:00+10:00'
 draft = false
-title = 'Context Engineering - Organizing ideas for PDD'
+title = 'Context Engineering - Ideas Organised'
 tags = ['Context Engineering','Prompt Engineering','Generative AI','RAG','AI Agents','Security','Governance','MCP', 'PDD']
 summary = "A practical guide to reliable, secure and auditable AI context."
 +++
