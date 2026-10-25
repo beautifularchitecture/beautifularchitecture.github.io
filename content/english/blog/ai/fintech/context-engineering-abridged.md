@@ -1,6 +1,6 @@
 +++
-date = '2022-10-24T09:00:00+10:00'
-draft = false
+date = '2024-10-24T09:00:00+10:00'
+draft = true
 title = 'Context Engineering - Ideas Organised'
 tags = ['Context Engineering','Prompt Engineering','Generative AI','RAG','AI Agents','Security','Governance','MCP', 'PDD', 'Abridged']
 summary = "A practical guide to reliable, secure and auditable AI context."
@@ -44,8 +44,8 @@ Content based categorization can be divided broadly into 3 categories:
 #### Semantic memory: facts
 
 Semantic memory holds facts about **an entity or a domain**, such as **preferences**, **attributes** and **stable details** (fact remains true across many tasks). It can be kept as:
-- **single profile**: _updated over time_, _is easy to read_ but can grow unwieldy and is harder to update without overwriting something correct. 
-- **collection or seperate records**: searched when needed, scales better but depends on retrieval quality, and records may contradict each other as the facts change.
+- **single profile**: _updated over time_, _is easy to read_ but can grow out of control. 
+- **collection of seperate records**: scales better but depends on retrieval quality, .
 - **risk**: A fact that was true earlier may no longer be true, and the model has no way to know unless the **record carries a timestamp and source**. 
 - **Semantic memories** (facts the agent learned from interactions) also overlap with **retrieved knowledge**(retrieved knowledge comes from a curated source of record). 
 
@@ -80,81 +80,8 @@ The system assembles Contexts from several sources, and each has a different lif
 | Environment and state | Date, task progress, plans, permissions | Runtime | Changes during the task |
 | Non-text inputs | Images, PDFs, audio transcripts | User or tools | Per step |
 
-### Instructions
-
-- Instructions are the standing rules that govern behavior: **the model's role, the task boundaries, tone, escalation rules and compliance requirements.** They are usually the most stable part of the context and are **written by the developer rather than the user**. In regulated settings they often carry **security and governance obligations**. Because they **apply on every call,** they should be **concise and unambiguous**. 
-- risks: **Overlapping or contradictory instructions are a common source of context clash**.
-
-### User input and conversation history
-
-- **User input** is the **current request**. 
-- **Conversation history** is the **record of earlier turns**, which gives the model continuity but also accumulates stale assumptions, abandoned goals and superseded answers. 
-- History is the part of the context that grows without anyone deciding to add to it, so it usually needs an explicit retention policy such as **trimming**, **summarizing** or **moving durable facts into state**.
-
-### Retrieved knowledge
-
-- Retrieved knowledge supplies information the model was not trained on or that changes over time: policies, product documents, code or search results. 
-- It is selected dynamically against the current task, often through embeddings, keyword search or graph traversal. 
-- Retrieval adds the risk of including irrelevant, outdated or unauthorized material, so the retrieved set needs checks for relevance, freshness and access. 
-- Keep source references with each passage so a reviewer can tell evidence from model-generated conclusions.
-
-The **quality of retrieval (RAG) depends on several choices, not just the embedding model**:
-
-- **Chunking.** How documents are split determines what a retrieved passage can contain. Chunks that are too small lose surrounding meaning; chunks that are too large waste tokens and dilute relevance. Splitting along natural structure (sections, clauses, functions) usually beats fixed-size splits.
-- **Hybrid search.** Combining semantic (embedding) search with keyword search catches both paraphrases and exact identifiers such as account numbers, product codes and policy references, which embeddings often handle poorly.
-- **Reranking.** A second pass that re-scores the top candidates against the actual query, so that only the best few are placed in the window.
-- **Metadata filtering.** Apply access control, freshness and jurisdiction filters before ranking, not after.
-- **Evaluation.** Measure retrieval separately from generation (did the right passage come back?) so a failure can be located.
-
-### Tool definitions
-
-- Tool definitions **describe** what the model can do: each tool's **name**, **purpose** and **parameters**. 
-- They consume context on every call in which they appear, and they shape the model's choices. 
-- **Risks**: A _large catalog_ of _overlapping tools_ increases the chance of a wrong selection, which is why tool loadouts and tool-gated context are useful. A **definition describes capability** only; **permissions** still need to be enforced in the tool or application.
-- Tool descriptions are effectively prompts, and their quality matters. Clear names, unambiguous purposes, well-described parameters and minimal overlap between tools all improve selection accuracy. The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is now a common standard for exposing tools and data to models. It makes integration easier, but it also makes **it easy to connect many servers and flood the window with tool definitions**. Treat every connected **MCP server as both a context cost and a trust decision**.
-
-### Tool calls and results
-
-- In agentic workflows, tool results are often the largest part of the context. 
-- File contents, API responses, query results and command output can be long, noisy and sometimes wrong. 
-**risks:** They are also a place where errors enter persistent context: a mistaken result that is summarized or written to a plan can later be treated as established fact. 
-- Record which statements came from a tool and which came from the model, and filter or summarize large outputs before the next step.
-- Good tools help here by design: return only the fields needed, support pagination and filtering, enforce a maximum result size and give clear error messages that the model can act on.
-
-### Memory
-
-- Memory is information retained outside the active prompt and loaded when relevant, such as user preferences, past decisions or operating rules. 
-- It is what lets an agent behave consistently across sessions. 
-- Memory is written, selected and updated by separate mechanisms, and stored items can become outdated or incorrect (see *Types of memories*).
-
-### Examples and output specifications
-
-- Examples show the model the intended behavior through representative input-output pairs. 
-- Output specifications, such as JSON schemas, templates and required fields, constrain the form of the response so downstream systems can use it. 
-- Both are developer-authored and stable, and both are worth keeping small. 
-- **Risks:** A poorly chosen example can be copied too literally, and an overly rigid schema can force the model to fill fields it has no evidence for.
-
-### Environment and task state
-
-- State describes where the agent is in the work: the current date, the plan, completed and pending steps, user or account attributes, and the permissions in force. 
-- A **compact task trail**, the **breadcrumbs**, lets the agent **resume without replaying the full history**. 
-- State is also the natural place to separate what is stored from what is shown to the model on a given step.
-
-### Non-text inputs
-
-- Images, PDFs, spreadsheets and audio transcripts also count as context and are often expensive in tokens. 
-- They are typically better handled by processing them outside the prompt, with a tool or sandbox returning only the relevant extract.
-
-### Why the source of each item matters
-
-- These components differ in trust and lifespan. 
-- Developer-authored instructions, user statements, retrieved documents and tool outputs should not carry the same authority, and a model may be unable to tell them apart unless the system labels them. 
-- Instructions embedded in retrieved content or tool output are also a route for prompt injection (see *Security: prompt injection and trust boundaries*), so untrusted content should be clearly marked and should not override standing instructions.
-- Each component competes for the same limited window. 
-
 ## Context mismanagement issues
-
-These four failure modes were named and described by Drew Breunig in [How Long Contexts Fail](https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html). LangChain's context engineering article draws on the same framing.
+These four failure modes:
 
 ### Context poisoning
 
@@ -282,95 +209,3 @@ These five strategies describe ways to implement those decisions in an agent wor
 
 These strategies can be combined. For example, a workflow can retrieve and trim transaction evidence, bundle the selected evidence with the request, record a breadcrumb that points to the source records, expose an approved tool for the current step and apply the instructions that govern the action and output. The workflow should preserve source references so reviewers can distinguish evidence from summaries or model-generated conclusions.
 
-## Security: prompt injection and trust boundaries
-
-Because context is assembled from many sources, anything that reaches the window can try to steer the model. **Prompt injection** is the attack in which instructions are hidden in content the model reads (a web page, an email, a PDF, a tool result, a retrieved document) and the model follows them as if they came from the developer or user. The model has no reliable built-in way to distinguish instructions from data, so the defence has to be in the system design.
-
-Simon Willison's ["lethal trifecta"](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/) gives a practical test. An agent is at serious risk of data theft when it combines all three of:
-
-1. **Access to private data** (accounts, emails, internal documents).
-2. **Exposure to untrusted content** (anything an attacker can influence).
-3. **The ability to communicate externally** (send email, make web requests, render links or images).
-
-Removing any one leg breaks the attack. Context engineering decisions, such as what is retrieved, which tools are exposed and what is isolated, are often the way to do that.
-
-Practical measures:
-
-- **Label provenance and trust.** Mark each block as instruction, user input, retrieved content or tool output, and tell the model that untrusted blocks are data, not commands. This helps but is not a guarantee.
-- **Separate privileges.** Use one low-privilege component to read untrusted content and a separate, constrained component to act. Pass between them only structured, validated output.
-- **Gate tools by step.** Do not expose send, write or payment tools while the agent is processing untrusted input (tool-gated context).
-- **Enforce permissions outside the model.** Check authorization in the tool or application, using the end user's identity, never only in the prompt.
-- **Require human approval** for irreversible or high-impact actions, such as moving money or sending external messages.
-- **Filter outputs and outbound channels.** Restrict where data can be sent, and treat rendered links and images as potential exfiltration routes.
-- **Log what entered the context** so an incident can be traced back to its source (see *Auditability*).
-- **Vet third-party tool servers.** Tool descriptions and results from an MCP server are themselves untrusted input.
-
-## Cost, latency and caching
-
-Context design is also cost design. Tokens in the window contribute to processing and cost, although prompt caching can reduce both for repeated content. Long contexts can increase latency. In agent loops, costs can compound as history is sent again at each step; caching can reduce the cost of repeated prefixes. Multi-agent systems can multiply token use further: Anthropic reports that its research system uses substantially more tokens than a single-agent chat, so the quality gain must justify the spend.
-
-**Prompt caching** can reduce both cost and latency substantially for the repeated part of a prompt. Providers typically cache a stable **prefix**, and a cache hit requires the beginning of the prompt to match exactly. This leads to a design rule:
-
-- Put **stable content first**: instructions, tool definitions, examples and output specifications.
-- Put **dynamic content last**: retrieved documents, recent history, user input and state.
-- Avoid changing early content (a timestamp in the system prompt, a reordered tool list) because it invalidates the cache for everything after it.
-
-Caching creates a trade-off with compression: rewriting or trimming early parts of the history breaks the cached prefix. Compact at deliberate boundaries rather than editing continuously. Check your provider's documentation for current caching behavior (for example, [Anthropic's prompt caching guide](https://docs.claude.com/en/docs/build-with-claude/prompt-caching)).
-
-**Ordering also affects accuracy.** Given the position effects noted earlier, place the most important instructions at the start, put the user's actual question and key evidence near the end, and avoid burying critical facts in the middle of a long block.
-
-## Context engineering in a stateful agent
-
-An agent's runtime state can serve as both a scratchpad and a boundary between information that is available and information that is currently exposed. LangGraph uses state passed between graph steps and supports checkpointing so state can persist across a thread. Its long-term memory supports information stored across sessions. Each node can decide which state fields or memories to use for its model call.
-
-This pattern separates storage from presentation. The system can retain a large state object while building a smaller prompt for each step. It can also add nodes that summarize a tool result, retrieve memory, select tools or request human input before continuing. LangChain's article describes these as framework capabilities; teams using another framework can implement equivalent decisions in their own orchestration layer.
-
-## Observe and evaluate context changes
-
-Context engineering is iterative. First inspect what the agent receives and how context changes across calls. Track token use, tool inputs and outputs, retrieval results and the content passed between steps. Traces help identify whether a failure came from missing context, irrelevant retrieval, a misleading tool result or an ineffective summary.
-
-Then evaluate whether a context change improves the task. Compare the original and revised design against representative examples. Measure outcome quality and relevant operational costs, such as latency and token use. For open-ended agents, evaluation should allow different valid paths to the same result; judging only whether an agent followed one fixed sequence can reject correct behavior. Anthropic's account of its research agent describes combining test cases, output rubrics and human review to assess accuracy, completeness, source quality and tool efficiency.
-
-Useful metrics to track include:
-
-- **Tokens per step and per task**, plus cache hit rate.
-- **Retrieval quality**: whether the needed passage was returned, and how much irrelevant material came with it.
-- **Tool-call accuracy**: right tool, right parameters, and how often a call fails or is repeated.
-- **Groundedness**: whether claims in the output are supported by cited evidence.
-- **Task success and escalation rate**, measured against representative cases, including adversarial ones for injection.
-
-LangChain recommends using tracing and evaluations to find where context work is useful and to test its effects. Its own products are examples of those practices, not a requirement to use a particular vendor. The general loop is: inspect the context, identify a failure, change one context decision and compare results.
-
-## A practical design sequence
-
-For each agent step, make the context decisions explicit:
-
-1. **Define the step's purpose.** State what the model must decide or produce at this point in the workflow.
-2. **List required inputs.** Identify the instructions, knowledge, memories, tool descriptions and feedback needed for that decision.
-3. **Choose where each item lives.** Keep durable information in an appropriate store or state field instead of relying on the full conversation history.
-4. **Select the smallest relevant set.** Retrieve documents, memories and tools based on the current task, loading detail just in time where possible.
-5. **Set retention and compression rules.** Decide what to write, summarize, trim or expire, and preserve information needed for later verification.
-6. **Define isolation and trust boundaries.** Decide which agents, workflow steps and tools can access each part of the context, and label untrusted content.
-7. **Order for caching and attention.** Place stable content first and dynamic content last, with critical items at the start or end.
-8. **Trace and evaluate.** Inspect representative runs, test context changes (including for security and cost) and refine the design based on observed outcomes.
-
-The central trade-off is between providing enough context to act correctly and limiting material that can distract, conflict or carry an error forward. More context is useful only when the additional information improves the result.
-
-## Sources
-
-- [Context Engineering — LangChain](https://www.langchain.com/blog/context-engineering-for-agents)
-- [Effective Context Engineering for AI Agents — Anthropic](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
-- [How Long Contexts Fail — Drew Breunig](https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html)
-- [How to Fix Your Context — Drew Breunig](https://www.dbreunig.com/2025/06/26/how-to-fix-your-context.html)
-- [Building Effective Agents — Anthropic](https://www.anthropic.com/engineering/building-effective-agents)
-- [How We Built Our Multi-Agent Research System — Anthropic](https://www.anthropic.com/engineering/multi-agent-research-system)
-- [Evaluate a Complex Agent — LangSmith documentation](https://docs.langchain.com/langsmith/evaluate-complex-agent)
-- [Gemini 2.5 Technical Report — Google](https://arxiv.org/abs/2507.06261)
-- [Context Rot — Chroma Research](https://research.trychroma.com/context-rot)
-- [Lost in the Middle: How Language Models Use Long Contexts](https://arxiv.org/abs/2307.03172)
-- [The Lethal Trifecta — Simon Willison](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)
-- [Prompt Caching — Anthropic documentation](https://docs.claude.com/en/docs/build-with-claude/prompt-caching)
-- [Model Context Protocol](https://modelcontextprotocol.io)
-- [Toolshed: Scale Tool-Equipped Agents with Advanced RAG-Tool Fusion](https://arxiv.org/abs/2410.14594)
-- [Provence: Efficient and Robust Context Pruning for RAG](https://arxiv.org/abs/2501.16214)
-- [Context Window Comparison — BenchLM](https://benchlm.ai/tools/context-window)
