@@ -192,9 +192,9 @@ These four failure modes were named and described by Drew Breunig in [How Long C
 
 ### Context clash
 
-- Context clash occurs when instructions or facts in the context disagree. 
-- Contradictions can arise between old and new user statements, retrieved documents, tool outputs or intermediate model answers. 
-- A multi-turn exchange can also preserve an early, mistaken answer after the user provides the missing details.
+- Context clash occurs when **instructions or facts in the context disagree**. 
+- Contradictions can arise between **old and new user statements**, **retrieved documents**, **tool outputs** or **intermediate model answers**. 
+- **A multi-turn exchange** can also preserve an early, mistaken answer after the user provides the missing details.
 - Provenance, timestamps and explicit precedence rules help make conflicts visible. 
 - The system should not silently merge incompatible claims. Where the conflict affects the task and cannot be resolved from trusted evidence, the agent should ask for clarification or report the uncertainty. 
 
