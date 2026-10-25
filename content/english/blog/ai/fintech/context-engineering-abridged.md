@@ -29,7 +29,6 @@ Memories can be classified by **how long they last** and by **what kind of infor
 #### Short-term memory
 - agent **working with right now**. 
 - **conversation history**, **scratchpad**, **task state**. 
-- **single thread scoped**, **checkpointed** lets a thread resume without replaying everything. 
 - **risk**: left unmanaged, it fills the window with stale assumptions and large tool outputs - **context distraction**.
 
 #### Long-term memory
@@ -148,10 +147,6 @@ Writing context means saving useful information somewhere the agent can access l
 **Structured note-taking** is a closely related pattern highlighted in Anthropic's [Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents). The agent regularly writes notes (a to-do list, a progress file, key decisions) to storage outside the window and reads them back after a context reset. This gives a long-running agent continuity without carrying the full history.
 
 **Long-term memory** preserves information across tasks or sessions. The research LangChain cites includes Reflexion, which reuses self-generated reflections, and Generative Agents, which periodically synthesizes memories from prior experiences. These examples distinguish retaining a task's working notes from retaining information intended to shape future interactions.
-
-Memory can store different kinds of information. LangChain's memory reference distinguishes **semantic** memory (facts), **episodic** memory (examples of past events) and **procedural** memory (instructions about how to behave). Each kind serves a different retrieval purpose. A user preference, a successful example and an operating rule should not be treated as interchangeable records.
-
-Writing information does not guarantee that it will help. A memory system needs rules for what qualifies for storage, how the record can be updated and how errors or outdated information are corrected. The references in LangChain's article describe memory mechanisms; they do not establish that any one storage design is right for every application.
 
 ### Select: retrieve only what the next step needs
 
