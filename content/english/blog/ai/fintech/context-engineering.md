@@ -52,7 +52,7 @@ The content type does not determine how long an item is kept. The system's reten
 - A **single profile**: _updated over time_, _is easy to read_ but can grow unwieldy and is harder to update without overwriting something correct. 
 - A **collection or seperate records**: searched when needed, scales better but depends on retrieval quality, and records may contradict each other as the facts change.
 - The main risk is **staleness**: A fact that was true when it was written may no longer be true, and the model has no way to know unless the **record carries a timestamp and source**. 
-- **Semantic** memories also overlap with retrieved knowledge**. 
+- **Semantic** memories also overlap with **retrieved knowledge**. 
 - As a rule of thumb, **semantic memory holds facts the agent learned from interactions**, while **retrieved knowledge comes from a curated source of record**.
 
 #### Episodic memory: past events
