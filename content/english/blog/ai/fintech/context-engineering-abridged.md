@@ -43,7 +43,7 @@ Content based categorization can be divided broadly into 3 categories:
 #### Semantic memory: facts
 
 Semantic memory holds facts about **an entity or a domain**, such as **preferences**, **attributes** and **stable details** (fact remains true across many tasks). It can be kept as:
-- **single profile**: _updated over time_, _is easy to read_ but can grow out of control. 
+- **single profile**: _updated over time_, _is easy to read_ but can grow out of control. Several facts grouped into one record. e.g. user's communication preferences.
 - **collection of seperate records**: scales better but depends on retrieval quality, .
 - **risk**: A fact that was true earlier may no longer be true, and the model has no way to know unless the **record carries a timestamp and source**. 
 - **Semantic memories** (facts the agent learned from interactions) also overlap with **retrieved knowledge**(retrieved knowledge comes from a curated source of record). 
