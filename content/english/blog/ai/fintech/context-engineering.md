@@ -92,17 +92,23 @@ The system assembles Contexts from several sources, and each has a different lif
 
 ### Instructions
 
-Instructions are the standing rules that govern behavior: the model's role, the task boundaries, tone, escalation rules and compliance requirements. They are usually the most stable part of the context and are written by the developer rather than the user. In regulated settings they often carry security and governance obligations. Because they apply on every call, they should be concise and unambiguous. Overlapping or contradictory instructions are a common source of context clash.
+- Instructions are the standing rules that govern behavior: **the model's role, the task boundaries, tone, escalation rules and compliance requirements.** They are usually the most stable part of the context and are **written by the developer rather than the user**. In regulated settings they often carry **security and governance obligations**. Because they **apply on every call,** they should be **concise and unambiguous**. 
+- risks: **Overlapping or contradictory instructions are a common source of context clash**.
 
 ### User input and conversation history
 
-User input is the current request. Conversation history is the record of earlier turns, which gives the model continuity but also accumulates stale assumptions, abandoned goals and superseded answers. History is the part of the context that grows without anyone deciding to add to it, so it usually needs an explicit retention policy such as trimming, summarizing or moving durable facts into state.
+- **User input** is the **current request**. 
+- **Conversation history** is the **record of earlier turns**, which gives the model continuity but also accumulates stale assumptions, abandoned goals and superseded answers. 
+- History is the part of the context that grows without anyone deciding to add to it, so it usually needs an explicit retention policy such as **trimming**, **summarizing** or **moving durable facts into state**.
 
 ### Retrieved knowledge
 
-Retrieved knowledge supplies information the model was not trained on or that changes over time: policies, product documents, account records, code or search results. It is selected dynamically against the current task, often through embeddings, keyword search or graph traversal. Retrieval adds the risk of including irrelevant, outdated or unauthorized material, so the retrieved set needs checks for relevance, freshness and access. Keep source references with each passage so a reviewer can tell evidence from model-generated conclusions.
+- Retrieved knowledge supplies information the model was not trained on or that changes over time: policies, product documents, code or search results. 
+- It is selected dynamically against the current task, often through embeddings, keyword search or graph traversal. 
+- Retrieval adds the risk of including irrelevant, outdated or unauthorized material, so the retrieved set needs checks for relevance, freshness and access. 
+- Keep source references with each passage so a reviewer can tell evidence from model-generated conclusions.
 
-The quality of retrieval (RAG) depends on several choices, not just the embedding model:
+The **quality of retrieval (RAG) depends on several choices, not just the embedding model**:
 
 - **Chunking.** How documents are split determines what a retrieved passage can contain. Chunks that are too small lose surrounding meaning; chunks that are too large waste tokens and dilute relevance. Splitting along natural structure (sections, clauses, functions) usually beats fixed-size splits.
 - **Hybrid search.** Combining semantic (embedding) search with keyword search catches both paraphrases and exact identifiers such as account numbers, product codes and policy references, which embeddings often handle poorly.
@@ -112,7 +118,8 @@ The quality of retrieval (RAG) depends on several choices, not just the embeddin
 
 ### Tool definitions
 
-Tool definitions describe what the model can do: each tool's name, purpose and parameters. They consume context on every call in which they appear, and they shape the model's choices. A large catalog of overlapping tools increases the chance of a wrong selection, which is why tool loadouts and tool-gated context are useful. A definition describes capability only; permissions still need to be enforced in the tool or application.
+- Tool definitions describe what the model can do: each tool's name, purpose and parameters. 
+- They consume context on every call in which they appear, and they shape the model's choices. A large catalog of overlapping tools increases the chance of a wrong selection, which is why tool loadouts and tool-gated context are useful. A definition describes capability only; permissions still need to be enforced in the tool or application.
 
 Tool descriptions are effectively prompts, and their quality matters. Clear names, unambiguous purposes, well-described parameters and minimal overlap between tools all improve selection accuracy. The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is now a common standard for exposing tools and data to models. It makes integration easier, but it also makes it easy to connect many servers and flood the window with tool definitions. Treat every connected MCP server as both a context cost and a trust decision.
 
