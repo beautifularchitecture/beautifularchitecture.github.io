@@ -1,8 +1,8 @@
 +++
-date = '2026-10-24T09:00:00+10:00'
+date = '2024-10-24T09:00:00+10:00'
 draft = false
 title = 'Context Engineering - Organizing ideas for PDD'
-tags = ['Context Engineering','Prompt Engineering','Generative AI','RAG','AI Agents','Security','Governance','MCP']
+tags = ['Context Engineering','Prompt Engineering','Generative AI','RAG','AI Agents','Security','Governance','MCP', 'PDD']
 summary = "A practical guide to reliable, secure and auditable AI context."
 +++
 
@@ -118,38 +118,49 @@ The **quality of retrieval (RAG) depends on several choices, not just the embedd
 
 ### Tool definitions
 
-- Tool definitions describe what the model can do: each tool's name, purpose and parameters. 
-- They consume context on every call in which they appear, and they shape the model's choices. A large catalog of overlapping tools increases the chance of a wrong selection, which is why tool loadouts and tool-gated context are useful. A definition describes capability only; permissions still need to be enforced in the tool or application.
-
-Tool descriptions are effectively prompts, and their quality matters. Clear names, unambiguous purposes, well-described parameters and minimal overlap between tools all improve selection accuracy. The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is now a common standard for exposing tools and data to models. It makes integration easier, but it also makes it easy to connect many servers and flood the window with tool definitions. Treat every connected MCP server as both a context cost and a trust decision.
+- Tool definitions **describe** what the model can do: each tool's **name**, **purpose** and **parameters**. 
+- They consume context on every call in which they appear, and they shape the model's choices. 
+- **Risks**: A _large catalog_ of _overlapping tools_ increases the chance of a wrong selection, which is why tool loadouts and tool-gated context are useful. A **definition describes capability** only; **permissions** still need to be enforced in the tool or application.
+- Tool descriptions are effectively prompts, and their quality matters. Clear names, unambiguous purposes, well-described parameters and minimal overlap between tools all improve selection accuracy. The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is now a common standard for exposing tools and data to models. It makes integration easier, but it also makes **it easy to connect many servers and flood the window with tool definitions**. Treat every connected **MCP server as both a context cost and a trust decision**.
 
 ### Tool calls and results
 
-In agentic workflows, tool results are often the largest part of the context. File contents, API responses, query results and command output can be long, noisy and sometimes wrong. They are also a place where errors enter persistent context: a mistaken result that is summarized or written to a plan can later be treated as established fact. Record which statements came from a tool and which came from the model, and filter or summarize large outputs before the next step.
-
-Good tools help here by design: return only the fields needed, support pagination and filtering, enforce a maximum result size and give clear error messages that the model can act on.
+- In agentic workflows, tool results are often the largest part of the context. 
+- File contents, API responses, query results and command output can be long, noisy and sometimes wrong. 
+**risks:** They are also a place where errors enter persistent context: a mistaken result that is summarized or written to a plan can later be treated as established fact. 
+- Record which statements came from a tool and which came from the model, and filter or summarize large outputs before the next step.
+- Good tools help here by design: return only the fields needed, support pagination and filtering, enforce a maximum result size and give clear error messages that the model can act on.
 
 ### Memory
 
-Memory is information retained outside the active prompt and loaded when relevant, such as user preferences, past decisions or operating rules. It is what lets an agent behave consistently across sessions. Memory is written, selected and updated by separate mechanisms, and stored items can become outdated or incorrect (see *Types of memories*).
+- Memory is information retained outside the active prompt and loaded when relevant, such as user preferences, past decisions or operating rules. 
+- It is what lets an agent behave consistently across sessions. 
+- Memory is written, selected and updated by separate mechanisms, and stored items can become outdated or incorrect (see *Types of memories*).
 
 ### Examples and output specifications
 
-Examples show the model the intended behavior through representative input-output pairs. Output specifications, such as JSON schemas, templates and required fields, constrain the form of the response so downstream systems can use it. Both are developer-authored and stable, and both are worth keeping small. A poorly chosen example can be copied too literally, and an overly rigid schema can force the model to fill fields it has no evidence for.
+- Examples show the model the intended behavior through representative input-output pairs. 
+- Output specifications, such as JSON schemas, templates and required fields, constrain the form of the response so downstream systems can use it. 
+- Both are developer-authored and stable, and both are worth keeping small. 
+- **Risks:** A poorly chosen example can be copied too literally, and an overly rigid schema can force the model to fill fields it has no evidence for.
 
 ### Environment and task state
 
-State describes where the agent is in the work: the current date, the plan, completed and pending steps, user or account attributes, and the permissions in force. A compact task trail, the breadcrumbs described later, lets the agent resume without replaying the full history. State is also the natural place to separate what is stored from what is shown to the model on a given step.
+- State describes where the agent is in the work: the current date, the plan, completed and pending steps, user or account attributes, and the permissions in force. 
+- A **compact task trail**, the **breadcrumbs**, lets the agent **resume without replaying the full history**. 
+- State is also the natural place to separate what is stored from what is shown to the model on a given step.
 
 ### Non-text inputs
 
-Images, PDFs, spreadsheets and audio transcripts also count as context and are often expensive in tokens. They are typically better handled by processing them outside the prompt, with a tool or sandbox returning only the relevant extract.
+- Images, PDFs, spreadsheets and audio transcripts also count as context and are often expensive in tokens. 
+- They are typically better handled by processing them outside the prompt, with a tool or sandbox returning only the relevant extract.
 
 ### Why the source of each item matters
 
-These components differ in trust and lifespan. Developer-authored instructions, user statements, retrieved documents and tool outputs should not carry the same authority, and a model may be unable to tell them apart unless the system labels them. Instructions embedded in retrieved content or tool output are also a route for prompt injection (see *Security: prompt injection and trust boundaries*), so untrusted content should be clearly marked and should not override standing instructions.
-
-Each component competes for the same limited window. The sections that follow cover what goes wrong when the mix is poorly managed, and how to write, select, compress and isolate each component.
+- These components differ in trust and lifespan. 
+- Developer-authored instructions, user statements, retrieved documents and tool outputs should not carry the same authority, and a model may be unable to tell them apart unless the system labels them. 
+- Instructions embedded in retrieved content or tool output are also a route for prompt injection (see *Security: prompt injection and trust boundaries*), so untrusted content should be clearly marked and should not override standing instructions.
+- Each component competes for the same limited window. 
 
 ## Context mismanagement issues
 
@@ -157,29 +168,33 @@ These four failure modes were named and described by Drew Breunig in [How Long C
 
 ### Context poisoning
 
-Context poisoning occurs when an incorrect claim or observation is saved in the context and then reused. A mistaken tool result or a model's unsupported conclusion can become part of a plan or summary. Later steps may treat it as established information and repeat or build on the error.
-
-The practical implication is that persistent context needs provenance and correction paths. Systems should distinguish observed tool results from model-generated conclusions and should revise or remove stale claims when later evidence contradicts them.
-
-A well-known example comes from the [Gemini 2.5 technical report](https://arxiv.org/abs/2507.06261), which describes Gemini 2.5 Pro playing Pokémon. Parts of the context, such as the goals and summary, became "poisoned" with misinformation about the game state. Because the agent kept re-reading its own notes, the false information was slow to undo, and the model could become fixated on goals that were impossible or irrelevant.
+- Context poisoning occurs when an incorrect claim or observation is saved in the context and then reused. 
+- A mistaken tool result or a model's unsupported conclusion can become part of a plan or summary. 
+- Later steps may treat it as established information and repeat or build on the error.
+- The practical implication is that persistent context needs provenance and correction paths. Systems should distinguish observed tool results from model-generated conclusions and should revise or remove stale claims when later evidence contradicts them.
+- A well-known example [ Gemini 2.5 Pro playing Pokémon](https://arxiv.org/abs/2507.06261), Parts of the context became "poisoned" with misinformation about the game state. Because the agent kept re-reading its own notes, the false information was slow to undo, and the model could become fixated on goals that were impossible or irrelevant.
 
 ### Context distraction
 
-Context distraction occurs when a growing history pulls the model toward repeating past actions instead of reasoning freshly about the current task. The same Gemini 2.5 report observed that once the agent's context grew beyond roughly 100,000 tokens, it tended to favor repeating actions from its history over synthesizing new plans. Breunig cites this as the clearest example of distraction.
-
-A larger context window permits more material to fit, but capacity alone does not ensure that all included material remains useful. When an agent needs to reason over a growing trajectory, retain the parts needed to continue the task and condense or remove the rest. The point at which distraction appears varies by model and task, so evaluate the actual application instead of assuming that filling the window is harmless.
+- Context distraction occurs when a growing history pulls the model toward repeating past actions instead of reasoning freshly about the current task. 
+- The same Gemini 2.5 report observed that once the agent's context grew big, it tended to favor repeating actions from its history over synthesizing new plans. 
+- A larger context window permits more material to fit, but capacity alone does not ensure that all included material remains useful. 
+- When an agent needs to reason over a growing trajectory, retain the parts needed to continue the task and condense or remove the rest. 
+- The point at which distraction appears varies by model and task.
 
 ### Context confusion
 
-Context confusion occurs when irrelevant information affects the model's response. Irrelevant tool descriptions are one example: a model that receives many overlapping tools has more opportunities to choose a tool that does not fit the request. Retrieving only tools relevant to the current task is one proposed response; LangChain points to research on retrieval-augmented selection of tool descriptions.
-
-The wider lesson is to avoid presenting every available instruction, document and tool on every turn. Select the smallest useful set for the current step, then measure whether the selection improves the outcome.
+- Context confusion occurs when irrelevant information affects the model's response. 
+- Irrelevant tool descriptions are one example: a model that receives many overlapping tools has more opportunities to choose a tool that does not fit the request. 
+- Retrieving only tools relevant to the current task is one proposed response; LangChain points to research on retrieval-augmented selection of tool descriptions.
 
 ### Context clash
 
-Context clash occurs when instructions or facts in the context disagree. Contradictions can arise between old and new user statements, retrieved documents, tool outputs or intermediate model answers. A multi-turn exchange can also preserve an early, mistaken answer after the user provides the missing details.
-
-Provenance, timestamps and explicit precedence rules help make conflicts visible. The system should not silently merge incompatible claims. Where the conflict affects the task and cannot be resolved from trusted evidence, the agent should ask for clarification or report the uncertainty. Breunig's article describes examples where information split across turns produced worse results because earlier assumptions remained in the conversation.
+- Context clash occurs when instructions or facts in the context disagree. 
+- Contradictions can arise between old and new user statements, retrieved documents, tool outputs or intermediate model answers. 
+- A multi-turn exchange can also preserve an early, mistaken answer after the user provides the missing details.
+- Provenance, timestamps and explicit precedence rules help make conflicts visible. 
+- The system should not silently merge incompatible claims. Where the conflict affects the task and cannot be resolved from trusted evidence, the agent should ask for clarification or report the uncertainty. 
 
 
 ### Memory governance
@@ -199,14 +214,13 @@ Writing a memory does not guarantee that it will help. Treat memory the same way
 
 LangChain uses four verbs to describe common approaches: **write** context outside the active window, **select** useful context for the next call, **compress** context to retain its important information and **isolate** context so each part is exposed only where needed.
 
-| Operation | Question to answer | Typical mechanisms |
-| --- | --- | --- |
-| Write | What should be retained for later? | Scratchpads, task state and persistent memory |
-| Select | What does this step need? | Retrieval, state filtering and tool selection |
-| Compress | What can be shortened or removed? | Summaries, message trimming and output filtering |
-| Isolate | What should remain separate? | Per-agent context, structured state and execution sandboxes |
-
-Drew Breunig's follow-up article turns these four operations into six context management tactics: **RAG** selects relevant knowledge, **tool loadouts** select relevant tools, **context quarantine** isolates work in separate threads, **pruning** removes unneeded material, **summarization** condenses accrued context and **offloading** stores information outside the active prompt. The tactics map to LangChain's four operations; they are not competing categories. [How to Fix Your Context](https://www.dbreunig.com/2025/06/26/how-to-fix-your-context.html) discusses each tactic with examples.
+Drew Breunig's follow-up article turns these four operations into six context management tactics: 
+- **RAG** selects relevant knowledge,
+- **tool loadouts** select relevant tools
+- **context quarantine** isolates work in separate threads
+- **pruning** removes unneeded material
+- **summarization** condenses accrued context  
+- **offloading** stores information outside the active prompt. 
 
 ### Write: preserve information outside the active prompt
 
@@ -266,7 +280,7 @@ Isolation is a context design technique, not a substitute for access control. Sy
 
 ## Five implementation strategies
 
-The four operations describe what context management needs to accomplish. These five strategies describe ways to implement those decisions in an agent workflow, including a financial services workflow where relevance, traceability and access boundaries matter.
+These five strategies describe ways to implement those decisions in an agent workflow, including a financial services workflow where relevance, traceability and access boundaries matter.
 
 | Strategy | How it applies | Related operation |
 | --- | --- | --- |
