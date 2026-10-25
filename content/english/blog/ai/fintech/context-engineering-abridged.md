@@ -30,11 +30,12 @@ Memories can be classified by **how long they last** and by **what kind of infor
 - agent **working with right now**. 
 - **conversation history**, **scratchpad**, **task state**. 
 - **risk**: left unmanaged, it fills the window with stale assumptions and large tool outputs - **context distraction**.
+- decisions you make during vibe coding are lost as it is part of the short term memory. 
 
 #### Long-term memory
 - not kept in the prompt. 
 - persists after the task ends - written to a store and selected into context only when relevant. 
-- **risks**: storing something wrong, keeping it too long or retrieving it in the wrong situation - **context poisoning**.
+- **risks**: storing something wrong, keeping it too long or retrieving it in the wrong situation
 
 ### By content
 
@@ -50,7 +51,7 @@ Semantic memory holds facts about **an entity or a domain**, such as **preferenc
 
 #### Episodic memory: past events
 - stores **a previous task** and **the outcome**. 
-- **risk**: Context Distraction and retrieval mismatch.
+- **risk**: retrieval mismatch.
 Episodes should record the action and outcomes, so a failed attempt is not reused as a model to follow.
 
 #### Procedural memory: how to behave
@@ -91,24 +92,20 @@ These four failure modes:
 ### Context distraction
 
 - Context distraction occurs when a **growing history pulls the model** toward **repeating past** actions instead of reasoning freshly about the current task. 
-- **retain the parts needed to continue the task and condense or remove the rest**. 
+- **retain the parts needed to continue the task and condense or remove the rest**
 
 ### Context confusion
 
 - Context confusion occurs when **irrelevant information affects the model's response**. 
 - MCP is one example: **a model that receives many overlapping tools** has more opportunities to choose a tool that does not fit the request. 
-- Retrieving only tools relevant to the current task is one proposed response;
+- Retrieving only tools relevant to the current task is one proposed response - also called - **context selection**;
 
 ### Context clash
 
 - Context clash occurs when **instructions or facts in the context disagree**. 
 - Contradictions can arise between **old and new user statements**, **retrieved documents**, **tool outputs** or **intermediate model answers**. 
 - Provenance, timestamps and explicit precedence rules help make conflicts visible. 
-- The system should not silently merge incompatible claims. Where the conflict affects the task and cannot be resolved from trusted evidence, the agent should ask for clarification or report the uncertainty. 
-
-## Four operations for context engineering
-
-LangChain uses four verbs to describe common approaches: **write** context outside the active window (scratchpads, structed note taking, long term memory), **select** useful context for the next call (Just in time retrieval), **compress** (summarization, compaction, trimming) and **isolate** context so each part is exposed only where needed.
+- The system should not silently merge or compress (**summarization, compaction, trimming**) incompatible claims. Where the conflict affects the task and cannot be resolved from trusted evidence, the agent should ask for clarification or report the uncertainty. 
 
 ## Five implementation strategies
 
