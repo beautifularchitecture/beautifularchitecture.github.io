@@ -186,9 +186,9 @@ These four failure modes were named and described by Drew Breunig in [How Long C
 
 ### Context confusion
 
-- Context confusion occurs when irrelevant information affects the model's response. 
-- Irrelevant tool descriptions are one example: a model that receives many overlapping tools has more opportunities to choose a tool that does not fit the request. 
-- Retrieving only tools relevant to the current task is one proposed response; LangChain points to research on retrieval-augmented selection of tool descriptions.
+- Context confusion occurs when **irrelevant information affects the model's response**. 
+- Irrelevant tool descriptions are one example: **a model that receives many overlapping tools** has more opportunities to choose a tool that does not fit the request. 
+- Retrieving only tools relevant to the current task is one proposed response;
 
 ### Context clash
 
