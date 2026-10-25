@@ -49,15 +49,14 @@ Semantic memory holds facts about **an entity or a domain**, such as **preferenc
 - **Semantic memories** (facts the agent learned from interactions) also overlap with **retrieved knowledge**(retrieved knowledge comes from a curated source of record). 
 
 #### Episodic memory: past events
-- stores what happened: **a previous task**, how it was handled and what **the outcome** was. 
-- most common use is as few-shot examples, where a past success is retrieved and shown to the model as a pattern to follow. 
+- stores **a previous task** and **the outcome**. 
 - **risk**: Context Distraction and retrieval mismatch.
 Episodes should record the action and outcomes, so a failed attempt is not reused as a model to follow.
 
 #### Procedural memory: how to behave
-- Procedural memory holds the **rules and instructions that govern behavior**. 
+- holds the **rules and instructions that govern behavior**. 
 - such as the instructions applied based on glob patterns - so JPA standards applied to files matching an `entities/*.java` pattern. 
-- **It differs from the other two types in that it is often meant to change how the agent behaves rather than what it knows.**
+- defines **how the agent behaves rather than what it knows.**
 - **risk**: **persisting a bad rule**. 
 Some systems let the agent refine its own instructions based on feedback, similar to reflection approaches such as Reflexion. This is powerful but also involves an element of risk. In regulated settings, procedural memory should be changed through reviewed processes and versioned, not edited silently by the model.
 
