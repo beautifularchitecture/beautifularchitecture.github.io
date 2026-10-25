@@ -170,11 +170,11 @@ These four failure modes were named and described by Drew Breunig in [How Long C
 
 ### Context poisoning
 
-- Context poisoning occurs when an incorrect claim or observation is saved in the context and then reused. 
-- A mistaken tool result or a model's unsupported conclusion can become part of a plan or summary. 
-- Later steps may treat it as established information and repeat or build on the error.
-- The practical implication is that persistent context needs provenance and correction paths. Systems should distinguish observed tool results from model-generated conclusions and should revise or remove stale claims when later evidence contradicts them.
+- Context poisoning occurs when an **incorrect claim** or **observation** is saved in the **context and then reused**. 
+- A **mistaken tool result** or a **model's unsupported conclusion** (claim without evidence) can become part of a **plan or summary**. 
+- Later steps may **treat it as established information** and **repeat** or **build on the error**.
 - A well-known example [ Gemini 2.5 Pro playing Pokémon](https://arxiv.org/abs/2507.06261), Parts of the context became "poisoned" with misinformation about the game state. Because the agent kept re-reading its own notes, the false information was slow to undo, and the model could become fixated on goals that were impossible or irrelevant.
+- The practical implication is that persistent context needs provenance and correction paths. Systems should distinguish observed tool results from model-generated conclusions and should revise or remove stale claims when later evidence contradicts them.
 
 ### Context distraction
 
