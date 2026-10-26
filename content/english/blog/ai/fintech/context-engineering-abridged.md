@@ -103,7 +103,8 @@ These four failure modes:
 - Context clash occurs when **instructions or facts in the context disagree**. 
 - Contradictions can arise between **old and new user statements**, **retrieved documents**, **tool outputs** or **intermediate model answers**. 
 - Provenance, timestamps and explicit precedence rules help make conflicts visible. 
-- The system should not silently merge or compress (**summarization, compaction, trimming**) incompatible claims. Where the conflict affects the task and cannot be resolved from trusted evidence, the agent should ask for clarification or report the uncertainty. 
+- Context shouldnt be silently merged or compressed (**summarization, compaction, trimming**) incompatible claims. 
+- If conflict occurs - **resolve from trusted evidence** - **if not possible** the agent should **ask for clarification** or **report the uncertainty**. 
 
 ## Five implementation strategies
 
