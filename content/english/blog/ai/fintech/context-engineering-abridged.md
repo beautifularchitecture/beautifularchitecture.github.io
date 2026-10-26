@@ -119,3 +119,16 @@ These five strategies describe ways to implement those decisions in an agent wor
 | Policy-wrapped context | Apply standing instructions that govern how the model uses the task context and produces an output. Instructions can cover security, compliance and governance, as well as implementation conventions scoped to files or tasks, such as JPA standards for files matching an `entities/*.java` pattern. | Select and isolate |
 
 These strategies can be combined. For example, a workflow can retrieve and trim transaction evidence, bundle the selected evidence with the request, record a breadcrumb that points to the source records, expose an approved tool for the current step and apply the instructions that govern the action and output. The workflow should preserve source references so reviewers can distinguish evidence from summaries or model-generated conclusions.
+
+### Where this work fits in the larger roadmap
+
+This work is part of larger 
+- harness-neutral design
+- staged scoped workflow
+- knowledge as the single source of truth - fully reviwed and approved.
+- full tracability and auditability
+- persona based context and ai agents.
+- unit level isolation (AI autonomous execution of stories)
+- review and feedback
+- specialist agents and approval gates
+
