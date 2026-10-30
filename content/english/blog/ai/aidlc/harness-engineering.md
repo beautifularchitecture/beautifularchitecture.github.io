@@ -1,7 +1,7 @@
 +++
 date = '2026-10-17T00:00:00+10:00'
 draft = false
-title = 'AI-DLC Harness Engineering: A Complete Guide to Shaping the Factory'
+title = 'AI-DLC Harness Engineering'
 tags = ['AI-DLC', 'Agentic AI', 'Harness Engineering', 'Agents', 'Process']
 summary = "A clear, practical guide to reshaping AI-DLC without writing code: stages, agents, scopes, rules, sensors, knowledge, swarm construction, porting harnesses, and authoring plugins."
 aliases = ['/blog/ai/aidlc/harness-engineering/']

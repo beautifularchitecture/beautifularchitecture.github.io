@@ -1,7 +1,7 @@
 +++
 date = '2026-10-14T12:10:00+10:00'
 draft = false
-title = 'AI-DLC Developer Reference: Changing the Framework Itself'
+title = 'AI-DLC Developer Reference'
 tags = ['AI-DLC', 'AI', 'Agentic', 'Software Engineering', 'Methodology', 'Developer Reference', 'AWS', 'Orchestration']
 summary = 'A complete guide to the code behind AI-DLC: the 5-layer architecture, the plane split, the orchestrator and its state machine, the stage protocol and definition, the agent, knowledge, rule and sensor systems, hooks and CLI tools, the compile pipeline and runtime graph, the engine and skill system, plugins, supply-chain security, commit provenance, the test suite, and how to contribute.'
 +++
