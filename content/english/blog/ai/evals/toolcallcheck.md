@@ -125,7 +125,7 @@ pytest tests/test_trajectory.py -v
 
 ## Companion Repo
 
-The companion repo includes [`scripts/tools/example_toolcallcheck.py`](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/tools/example_toolcallcheck.py) with a complete `MockMCPServer` implementation, scenarios (refund flow, destructive guard, search-then-write), and test functions demonstrating every assertion.
+The companion repo includes [`scripts/tools/example_toolcallcheck.py`](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/tools/example_toolcallcheck.py) with a complete `MockMCPServer` implementation, scenarios (refund flow, destructive guard, search-then-write), and test functions demonstrating every assertion.
 
 ## ToolCallCheck vs. Trajectory Eval
 
@@ -145,6 +145,6 @@ Use ToolCallCheck for unit tests of individual tool-call behaviours. Use Traject
 ## Further Reading
 
 - [Testing LLM Outputs: The Eval Pyramid](../../ai-outputs-eval/)
-- [Trajectory Evaluation in the Companion Repo](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/trajectory/trajectory_eval.py)
+- [Trajectory Evaluation in the Companion Repo](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/trajectory/trajectory_eval.py)
 - [pytest for LLM Evaluation](../pytest/)
 - [hypothesis: Property-Based Testing for LLM Outputs](../hypothesis/)

@@ -23,7 +23,7 @@ summary = "Comprehensive Guide to mastering Anomaly Detection in Machine Learnin
 
 ## Distribution Types
 
-[Distribution types notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/distribution_types.ipynb) — interactive code for all four distributions below.
+[Distribution types notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/distribution_types.ipynb) — interactive code for all four distributions below.
 
 | Distribution    | Shape                     | Properties                                      | Used When                                                                  |
 | --------------- | ------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------- |
@@ -142,7 +142,7 @@ The below is used for univariate outlier detection and spread measurement when d
 
 A histogram bins continuous data and counts how many values fall into each bin. The shape reveals location, spread, skew, and modality, and isolated bins at the tails often flag extreme values.
 
-[Histogram notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/histogram.ipynb)
+[Histogram notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/histogram.ipynb)
 
 **Use when:** Exploratory data analysis, understanding univariate distribution shape, detecting gaps or clustering in values, communicating distributions to a general audience.
 
@@ -152,7 +152,7 @@ A histogram bins continuous data and counts how many values fall into each bin. 
 
 A box plot summarises a distribution through five key statistics: minimum (whisker-end), Q1, median, Q3, and maximum (whisker-end). The **box** spans IQR (Q1–Q3) with the **median** as a line. **Whiskers** reach to the furthest point within 1.5×IQR; points beyond are **outliers** via Tukey's fences.
 
-[Box plot notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/boxplot.ipynb)
+[Box plot notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/boxplot.ipynb)
 
 **Use when:** Comparing distributions across multiple groups, quickly spotting outliers, showing central tendency and spread with skewed data — all in a compact form.
 
@@ -162,7 +162,7 @@ A box plot summarises a distribution through five key statistics: minimum (whisk
 
 A violin plot combines a box plot with a rotated KDE mirrored on each side. The **violin shape** reveals the full distribution — peaks, skew, gaps, and tails — while **inner lines** show the median and IQR.
 
-[Violin plot notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/boxplot.ipynb)
+[Violin plot notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/boxplot.ipynb)
 
 **Use when:** When you care about distribution shape (unimodal, bimodal, multimodal), want to compare density across groups, and need more detail than a box plot alone provides.
 
@@ -172,7 +172,7 @@ A violin plot combines a box plot with a rotated KDE mirrored on each side. The 
 
 A Q-Q (quantile-quantile) plot scatters your data's quantiles against a reference distribution's quantiles (usually normal). Points along a straight line indicate the data matches the distribution.
 
-[Q-Q plot notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/qq.ipynb)
+[Q-Q plot notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/qq.ipynb)
 
 **Use when:** To test normality assumptions (required for many statistical tests), to compare data against any theoretical distribution, or to compare quantiles of two empirical datasets.
 
@@ -182,7 +182,7 @@ A Q-Q (quantile-quantile) plot scatters your data's quantiles against a referenc
 
 A simple line plot of a variable against a time index. Anomalies appear as spikes, dips, level shifts, or changes in seasonality or trend.
 
-[Time series notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/timeseries.ipynb)
+[Time series notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/timeseries.ipynb)
 
 **Use when:** For any data indexed by time — monitoring metrics, sensor readings, stock prices, server logs. First step in any time-series analysis.
 
@@ -196,7 +196,7 @@ A simple line plot of a variable against a time index. Anomalies appear as spike
 
 A scatter plot places each observation as a point in x-y space. Pair plots extend this to all variable pairs in a grid, often with histograms or KDE on the diagonal.
 
-[Scatter & pair plot notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/scatter_n_pair.ipynb)
+[Scatter & pair plot notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/scatter_n_pair.ipynb)
 
 **Use when:** To visualise relationships, correlations, clusters, and outliers between two (scatter) or many (pair plot) numerical variables. Excellent for spotting non-linear patterns and isolated groups.
 
@@ -206,7 +206,7 @@ A scatter plot places each observation as a point in x-y space. Pair plots exten
 
 Each variable is drawn as a vertical axis; each observation is a polyline crossing all axes. Outliers stand out as lines that deviate sharply from the main flow.
 
-[Parallel coordinates notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/parallel.ipynb)
+[Parallel coordinates notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/parallel.ipynb)
 
 **Use when:** For high-dimensional data (5–50 variables), comparing profiles across groups, spotting outliers that violate normal multi-variable patterns.
 
@@ -216,7 +216,7 @@ Each variable is drawn as a vertical axis; each observation is a polyline crossi
 
 A heatmap displays a matrix of values (typically correlations) as a colour grid. Darker or warmer colours indicate stronger relationships.
 
-[Heatmap & correlation notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/heatmap_n_correlation_mat.ipynb)
+[Heatmap & correlation notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/heatmap_n_correlation_mat.ipynb)
 
 **Use when:** To visualise a correlation matrix at a glance, to identify clusters of correlated variables, or to display distance matrices or missing-data patterns.
 
@@ -226,7 +226,7 @@ A heatmap displays a matrix of values (typically correlations) as a colour grid.
 
 Each multi-dimensional observation is transformed into a Fourier-series-like curve plotted over t ∈ [−π, π]. Observations cluster into bundles; outliers form curves that stray from the pack.
 
-[Andrews curves notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/andrews.ipynb)
+[Andrews curves notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/andrews.ipynb)
 
 **Use when:** For exploring groupings in moderate-dimensional data (up to ~10 variables), as an alternative to parallel coordinates when data has a periodic structure.
 
@@ -240,7 +240,7 @@ Each multi-dimensional observation is transformed into a Fourier-series-like cur
 
 The ECDF jumps by 1/n at each data point, showing the proportion of values ≤ x. No bins, no bandwidth — just the data.
 
-[ECDF notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/empirical_cdf.ipynb)
+[ECDF notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/empirical_cdf.ipynb)
 
 **Use when:** When you need an assumption-free view of the cumulative distribution, when comparing distributions without any smoothing parameters, or when identifying the percentage of data above or below a threshold.
 
@@ -250,7 +250,7 @@ The ECDF jumps by 1/n at each data point, showing the proportion of values ≤ x
 
 KDE plots a smooth, continuous estimate of the probability density function using a kernel over each data point. It is a histogram with no binning artifacts.
 
-[KDE notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/kde.ipynb)
+[KDE notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/kde.ipynb)
 
 **Use when:** When you want a smooth distribution shape independent of bin choice, when comparing densities of multiple groups on the same axes, or as a foundation for violin plots and 2D density contours.
 
@@ -260,7 +260,7 @@ KDE plots a smooth, continuous estimate of the probability density function usin
 
 A scatter plot of each value against its value k steps earlier. A linear pattern indicates autocorrelation; a random cloud suggests independence.
 
-[Lag plot notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/lag.ipynb)
+[Lag plot notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/lag.ipynb)
 
 **Use when:** To check for serial dependence, to identify the appropriate lag for autoregressive models, and to spot periodic outliers.
 
@@ -274,7 +274,7 @@ A scatter plot of each value against its value k steps earlier. A linear pattern
 
 Monitor a metric over time with upper and lower control limits. Points outside the limits or non-random patterns signal anomalous shifts.
 
-[Advanced visual techniques notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/advanced_visual_techniques.ipynb)
+[Advanced visual techniques notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/advanced_visual_techniques.ipynb)
 
 **Use when:** Process monitoring in manufacturing, DevOps, and finance. Detecting mean shifts or variance changes in streaming metrics.
 
@@ -284,7 +284,7 @@ Monitor a metric over time with upper and lower control limits. Points outside t
 
 A multi-variable distance scaled by the covariance matrix. Accounts for correlations between features so an outlier may only appear unusual when considering multiple variables together.
 
-[Advanced visual techniques notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/advanced_visual_techniques.ipynb)
+[Advanced visual techniques notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/advanced_visual_techniques.ipynb)
 
 **Use when:** When features are correlated and you need a single multivariate anomaly score. Effective for sensor arrays, multi-metric system health.
 
@@ -294,7 +294,7 @@ A multi-variable distance scaled by the covariance matrix. Accounts for correlat
 
 Identifies influential points in regression — observations that disproportionately affect the fitted model. High Cook's distance indicates leverage + large residual.
 
-[Advanced visual techniques notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/advanced_visual_techniques.ipynb)
+[Advanced visual techniques notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/advanced_visual_techniques.ipynb)
 
 **Use when:** Regression diagnostics, finding points that unduly influence model parameters.
 
@@ -304,7 +304,7 @@ Identifies influential points in regression — observations that disproportiona
 
 Scatter plot of residuals (observed − predicted) vs fitted values. A random cloud around zero is ideal; patterns indicate model misspecification or anomalies.
 
-[Advanced visual techniques notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/advanced_visual_techniques.ipynb)
+[Advanced visual techniques notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/advanced_visual_techniques.ipynb)
 
 **Use when:** To check model assumptions (homoscedasticity, linearity), to spot outliers the model cannot explain.
 
@@ -318,7 +318,7 @@ Scatter plot of residuals (observed − predicted) vs fitted values. A random cl
 
 PCA projects high-dimensional data onto orthogonal components that maximise variance. The first two or three components form a low-dimensional scatter plot.
 
-[PCA notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/pca.ipynb)
+[PCA notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/pca.ipynb)
 
 **Use when:** To reduce dimensionality while preserving global variance structure, as a preprocessing step before clustering, or to decorrelate features.
 
@@ -328,7 +328,7 @@ PCA projects high-dimensional data onto orthogonal components that maximise vari
 
 UMAP builds a nearest-neighbour graph and optimises a low-dimensional embedding that preserves local topology. It produces tight, separated clusters.
 
-[UMAP notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/umap.ipynb)
+[UMAP notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/umap.ipynb)
 
 **Use when:** For visualising high-dimensional data with strong local structure, when clusters are expected but non-linearly separable, or when PCA fails to separate known groups.
 
@@ -375,7 +375,7 @@ Euclidean, Manhattan, and Mahalanobis distance measure similarity between points
 
 Scores each point by the distance to its k-th nearest neighbour. Points far from all neighbours are flagged.
 
-[kNN notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/knn_lof.ipynb)
+[kNN notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/knn_lof.ipynb)
 
 **Use when:** As a simple, interpretable distance-based baseline. Works well when the anomaly definition is "far from everything."
 
@@ -385,7 +385,7 @@ Scores each point by the distance to its k-th nearest neighbour. Points far from
 
 Compares the local density of a point to that of its neighbours. Points with much lower density than neighbours receive a high LOF score.
 
-[LOF notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/knn_lof.ipynb)
+[LOF notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/knn_lof.ipynb)
 
 **Use when:** When data has varying-density clusters — a point may be anomalous relative to its neighbourhood even if it sits in a dense global region.
 
@@ -395,7 +395,7 @@ Compares the local density of a point to that of its neighbours. Points with muc
 
 Groups points that are closely packed together (dense neighbourhoods) and marks points in low-density regions as noise/outliers.
 
-[DBSCAN notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/dbscan.ipynb)
+[DBSCAN notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/dbscan.ipynb)
 
 **Use when:** When clusters are arbitrary-shaped (not just spherical), when you need robust outlier identification as a by-product of clustering, and when the number of clusters is unknown.
 
@@ -411,7 +411,7 @@ _Practice: Multivariate tabular data, customer behavior, transaction records. Al
 
 Builds random decision trees that partition the data. Anomalies are isolated in fewer splits (shorter path lengths) because they are few and different. Fast, scalable, and does not rely on distance or density.
 
-[Isolation Forest notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/isolation.ipynb)
+[Isolation Forest notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/isolation.ipynb)
 
 **Use when:** With high-dimensional data, large datasets, or when speed matters. Excels when anomalies are few and have feature values that differ from normal points.
 
@@ -421,7 +421,7 @@ Builds random decision trees that partition the data. Anomalies are isolated in 
 
 Combines several detectors (e.g., kNN + LOF + Isolation Forest) through averaging, voting, or stacking to produce a more robust outlier score.
 
-[Ensemble strategies notebook](https://github.com/welldesignedsystem/friendly-fortnight/blob/main/blog/ensemble.ipynb)
+[Ensemble strategies notebook](https://github.com/beautifularchitecture/friendly-fortnight/blob/main/blog/ensemble.ipynb)
 
 **Use when:** When no single detector is reliable, when you need to reduce false positives, or to leverage complementary strengths (distance-based + density-based + tree-based).
 

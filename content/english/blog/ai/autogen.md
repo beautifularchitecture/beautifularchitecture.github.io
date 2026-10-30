@@ -16,12 +16,12 @@ AutoGen provides a well-defined class hierarchy that forms the foundation for bu
 
 ## Class Diagrams
 
-![Class Diagram](https://raw.githubusercontent.com/welldesignedsystem/stunning-spork/main/Agent_original.svg)
-![Class Diagram](https://raw.githubusercontent.com/welldesignedsystem/stunning-spork/main/Agent_grouped.svg)
+![Class Diagram](https://raw.githubusercontent.com/beautifularchitecture/stunning-spork/main/Agent_original.svg)
+![Class Diagram](https://raw.githubusercontent.com/beautifularchitecture/stunning-spork/main/Agent_grouped.svg)
 
 ## Some code snippets:
 
-[Sample Code](https://github.com/welldesignedsystem/stunning-spork/blob/main/notebook.ipynb)
+[Sample Code](https://github.com/beautifularchitecture/stunning-spork/blob/main/notebook.ipynb)
 
 ## References
 

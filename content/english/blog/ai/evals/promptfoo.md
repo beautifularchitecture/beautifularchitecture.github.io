@@ -205,7 +205,7 @@ The `check` command fails if any assertion fell below the threshold.
 
 ## Companion Repo
 
-The companion repo includes [`scripts/example_promptfoo.yaml`](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/tools/example_promptfoo.yaml) with a working config you can adapt.
+The companion repo includes [`scripts/example_promptfoo.yaml`](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/tools/example_promptfoo.yaml) with a working config you can adapt.
 
 ## Promptfoo vs. DeepEval vs. Braintrust
 

@@ -104,11 +104,11 @@ There might be some Transports not ideal for MCP:
 
 ### Class Diagram Grouped
 
-![Class diagram](https://raw.githubusercontent.com/welldesignedsystem/silver-lamp/refs/heads/main/misc/MCP_Grouped.svg)
+![Class diagram](https://raw.githubusercontent.com/beautifularchitecture/silver-lamp/refs/heads/main/misc/MCP_Grouped.svg)
 
 ### Class Diagram Original
 
-![Class diagram](https://raw.githubusercontent.com/welldesignedsystem/silver-lamp/refs/heads/main/misc/MCP_Original.svg)
+![Class diagram](https://raw.githubusercontent.com/beautifularchitecture/silver-lamp/refs/heads/main/misc/MCP_Original.svg)
 
 ## Streamable HTTP
 
@@ -137,11 +137,11 @@ Context Managent for multiple usecases within a company.
 
 ### Architecture Diagram
 
-![MCP](https://github.com/welldesignedsystem/silver-lamp/blob/main/misc/mcp.png?raw=true)
+![MCP](https://github.com/beautifularchitecture/silver-lamp/blob/main/misc/mcp.png?raw=true)
 
 #### Quick win - llms.txt
 
-![MCP](https://github.com/welldesignedsystem/silver-lamp/blob/main/misc/02_mcp-llm-txt.png?raw=true)
+![MCP](https://github.com/beautifularchitecture/silver-lamp/blob/main/misc/02_mcp-llm-txt.png?raw=true)
 
 llms.txt is a proposed standard for adding a Markdown file at /llms.txt on a website to provide LLM-friendly content so AI models can better understand a site at inference time, it contains
 
@@ -188,11 +188,11 @@ e.g.
 
 ### Testing MCP Server with LLM.txt Inspector
 
-![MCP](https://github.com/welldesignedsystem/silver-lamp/blob/main/misc/03_llm-txt-inspector-result.png?raw=true)
+![MCP](https://github.com/beautifularchitecture/silver-lamp/blob/main/misc/03_llm-txt-inspector-result.png?raw=true)
 
 ### Testing MCP Server with PyCharm MCP Plugin
 
-![MCP](https://github.com/welldesignedsystem/silver-lamp/blob/main/misc/04_pycharm_mcp.png?raw=true)
+![MCP](https://github.com/beautifularchitecture/silver-lamp/blob/main/misc/04_pycharm_mcp.png?raw=true)
 
 ### Approach
 

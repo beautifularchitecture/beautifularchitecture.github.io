@@ -68,7 +68,7 @@ Guardrails are safety mechanisms or constraints that are implemented to ensure t
 
 Tracing is the process of monitoring and recording the actions and decisions made by agents during their interactions with the environment. This can include logging inputs, outputs, and intermediate steps taken by the agent as it processes information and makes decisions. Tracing provides valuable insights into the behavior of agents, allowing developers to analyze performance, identify issues, and improve the overall design of the agentic system.
 
-[Source](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py)
+[Source](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py)
 
 ## Tools
 
@@ -76,8 +76,8 @@ Tracing is the process of monitoring and recording the actions and decisions mad
 
 Types of Agent Tools:
 
-- [Custom Tools](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L66)
-- [Agent as Tools](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L446)
+- [Custom Tools](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L66)
+- [Agent as Tools](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L446)
 - OpenAI Hosted Tools
   - WebSearchTool - performs real time searches on web
   - FileSearchTool - Search and Retrieval from vector stores
@@ -98,15 +98,15 @@ Types of Agent Tools:
   - auto: the agent decides which tool to use
   - required: forces the agent to use a tool
   - none: prevents the agent from using any tools
-- [Tool Use Behaviors](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L241):
+- [Tool Use Behaviors](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L241):
   - run_llm_again: after each tool call, the agent re-invokes the LLM with the updated context
   - stop_on_first_tool: the agent stops after the first tool call and returns the tool output as the final answer
   - StopAtTools(stop_at_tool_names=["issue_refund"]): the agent stops after calling any of the specified tools
 
 ## Memory & Knowledge
 
-- [Short Term Memory](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L465-L486)
-- [Long Term Memory](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L489-L505)
+- [Short Term Memory](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L465-L486)
+- [Long Term Memory](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L489-L505)
 - Training Knowledge
 - Retrieved Knowledge
   - Good for unstructured Data handling
@@ -119,10 +119,10 @@ Types of Agent Tools:
 
 ## Chat Conversations
 
-- [Conversation management with Session](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L467-L505)
+- [Conversation management with Session](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L467-L505)
 - large converstion threads (based on subject for example)
 - Sliding message window
-  - [Similar to using a list of message](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L467-L486) but involves use of a FIFO queue or deque instead of list of messages
+  - [Similar to using a list of message](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L467-L486) but involves use of a FIFO queue or deque instead of list of messages
 - message Summarization
 
 ## Agentic AI Design Patterns
@@ -138,35 +138,35 @@ These are some of the design patterns that can be implemented easily with OpenAI
 
 ### MultiAgent Orchestration Pattern
 
-- [Deterministic Orchestration](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L510-L545)
-- [Dynamic Orchestration](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L550-L593)
+- [Deterministic Orchestration](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L510-L545)
+- [Dynamic Orchestration](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L550-L593)
 
 ### Handoff Patterns
 
 - Agent as Tool Pattern
-- [Handoff Patterns](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L259-L304)
-- [Multi Agent Switching](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L597-L642)
+- [Handoff Patterns](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L259-L304)
+- [Multi Agent Switching](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L597-L642)
 - Customizing Handoffs:
   - by means of parameters such as agents, tool_name/description_override, on handoff, input_type/filter
-- [Handoff Prompting](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L599-L606)
+- [Handoff Prompting](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L599-L606)
 
 ### MultiAgent Patterns
 
 - Centralized System
-  - [Hierarchical System](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L647-L696)
+  - [Hierarchical System](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L647-L696)
   - ![hierarchy.png](../img/hierarchy.png)
 - Decentralized System
-  - [Swarm Systems](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L647-L696)
+  - [Swarm Systems](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L647-L696)
     - based on a concept called emergent behavior or stigmergy
 
 ## Context Management Patterns
 
-- [Local Context](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L722-L759)
+- [Local Context](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L722-L759)
 - MCP Server as a Tool
 
 ## Others
 
-- [Unit Testing](https://github.com/welldesignedsystem/crispy-meme/blob/main/src/basics.py#L780-L808)
+- [Unit Testing](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L780-L808)
 
 ## Reference
 

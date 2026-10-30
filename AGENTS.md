@@ -1,4 +1,4 @@
-# AGENTS.md — welldesignedsystem.github.io
+# AGENTS.md — beautifularchitecture.github.io
 
 Hugo static site (hugoplate theme, TailwindCSS v4, Hugo modules). Deployed to GitHub Pages via `.github/workflows/deploy.yml`. **No `opencode.json`** — instructions are served by this file plus `.github/copilot-instructions.md`.
 

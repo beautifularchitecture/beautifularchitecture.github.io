@@ -10,7 +10,7 @@ GitHub Copilot and its customization instructions, a powerful framework for stru
 
 ## Overall idea
 
-![Mindmap](https://raw.githubusercontent.com/welldesignedsystem/literate-dollop/refs/heads/main/misc/mindmap.svg)
+![Mindmap](https://raw.githubusercontent.com/beautifularchitecture/literate-dollop/refs/heads/main/misc/mindmap.svg)
 
 ## Introduction
 
@@ -653,7 +653,7 @@ Key differences to be aware of across tools:
 ### MCP Servers in GitHub Copilot
 
 - Model Context Protocol is an open standard protocol that provides a universal approach for applications to provide context to language models.
-- [Read More](https://welldesignedsystem.github.io/blog/ai/mcp/)
+- [Read More]({{< relref "blog/ai/mcp.md" >}})
 - Configuring MCP Servers (`mcp.json`)
   - MCP servers are configured in `.vscode/mcp.json`. This file tells VS Code which servers to start and how to connect to them.
 

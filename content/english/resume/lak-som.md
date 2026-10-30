@@ -5,7 +5,7 @@ description: this is meta description
 social:
   - name: github
     icon: fa-brands fa-github
-    link: https://github.com/welldesignedsystem?tab=repositories
+    link: https://github.com/beautifularchitecture?tab=repositories
 
   - name: linkedin
     icon: fa-brands fa-linkedin

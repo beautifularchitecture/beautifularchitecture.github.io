@@ -39,7 +39,7 @@ preloader = "" # use jpg, png, svg or gif format.
 [navigation_button]
 enable = true
 label = "Github"
-link = "https://github.com/welldesignedsystem?tab=repositories"
+link = "https://github.com/beautifularchitecture?tab=repositories"
 
 # search
 # search module: https://github.com/gethugothemes/hugo-modules/tree/master/search
@@ -57,7 +57,7 @@ show_categories = true
 [announcement]
 enable = true
 expire_days = 7
-content = "<span class='text-center block'>Please 🖱️ here for <a class='underline' href='https://github.com/welldesignedsystem' target='_blank' rel='noopener'>Github</a> <a class='underline' href='/blog/' target='_blank' rel='noopener'>Blogs</a></span>"
+content = "<span class='text-center block'>Please 🖱️ here for <a class='underline' href='https://github.com/beautifularchitecture' target='_blank' rel='noopener'>Github</a> <a class='underline' href='/blog/' target='_blank' rel='noopener'>Blogs</a></span>"
 
 # seo meta data for OpenGraph / Twitter Card
 # seo module: https://github.com/gethugothemes/hugo-modules/tree/master/seo-tools/basic-seo

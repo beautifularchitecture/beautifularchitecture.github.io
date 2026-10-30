@@ -16,7 +16,7 @@ A2A is an open standard protocol that enables seamless communication and collabo
 
 ## Class diagram
 
-![](https://raw.githubusercontent.com/welldesignedsystem/animated-system/refs/heads/main/misc/classes.svg)
+![](https://raw.githubusercontent.com/beautifularchitecture/animated-system/refs/heads/main/misc/classes.svg)
 
 Source of below notes: [here](https://github.com/a2aproject/A2A/blob/main/docs/specification.md)
 

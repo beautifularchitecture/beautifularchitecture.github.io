@@ -8,9 +8,9 @@ summary = 'A complete guide to the code behind AI-DLC: the 5-layer architecture,
 
 # AI-DLC Developer Reference: Changing the Framework Itself
 
-> Part of the AI-DLC series. [User Guide](https://welldesignedsystem.github.io/docs/guide/) → build with AI-DLC. [Harness Engineer Guide](https://welldesignedsystem.github.io/blog/ai/aidlc/harness-engineering/) → reshape how AI-DLC behaves through configuration. **This guide** → change AI-DLC's code: the orchestrator, hooks, CLI tools, the compile pipeline, and the test suite.
+> Part of the AI-DLC series. [User Guide](/docs/guide/) → build with AI-DLC. [Harness Engineer Guide]({{< relref "blog/ai/aidlc/harness-engineering.md" >}}) → reshape how AI-DLC behaves through configuration. **This guide** → change AI-DLC's code: the orchestrator, hooks, CLI tools, the compile pipeline, and the test suite.
 
-AI-DLC is one hand-authored, harness-neutral core that ships to many harnesses (Claude Code, Kiro CLI, Kiro IDE, Codex CLI, Cursor, opencode, and GitHub Copilot). The [Harness Engineer Guide](https://welldesignedsystem.github.io/blog/ai/aidlc/harness-engineering/) shows how to reshape it with data — stages, agents, scopes, rules, sensors, knowledge. This guide is the layer beneath that: the **code** that reads that data, and how to change it.
+AI-DLC is one hand-authored, harness-neutral core that ships to many harnesses (Claude Code, Kiro CLI, Kiro IDE, Codex CLI, Cursor, opencode, and GitHub Copilot). The [Harness Engineer Guide]({{< relref "blog/ai/aidlc/harness-engineering.md" >}}) shows how to reshape it with data — stages, agents, scopes, rules, sensors, knowledge. This guide is the layer beneath that: the **code** that reads that data, and how to change it.
 
 Where the harness engineer edits Markdown with YAML frontmatter and JSON, the developer edits TypeScript — the orchestrator, the hooks, the CLI tools, the stage-graph compile pipeline, the audit taxonomy, and the test suite. This post folds the whole Developer Reference into one narrative, chapter by chapter, so the boundary between a data edit and a code change is always in view.
 
@@ -18,7 +18,7 @@ Where the harness engineer edits Markdown with YAML frontmatter and JSON, the de
 
 This reference documents the internal architecture and implementation of AI-DLC. It is meant for contributors changing the AI-DLC codebase itself: the orchestrator, hooks, CLI tools, the stage-graph compile pipeline, the audit taxonomy, and the test suite.
 
-If you are **using** AI-DLC to build software, the [User Guide](https://welldesignedsystem.github.io/docs/guide/) is your starting point. If you are **reshaping how AI-DLC behaves** through configuration — adding a stage or an agent, defining a scope, authoring rules and sensors, adding team knowledge — the [Harness Engineer Guide](https://welldesignedsystem.github.io/blog/ai/aidlc/harness-engineering/) is the place to begin; those are data changes, not code changes, and its chapters narrate the workflow before pointing back here for the exhaustive schema.
+If you are **using** AI-DLC to build software, the [User Guide](/docs/guide/) is your starting point. If you are **reshaping how AI-DLC behaves** through configuration — adding a stage or an agent, defining a scope, authoring rules and sensors, adding team knowledge — the [Harness Engineer Guide]({{< relref "blog/ai/aidlc/harness-engineering.md" >}}) is the place to begin; those are data changes, not code changes, and its chapters narrate the workflow before pointing back here for the exhaustive schema.
 
 ### The four path conventions
 
@@ -75,7 +75,7 @@ The chapters follow the reference's own order:
 
 ### Relationship to the User Guide
 
-The [User Guide](https://welldesignedsystem.github.io/docs/guide/) explains **what** AI-DLC does and **how to use it**. This Developer Reference explains **how it works** and **how to change it**. Some topics appear in both:
+The [User Guide](/docs/guide/) explains **what** AI-DLC does and **how to use it**. This Developer Reference explains **how it works** and **how to change it**. Some topics appear in both:
 
 | Topic | User Guide | Developer Reference |
 |---|---|---|

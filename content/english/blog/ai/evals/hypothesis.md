@@ -262,7 +262,7 @@ jobs:
 
 ## Companion Repo
 
-The companion repo includes [`scripts/layers/03-property-based.py`](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/layers/03-property-based.py) and [`scripts/example_hypothesis.py`](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/tools/example_hypothesis.py) with runnable examples you can adapt.
+The companion repo includes [`scripts/layers/03-property-based.py`](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/layers/03-property-based.py) and [`scripts/example_hypothesis.py`](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/tools/example_hypothesis.py) with runnable examples you can adapt.
 
 ## Further Reading
 

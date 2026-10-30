@@ -186,7 +186,7 @@ Because scorers are Python, you can reuse your existing `src/eval.py` metrics di
 
 ## Companion Repo
 
-The companion repo includes [`scripts/example_braintrust.py`](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/tools/example_braintrust.py) with a working Braintrust eval integration.
+The companion repo includes [`scripts/example_braintrust.py`](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/tools/example_braintrust.py) with a working Braintrust eval integration.
 
 ## Further Reading
 

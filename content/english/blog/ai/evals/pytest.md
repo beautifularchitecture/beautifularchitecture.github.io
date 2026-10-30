@@ -224,7 +224,7 @@ The unifying pattern: pytest is the runner, each tool is a scorer you call insid
 
 ## Companion Repo
 
-The companion repo includes [`scripts/example_pytest.py`](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/tools/example_pytest.py) with a complete parametrized golden dataset, invariant fixtures, and sampling.
+The companion repo includes [`scripts/example_pytest.py`](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/tools/example_pytest.py) with a complete parametrized golden dataset, invariant fixtures, and sampling.
 
 ## Further Reading
 

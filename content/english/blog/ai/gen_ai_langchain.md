@@ -10,8 +10,8 @@ LLM design patterns are reusable strategies for building robust, efficient and s
 
 ## Class diagram
 
-![](https://raw.githubusercontent.com/welldesignedsystem/fictional-eureka/refs/heads/main/misc/langchain.svg)
-[View Raw](https://raw.githubusercontent.com/welldesignedsystem/fictional-eureka/refs/heads/main/misc/langchain.svg)
+![](https://raw.githubusercontent.com/beautifularchitecture/fictional-eureka/refs/heads/main/misc/langchain.svg)
+[View Raw](https://raw.githubusercontent.com/beautifularchitecture/fictional-eureka/refs/heads/main/misc/langchain.svg)
 
 ## Introduction
 

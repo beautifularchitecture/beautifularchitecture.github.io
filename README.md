@@ -1,6 +1,6 @@
 # Well Designed System
 
-Hugo source for the `welldesignedsystem.github.io` GitHub Pages site.
+Hugo source for the `beautifularchitecture.github.io` GitHub Pages site.
 
 ## Access the development server from your local network
 

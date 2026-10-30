@@ -223,7 +223,7 @@ If you can express the check as code, do it. This layer should be the majority o
 
 > **Few references:** [FutureAGI (Feb 2026)](https://futureagi.com/blog/deterministic-llm-evaluation-metrics-2026/) reports deterministic checks catch _30 to 60 percent of failures before any LLM judge fires_. The [G-Eval production guide (Mar 2026)](https://futureagi.com/blog/g-eval-definitive-guide-2026/) recommends routing every response through a deterministic floor (schema, regex, length, banned phrases) before any LLM judge call, dropping the judge bill 80–90% without losing detection rate. Both sources converge on the same finding: 60–80% of the scoring criteria in a typical eval suite can be implemented as plain code rather than requiring an LLM judge. The consensus: deterministic checks are the cheapest, fastest, and most reliable layer — they should be the base of every eval pyramid.
 
-[runnable example defines the same four scorers (`score_contains`, `score_excludes`, `score_max_words`, `score_valid_json`), applies them to a 5-case golden dataset, and prints results.](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/layers/01-deterministic.py#L22-L39)
+[runnable example defines the same four scorers (`score_contains`, `score_excludes`, `score_max_words`, `score_valid_json`), applies them to a 5-case golden dataset, and prints results.](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/layers/01-deterministic.py#L22-L39)
 
 Each scorer is a plain Python function — no LLM, no API call, no judge model. They are composable: a single golden case can combine `score_contains` + `score_max_words` + `score_excludes` and the overall score is simply the mean of the individual checks.
 
@@ -242,7 +242,7 @@ These tools check the generated artifact after the model produces it. For exampl
 
 ### Layer 2 — Model-Graded Evaluation (LLM-as-judge)
 
-For anything semantic (involves understanding the meaning) e.g. correctness against a rubric, tone, faithfulness to source material, whether a response actually answers the question — you use another LLM call to score the output. [Code example](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/layers/02-model-graded.py#L17-L30):
+For anything semantic (involves understanding the meaning) e.g. correctness against a rubric, tone, faithfulness to source material, whether a response actually answers the question — you use another LLM call to score the output. [Code example](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/layers/02-model-graded.py#L17-L30):
 
 The same output is then scored on three axes: is it _correct_ (factually accurate), _helpful_ (directly addresses the question), and _concise_ (avoids unnecessary verbosity). The judge prompt, the scoring rubric, and the output format are all explicit — no room for vibes.
 
@@ -273,7 +273,7 @@ G-Eval (or GPT Based Evaluation or chain-of-thought-based scoring with a scoring
 
 ### Layer 3 — Property-Based / Invariant Testing
 
-[Code example](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/layers/03-property-based.py#L27-L62).
+[Code example](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/layers/03-property-based.py#L27-L62).
 
 Instead of checking a specific output, check properties that must hold across _all_ outputs regardless of variance:
 
@@ -298,8 +298,8 @@ Tools that implement this:
 
 ### Layer 4 — Golden Datasets and Regression Tracking
 
-- [Code examples](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/layers/04-golden-dataset.py)
-- [Full implementation](https://github.com/welldesignedsystem/baba-yaga/blob/main/src/eval.py).
+- [Code examples](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/layers/04-golden-dataset.py)
+- [Full implementation](https://github.com/beautifularchitecture/baba-yaga/blob/main/src/eval.py).
 - Curate a set of real inputs — pulled from actual usage rather than invented — and snapshot how your system scores against them over time.
 - here you are asserting the **eval score on that set doesn't regress (go down)** when you change a prompt, swap a model version or edit a skill definition.
 - The discipline that matters here: **score your current production system before setting an acceptance bar.** Don't invent a target in a vacuum — measure the baseline, then gate merges on "no regression below baseline" rather than an arbitrary absolute number. E.g. _"tool-selection success: current baseline 88%, acceptance bar 95%, anything below baseline blocks deploy."_
@@ -348,7 +348,7 @@ Tools that implement this:
 
 ### Layer 5 — Statistical Sampling
 
-- [code example](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/layers/05-statistical-sampling.py#L66-L78)
+- [code example](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/layers/05-statistical-sampling.py#L66-L78)
 - A single run tells you almost nothing at temperature > 0. Run each test case N times (5–20 is typical) and look at the **distribution** of scores, not one output:
 - Report pass-rate ("87% of runs satisfied the rubric") instead of pass/fail
 - Track variance, not just mean — a task with 90% mean but huge variance is riskier than 85% with low variance
@@ -365,8 +365,8 @@ Tools that implement this:
 
 ### Layer 6 — Human-in-the-Loop
 
-- [Code Example](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/layers/06-human-review.py#L64-L83)
-- [exports eval results to CSV for annotation, then reports disagreements between human and automated scores](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/layers/06-human-review.py#L23-L32).
+- [Code Example](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/layers/06-human-review.py#L64-L83)
+- [exports eval results to CSV for annotation, then reports disagreements between human and automated scores](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/layers/06-human-review.py#L23-L32).
 - No rubric anticipates every edge case. Sample production traffic (5–10% is a common starting point) for manual review and feed disagreements between human and judge scores back into refining the rubric. This is also where you catch the failure modes that are only obvious to a domain expert — a technically well-formed answer that's subtly wrong in a way no automated check would flag.
 
 Tools that implement this:
@@ -405,7 +405,7 @@ Runnable examples for each tool are in the companion repo at `scripts/tools/` (l
 
 ## Part 3: Evaluating Agents Specifically — Trajectory, Not Just Output
 
-- [Code Example](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/trajectory/trajectory_eval.py).
+- [Code Example](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/trajectory/trajectory_eval.py).
 - Agent evaluation is a strictly harder problem than single-call LLM evaluation, because the thing you're scoring isn't a string — it's a **trajectory**: the full sequence of reasoning steps, tool calls, and intermediate states. LangChain's framing is a useful mental model here: scoring only the final answer is like grading an exam by the final grade alone; trajectory evaluation is grading by the working shown at every step.
 
 What trajectory evaluation actually checks:
@@ -541,7 +541,7 @@ The last row (first-attempt pass rate) is the direct link back to the eval pyram
 
 ### Automated via a session-analysis script
 
-The companion repo includes [`scripts/sessions/analyze_sessions.py`](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/sessions/analyze_sessions.py) that walks `~/.claude/projects/` for JSONL transcripts and produces the metrics above. Run it against your logs:
+The companion repo includes [`scripts/sessions/analyze_sessions.py`](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/sessions/analyze_sessions.py) that walks `~/.claude/projects/` for JSONL transcripts and produces the metrics above. Run it against your logs:
 
 ```bash
 uv run python scripts/analyze_sessions.py ~/.claude/projects/ --report
@@ -697,7 +697,7 @@ The uncomfortable truth is that you can't fully eliminate the non-determinism �
 
 This section walks through a single concrete skill across all eval layers: given an OpenAPI 3 spec, scaffold a full Next.js API — App Router route handlers, TypeScript types, Zod validation schemas, and a typed fetch client.
 
-The skill definition is at [`.github/skills/nextjs-api-from-spec/SKILL.md`](https://github.com/welldesignedsystem/baba-yaga/blob/main/.github/skills/nextjs-api-from-spec/SKILL.md) in the companion repo, with the eval code at [`tests/eval_skill.py`](https://github.com/welldesignedsystem/baba-yaga/blob/main/.github/skills/nextjs-api-from-spec/tests/eval_skill.py). Read the SKILL.md first — every claim in it maps to an eval check below.
+The skill definition is at [`.github/skills/nextjs-api-from-spec/SKILL.md`](https://github.com/beautifularchitecture/baba-yaga/blob/main/.github/skills/nextjs-api-from-spec/SKILL.md) in the companion repo, with the eval code at [`tests/eval_skill.py`](https://github.com/beautifularchitecture/baba-yaga/blob/main/.github/skills/nextjs-api-from-spec/tests/eval_skill.py). Read the SKILL.md first — every claim in it maps to an eval check below.
 
 ### The skill contract (extracted from SKILL.md)
 

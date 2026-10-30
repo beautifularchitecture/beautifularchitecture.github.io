@@ -425,7 +425,7 @@ Rules and options:
 
 A tip from writing this post: don't ask an LLM judge to count things. "The answer must be under three sentences" is a deterministic check. Write it as code, and save G-Eval for genuinely subjective criteria (tone, clarity, helpfulness).
 
-A working example of G-Eval keeping two artifacts aligned lives in the [evaligator repo](https://github.com/welldesignedsystem/evaligator/blob/main/zmot/deepeval/test_algorithm.py): the markdown algorithm spec becomes the test case's `expected_output`, the Python implementation becomes its `actual_output`, and the judge scores whether the code implements the documented behaviour.
+A working example of G-Eval keeping two artifacts aligned lives in the [evaligator repo](https://github.com/beautifularchitecture/evaligator/blob/main/zmot/deepeval/test_algorithm.py): the markdown algorithm spec becomes the test case's `expected_output`, the Python implementation becomes its `actual_output`, and the judge scores whether the code implements the documented behaviour.
 
 ## Deterministic, Non-LLM Metrics
 
@@ -876,7 +876,7 @@ Practical combination, as in the companion posts: pytest as the runner, DeepEval
 
 ## Companion Repo
 
-The companion repo includes [`scripts/example_deepeval.py`](https://github.com/welldesignedsystem/baba-yaga/blob/main/scripts/tools/example_deepeval.py) with a custom `ContainsMetric`, a `GEval` rubric and a `FaithfulnessMetric` for a complete eval loop.
+The companion repo includes [`scripts/example_deepeval.py`](https://github.com/beautifularchitecture/baba-yaga/blob/main/scripts/tools/example_deepeval.py) with a custom `ContainsMetric`, a `GEval` rubric and a `FaithfulnessMetric` for a complete eval loop.
 
 ## Further Reading
 
