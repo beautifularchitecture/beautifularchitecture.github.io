@@ -1,8 +1,8 @@
 ---
 # Banner
 banner:
-  title: '"The Well Designed System"'
-  content: "The Well-Designed System is a technical blog built by two software engineers passionate about clean architecture, elegant design and thoughtful engineering."
+  title: '"The Beautiful Architecture"'
+  content: "The Beautiful Architecture is a technical blog built by two software engineers passionate about clean architecture, elegant design and thoughtful engineering."
   image: "/images/banner/1.png"
   button:
     enable: true
@@ -13,7 +13,7 @@ banner:
 features:
   - title: "What's Included"
     image: "/images/service-1.png"
-    content: "The Well-Designed System tries covering a broad range of modern engineering topics. It tries to blends practical how-tos, fundamental concepts and structured deep dives — all aimed at helping understand not just how to build things, but why they are built that way."
+    content: "The Beautiful Architecture tries covering a broad range of modern engineering topics. It tries to blends practical how-tos, fundamental concepts and structured deep dives — all aimed at helping understand not just how to build things, but why they are built that way."
     bulletpoints:
       - "🔥 AI & Machine Learning: Articles on agentic AI, GenAI design patterns, lightweight LLMs, model context strategies and other AI/ML insights."
       - "🚀 System & Software Design: Posts on system design principles, practical interview examples, and architectural patterns that guide building scalable, reliable systems."

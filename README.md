@@ -1,4 +1,4 @@
-# Well Designed System
+# Beautiful Architecture
 
 Hugo source for the `beautifularchitecture.github.io` GitHub Pages site.
 

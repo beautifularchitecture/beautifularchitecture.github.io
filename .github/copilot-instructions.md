@@ -1,6 +1,6 @@
-# Well Designed System Website
+# Beautiful Architecture Website
 
-This repository builds the Well Designed System technical blog and website with Hugo and deploys it to GitHub Pages. Site content is under `content/english/`; configuration lives in `hugo.toml` and `config/`.
+This repository builds the Beautiful Architecture technical blog and website with Hugo and deploys it to GitHub Pages. Site content is under `content/english/`; configuration lives in `hugo.toml` and `config/`.
 
 ## Build, preview, and formatting
 
