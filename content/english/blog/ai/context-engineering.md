@@ -388,7 +388,7 @@ The key difference from the Tiered Context Architecture: the knowledge base is *
 
 ## Appendix: Gartner Hype Cycle
 
-![Gartner Hype Cycle](../img/Hype-Cycle-General.png)
+![Gartner Hype Cycle](../img/png/Hype-Cycle-General.png)
 
 The Gartner Hype Cycle is a framework for tracking how a technology progresses from initial excitement to mainstream adoption. It has five phases:
 

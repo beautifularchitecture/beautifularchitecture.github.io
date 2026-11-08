@@ -31,7 +31,7 @@ This repository builds the Beautiful Architecture technical blog and website wit
 - Blog headings start at `##`. CSS numbers H2 and H3 headings automatically, so do not add section numbers solely to show hierarchy. Preserve meaningful labels such as “Part 1” or “Phase 1”. The table of contents is configured for ordered headings from H2 through H5.
 - Follow the repository's blog date convention: use yesterday's date with the `+10:00` offset. For multiple posts in one change, use unique timestamps at least five seconds apart.
 - Do not add `_index.md` files to blog category subdirectories; keep the blog section index at `content/english/blog/_index.md`.
-- Follow nearby posts for filename, image placement, and shortcode patterns. Images commonly live in an `img/` directory beside posts in the same category.
+- Follow nearby posts for filename, image placement, and shortcode patterns. Images commonly live in extension-specific subfolders of the category's `img/` directory beside posts. Reference them from blog posts as `../img/<extension>/<filename>` because each post URL includes its slug directory.
 - Do not use Oxford commas in blog content. When adding technical content, verify claims against official sources and include links. Keep statements precise and unambiguous.
 
 ## Related repository guidance

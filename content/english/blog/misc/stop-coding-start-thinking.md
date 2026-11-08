@@ -69,5 +69,5 @@ summary = 'Thinking is the composition, Learning is a strategy, Mastery is a bud
 
 ## Appendix
 
-![](../img/ronaldo.jpeg)
-![](../img/shu-ha-ri.png)
+![](../img/jpeg/ronaldo.jpeg)
+![](../img/png/shu-ha-ri.png)

@@ -6,7 +6,7 @@ tags = ['DeepEval', 'Evals', 'LLM', 'Testing', 'CI', 'Python', 'Metrics', 'Pytes
 summary = "DeepEval is an open-source Python framework with 50+ ready-made metrics for LLM outputs: faithfulness, hallucination, toxicity, bias, G-Eval rubrics, agent and conversation metrics, plus deterministic checks. You build test cases, score them with metrics, and fail CI when a score drops below its threshold. This is the complete reference."
 +++
 
-![Class diagram of the DeepEval 4.2.8 API: test cases, metric base classes and their subclasses, parameter enums, datasets and goldens](../img/deepeval-class-diagram.png)
+![Class diagram of the DeepEval 4.2.8 API: test cases, metric base classes and their subclasses, parameter enums, datasets and goldens](../img/png/deepeval-class-diagram.png)
 
 ## What DeepEval Does
 
@@ -38,7 +38,7 @@ DeepEval is an open-source (Apache-2.0) Python framework for evaluating LLM appl
 
 ## The Mental Model
 
-![Mental model of DeepEval: goldens (single-turn or conversational, held in an EvaluationDataset) feed the app, which produces single-turn, conversational, arena or traced test cases; metrics and classifiers score them into a score plus reason, which becomes a pass/fail result in CI and a Confident AI report](../img/deepeval-mental-model.png)
+![Mental model of DeepEval: goldens (single-turn or conversational, held in an EvaluationDataset) feed the app, which produces single-turn, conversational, arena or traced test cases; metrics and classifiers score them into a score plus reason, which becomes a pass/fail result in CI and a Confident AI report](../img/png/deepeval-mental-model.png)
 
 Every metric exposes the same surface:
 

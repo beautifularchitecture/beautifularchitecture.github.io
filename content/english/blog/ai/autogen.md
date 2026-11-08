@@ -12,7 +12,7 @@ AutoGen provides a well-defined class hierarchy that forms the foundation for bu
 
 ## Architecture
 
-![](../img/autogen_architecture.png)
+![](../img/png/autogen.png)
 
 ## Class Diagrams
 

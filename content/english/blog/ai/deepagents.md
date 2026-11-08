@@ -10,6 +10,8 @@ Deep Agents is LangChain's opinionated SDK for building agents that can plan, de
 
 ---
 
+![Class diagram of the LangChain Deep Agents SDK: the create_deep_agent factory, the middleware stack, subagents, filesystem backends and sandbox protocols, result types, harness profiles and filesystem permissions](../img/png/deepagents-class-diagram.png)
+
 ## Introduction
 
 Before the Deep Agents SDK, building a production-grade agent required you to wire together context management, tool routing, summarization, filesystem access, human approvals and deployment yourself. Deep Agents packages all of that into a single harness so you can focus on what the agent does, not how it works.

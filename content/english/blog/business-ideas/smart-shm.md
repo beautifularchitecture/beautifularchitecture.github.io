@@ -27,7 +27,7 @@ A vessel-specific load and operation-based structural health estimation. The fol
 - **Empirical Analysis** for structural strength assessment and damage prediction, using the data collected above.
 - **Accumulated Fatigue Damage and Damage Rate Estimation** using the Collected Data and Analysis.
 
-![](../img/workflow.png)
+![](../img/png/workflow.png)
 
 1. No sensor (strain gauge, accelerometer ...) is required.
 2. The notation makes sense for ships designed for limited weather conditions or limited navigation area (i.e. non-sea-going) e.g.

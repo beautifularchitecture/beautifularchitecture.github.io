@@ -154,7 +154,7 @@ These are some of the design patterns that can be implemented easily with OpenAI
 
 - Centralized System
   - [Hierarchical System](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L647-L696)
-  - ![hierarchy.png](../img/hierarchy.png)
+  - ![hierarchy.png](../img/png/hierarchy.png)
 - Decentralized System
   - [Swarm Systems](https://github.com/beautifularchitecture/crispy-meme/blob/main/src/basics.py#L647-L696)
     - based on a concept called emergent behavior or stigmergy

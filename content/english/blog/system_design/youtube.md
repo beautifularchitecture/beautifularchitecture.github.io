@@ -497,7 +497,7 @@ Microservices architecture design
 
 ## 2a. Microservice Decomposition & Hexagonal Architecture (Chris Richardson)
 
-![](../img/chris-richardson-microservice.png)
+![](../img/png/chris-richardson-microservice.png)
 
 ### Decomposition Strategies (from "Microservices Patterns")
 

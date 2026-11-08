@@ -6,7 +6,7 @@ tags = ['Claude', 'LLM', 'Testing', 'Evals', 'Agents']
 summary = "LLM outputs are non-deterministic, which breaks the assumptions most of our testing tooling is built on. This document covers how to actually test model outputs, agent trajectories, and Claude Code-style skills — the layers of evaluation, the current 2026 tool landscape, and a working CI harness you can copy."
 +++
 
-![Class diagram of the LLM evaluation toolkit](../img/evals-class-diagram.png)
+![Class diagram of the LLM evaluation toolkit](../img/png/evals-class-diagram.png)
 
 [Read Book here](https://drive.google.com/file/d/1ZcckmgQj2yYNYjJkC2ym5B0n9wobpUwO/view?usp=drive_link)
 

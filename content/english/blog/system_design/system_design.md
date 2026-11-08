@@ -357,7 +357,7 @@ Key principles of REST include:
 
 The REST Maturity Model, introduced by Leonard Richardson, defines levels of maturity for RESTful APIs. It helps evaluate how closely an API adheres to REST principles.
 
-![](../REST.png)
+![](../img/png/REST.png)
 
 #### Level 0: The Swamp of POX
 
@@ -818,7 +818,7 @@ In practice, a system can **only guarantee two out of the three** at any given t
 | **E-commerce Carts**          | **AP** or **CP**      | Depends on whether consistency (inventory) or uptime is more important. |
 | **Real-time Messaging**       | **AP**                | Users expect availability; some eventual consistency is acceptable.     |
 
-![](../cap.png)
+![](../img/png/cap.png)
 
 > ⚠️ **Note**: CAP is a simplified model. In practice, systems also consider latency, throughput, durability and more advanced consistency models like **Causal Consistency**, **Eventual Consistency** and **Linearizability**.
 
@@ -958,7 +958,7 @@ Vertical scaling and horizontal scaling are two approaches to handle increased s
 ### Algorithmic Scaling
 
 Algorithmic scaling plays a crucial role in ensuring that systems can handle increased load efficiently. By leveraging efficient algorithms and data structures, you can optimize performance and scalability, often reducing the need for additional hardware or resources.
-![](../algoscaling.png)
+![](../img/png/algoscaling.png)
 
 **Big O Notation:**
 Big O notation is used to describe the efficiency of an algorithm in terms of time and space complexity. Common complexities include:

@@ -1,0 +1,370 @@
+%% LangChain Deep Agents class diagram (colour-coded)
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"system-ui, sans-serif","fontSize":"13px","lineColor":"#475569"}}}%%
+classDiagram
+direction TB
+
+class create_deep_agent {
+  <<factory function>>
+  +model str or BaseChatModel
+  +tools Sequence
+  +system_prompt str
+  +middleware Sequence
+  +subagents Sequence
+  +skills list
+  +memory list
+  +permissions list
+  +backend BackendProtocol
+  +interrupt_on dict
+  +response_format ResponseFormat
+  +state_schema DeepAgentState
+  +context_schema type
+  +checkpointer Checkpointer
+  +store BaseStore
+  +cache BaseCache
+  +debug bool
+  +name str
+}
+class resolve_model {
+  <<function>>
+  +spec provider:model str
+}
+class DeepAgentState {
+  <<AgentState>>
+  +messages DeltaChannel
+  +todos list
+  +files dict
+  +async_tasks dict
+}
+
+class AgentMiddleware {
+  <<langchain base>>
+  +name str
+  +tools list
+  +wrap_model_call()
+  +before_agent()
+  +after_agent()
+}
+class TodoListMiddleware {
+  <<langchain>>
+  +write_todos tool
+}
+class FilesystemMiddleware {
+  +ls tool
+  +read_file tool
+  +write_file tool
+  +edit_file tool
+  +glob tool
+  +grep tool
+  +execute tool if sandbox
+  +evicts large tool results
+}
+class SubAgentMiddleware {
+  +task tool
+  +subagents list
+  +default_middleware list
+}
+class AsyncSubAgentMiddleware {
+  +launch, monitor, update tools
+  +task ids kept in async_tasks
+}
+class MemoryMiddleware {
+  +sources AGENTS.md paths
+  +injects into system prompt
+}
+class SkillsMiddleware {
+  +sources skill paths
+  +progressive disclosure
+}
+class SummarizationMiddleware {
+  +compacts history near context limit
+  +offloads to conversation_history md
+}
+class RubricMiddleware {
+  +rubric from invocation state
+  +on_evaluation callback
+  +status satisfied, failed, max_iterations_reached, grader_error
+}
+class UnsupportedContentMiddleware {
+  +replaces unreadable read_file output with notice
+}
+class PatchToolCallsMiddleware {
+  +repairs dangling tool calls
+}
+class AnthropicPromptCachingMiddleware {
+  +adds prompt caching
+}
+class HumanInTheLoopMiddleware {
+  <<langchain>>
+  +pauses selected tool calls
+}
+class LangChainSummarizationMiddleware {
+  <<langchain>>
+}
+class InterruptOnConfig {
+  <<langchain>>
+}
+class FilesystemPermission {
+  +single allow or deny rule
+  +first match wins
+  +checks path and symlink target
+}
+
+class SubAgent {
+  <<TypedDict>>
+  +name str
+  +description str
+  +system_prompt str
+  +tools Sequence
+  +model str or BaseChatModel
+  +middleware list
+  +interrupt_on dict
+  +skills list
+  +permissions list
+  +response_format ResponseFormat
+  +mode SubAgentMode
+}
+class SubAgentMode {
+  <<Literal>>
+  isolated default
+  fork experimental
+}
+class CompiledSubAgent {
+  <<TypedDict>>
+  +name str
+  +description str
+  +runnable Runnable with messages key
+}
+class AsyncSubAgent {
+  <<TypedDict>>
+  +name str
+  +description str
+  +url optional
+  +headers optional
+}
+class AgentProtocolServer {
+  <<remote server>>
+  LangGraph Platform or self-hosted
+}
+
+class BackendProtocol {
+  <<ABC>>
+  +ls() LsResult
+  +read() ReadResult
+  +grep() GrepResult
+  +glob() GlobResult
+  +write() WriteResult
+  +edit() EditResult
+  +upload_files() list
+  +download_files() list
+  +async twins prefixed a
+}
+class StateBackend {
+  +files in agent state
+  +ephemeral per thread
+}
+class StoreBackend {
+  +files in BaseStore
+  +namespace scoped
+  +persists across threads
+}
+class FilesystemBackend {
+  +root_dir str
+  +virtual_mode bool
+  +real disk, path safety
+}
+class CompositeBackend {
+  +default BackendProtocol
+  +routes prefix to backend
+  +longest prefix wins
+}
+class SandboxBackendProtocol {
+  <<ABC>>
+  +id str
+  +execute() ExecuteResponse
+  +aexecute()
+}
+class BaseSandbox {
+  <<abstract>>
+  +execute() abstract
+  +all file ops via shell
+}
+class ProviderSandbox {
+  <<integration>>
+  e.g. LangSmith, Modal, Daytona
+}
+
+class FileData {
+  +content
+  +created_at
+  +modified_at
+}
+class FileInfo {
+  +path
+  +is_dir
+  +size
+}
+class GrepMatch {
+  +path
+  +line
+  +text
+}
+class ReadResult
+class WriteResult {
+  +path
+  +error
+  +files_update
+}
+class EditResult {
+  +path
+  +error
+  +files_update
+}
+class ExecuteResponse {
+  +output
+  +exit_code
+  +truncated
+}
+class FileUploadResponse {
+  +path
+  +error
+}
+class FileDownloadResponse {
+  +path
+  +content
+  +error
+}
+
+class HarnessProfile {
+  <<beta>>
+  +excluded_tools frozenset
+  +system_prompt_suffix str
+  +extra_middleware list
+  +excluded_middleware
+  +general_purpose_subagent
+}
+class HarnessProfileConfig {
+  <<beta>>
+  +YAML or JSON subset
+}
+class GeneralPurposeSubagentProfile {
+  <<beta>>
+  +edits auto-added general-purpose subagent
+}
+class ProviderProfile {
+  <<beta>>
+  +init_kwargs dict
+  +init_kwargs_factory
+  +pre_init
+}
+
+class CompiledStateGraph {
+  <<LangGraph>>
+  +invoke()
+  +ainvoke()
+  +stream()
+}
+class BaseChatModel {
+  <<langchain>>
+}
+class BaseStore {
+  <<LangGraph>>
+}
+class Checkpointer {
+  <<LangGraph>>
+}
+
+create_deep_agent ..> CompiledStateGraph : returns
+create_deep_agent ..> resolve_model : model spec
+create_deep_agent ..> HarnessProfile : looks up
+create_deep_agent o-- AgentMiddleware : assembles stack
+create_deep_agent --> BackendProtocol : backend
+create_deep_agent ..> DeepAgentState : state_schema
+create_deep_agent ..> SubAgent
+create_deep_agent ..> CompiledSubAgent
+create_deep_agent ..> AsyncSubAgent
+create_deep_agent ..> FilesystemPermission : permissions
+create_deep_agent ..> Checkpointer
+create_deep_agent ..> BaseStore
+resolve_model ..> ProviderProfile : applies
+resolve_model ..> BaseChatModel : returns
+CompiledStateGraph --> DeepAgentState : state
+
+HarnessProfile *-- GeneralPurposeSubagentProfile
+HarnessProfile o-- AgentMiddleware : extra_middleware
+HarnessProfileConfig ..> HarnessProfile : converts to
+GeneralPurposeSubagentProfile ..> SubAgent : edits default
+
+AgentMiddleware <|-- TodoListMiddleware
+AgentMiddleware <|-- FilesystemMiddleware
+AgentMiddleware <|-- SubAgentMiddleware
+AgentMiddleware <|-- AsyncSubAgentMiddleware
+AgentMiddleware <|-- MemoryMiddleware
+AgentMiddleware <|-- SkillsMiddleware
+AgentMiddleware <|-- SummarizationMiddleware
+AgentMiddleware <|-- RubricMiddleware
+AgentMiddleware <|-- UnsupportedContentMiddleware
+AgentMiddleware <|-- PatchToolCallsMiddleware
+AgentMiddleware <|-- AnthropicPromptCachingMiddleware
+AgentMiddleware <|-- HumanInTheLoopMiddleware
+
+FilesystemMiddleware --> BackendProtocol : uses
+FilesystemMiddleware o-- FilesystemPermission : enforces
+MemoryMiddleware --> BackendProtocol : loads
+SkillsMiddleware --> BackendProtocol : loads
+SummarizationMiddleware --> BackendProtocol : offloads
+SummarizationMiddleware ..> LangChainSummarizationMiddleware : wraps
+HumanInTheLoopMiddleware ..> InterruptOnConfig : interrupt_on
+RubricMiddleware ..> DeepAgentState : reads rubric
+SubAgentMiddleware o-- SubAgent
+SubAgentMiddleware o-- CompiledSubAgent
+SubAgentMiddleware ..> CompiledStateGraph : runs child graphs
+AsyncSubAgentMiddleware o-- AsyncSubAgent
+AsyncSubAgentMiddleware ..> AgentProtocolServer : remote tasks
+AsyncSubAgentMiddleware ..> DeepAgentState : async_tasks
+
+SubAgent o-- AgentMiddleware : middleware
+SubAgent --> FilesystemPermission : permissions
+SubAgent ..> InterruptOnConfig
+SubAgent --> SubAgentMode : mode
+CompiledSubAgent --> CompiledStateGraph : runnable
+
+BackendProtocol <|-- StateBackend
+BackendProtocol <|-- StoreBackend
+BackendProtocol <|-- FilesystemBackend
+BackendProtocol <|-- CompositeBackend
+BackendProtocol <|-- SandboxBackendProtocol
+SandboxBackendProtocol <|.. BaseSandbox
+BaseSandbox <|-- ProviderSandbox
+CompositeBackend o-- BackendProtocol : default and routes
+StoreBackend --> BaseStore
+StateBackend ..> DeepAgentState : files channel
+
+BackendProtocol ..> ReadResult
+BackendProtocol ..> WriteResult
+BackendProtocol ..> EditResult
+BackendProtocol ..> FileInfo
+BackendProtocol ..> GrepMatch
+BackendProtocol ..> FileUploadResponse
+BackendProtocol ..> FileDownloadResponse
+SandboxBackendProtocol ..> ExecuteResponse
+ReadResult --> FileData
+
+cssClass "create_deep_agent,resolve_model,DeepAgentState" core
+cssClass "AgentMiddleware,TodoListMiddleware,FilesystemMiddleware,SubAgentMiddleware,AsyncSubAgentMiddleware,MemoryMiddleware,SkillsMiddleware,SummarizationMiddleware,RubricMiddleware,UnsupportedContentMiddleware,PatchToolCallsMiddleware,AnthropicPromptCachingMiddleware" mw
+cssClass "SubAgent,SubAgentMode,CompiledSubAgent,AsyncSubAgent,AgentProtocolServer" sub
+cssClass "BackendProtocol,StateBackend,StoreBackend,FilesystemBackend,CompositeBackend" be
+cssClass "SandboxBackendProtocol,BaseSandbox,ProviderSandbox" sbx
+cssClass "FileData,FileInfo,GrepMatch,ReadResult,WriteResult,EditResult,ExecuteResponse,FileUploadResponse,FileDownloadResponse" data
+cssClass "HarnessProfile,HarnessProfileConfig,GeneralPurposeSubagentProfile,ProviderProfile" prof
+cssClass "FilesystemPermission,HumanInTheLoopMiddleware,InterruptOnConfig" safe
+cssClass "LangChainSummarizationMiddleware,CompiledStateGraph,BaseChatModel,BaseStore,Checkpointer" ext
+
+classDef core fill:#dbeafe,stroke:#1d4ed8,stroke-width:2px,color:#0f172a
+classDef mw fill:#ffedd5,stroke:#c2410c,stroke-width:2px,color:#0f172a
+classDef sub fill:#dcfce7,stroke:#15803d,stroke-width:2px,color:#0f172a
+classDef be fill:#ccfbf1,stroke:#0f766e,stroke-width:2px,color:#0f172a
+classDef sbx fill:#fef9c3,stroke:#a16207,stroke-width:2px,color:#0f172a
+classDef data fill:#fce7f3,stroke:#be185d,stroke-width:2px,color:#0f172a
+classDef prof fill:#ede9fe,stroke:#6d28d9,stroke-width:2px,color:#0f172a
+classDef safe fill:#fee2e2,stroke:#b91c1c,stroke-width:2px,color:#0f172a
+classDef ext fill:#f1f5f9,stroke:#475569,stroke-width:2px,stroke-dasharray:4,color:#0f172a

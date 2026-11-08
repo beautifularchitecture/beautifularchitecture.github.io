@@ -41,7 +41,7 @@ summary = "Comprehensive Guide to mastering Anomaly Detection in Machine Learnin
 - **Don't use when:** Outliers present, skewed data (income, response times)
 - **Formula:**
 
-![mean.png](../img/mean.png)
+![mean.png](../img/png/mean.png)
 
 ### Median
 
@@ -50,7 +50,7 @@ summary = "Comprehensive Guide to mastering Anomaly Detection in Machine Learnin
 - **Don't use when:** Perfect normal data, need mathematical operations, very small samples
 - **Formula:**
 
-![median.png](../img/median.png)
+![median.png](../img/png/median.png)
 
 ### Variance
 
@@ -59,7 +59,7 @@ summary = "Comprehensive Guide to mastering Anomaly Detection in Machine Learnin
 - **Don't use when:** Outliers present, need interpretable units, heavy-tailed distributions
 - **Formula:**
 
-![variance.png](../img/variance.png)
+![variance.png](../img/png/variance.png)
 
 ### Percentiles
 
@@ -68,7 +68,7 @@ summary = "Comprehensive Guide to mastering Anomaly Detection in Machine Learnin
 - **Don't use when:** Small datasets (<30), need smooth math properties
 - **Formula:**
 
-![percentile.png](../img/percentile.png)
+![percentile.png](../img/png/percentile.png)
 
 ---
 
@@ -88,7 +88,7 @@ The below is used for univariate outlier detection and spread measurement when d
   - Assumes roughly normal distribution
 - **Formula**:
 
-![std_dev.png](../img/std_dev.png)
+![std_dev.png](../img/png/std_dev.png)
 
 ### Median Absolute Deviation (MAD) ⭐
 
@@ -103,7 +103,7 @@ The below is used for univariate outlier detection and spread measurement when d
 
 - **Formula**:
 
-![mad.png](../img/mad.png)
+![mad.png](../img/png/mad.png)
 
 ### Interquartile Range (IQR)
 
@@ -125,7 +125,7 @@ The below is used for univariate outlier detection and spread measurement when d
 - **Don't use when**: Outliers present (use Modified Z-score), skewed data, small samples
 - **Formula**
 
-![img.png](../img/z.png)
+![img.png](../img/png/z.png)
 
 ### Modified Z-Score
 
@@ -134,7 +134,7 @@ The below is used for univariate outlier detection and spread measurement when d
 - **Don't use when:** Clean normal data, classical Z-score works fine
 - **Forumla**
 
-![modified_z.png](../img/modified_z.png)
+![modified_z.png](../img/png/modified_z.png)
 
 ## Visualization
 

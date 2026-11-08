@@ -6,7 +6,7 @@ tags = ['Graphify', 'Knowledge Graphs', 'AI Agents', 'Code Intelligence', 'Conte
 summary = 'Build and query a local knowledge graph for an AI coding assistant.'
 +++
 
-Graphify is an open-source command-line tool and coding-assistant skill that turns a repository into a queryable knowledge graph. The graph connects source code, documentation, configuration and supported media, so an assistant can ask about relationships instead of repeatedly searching files from scratch. This guide covers Graphify-Labs' `graphifyy` package and its `graphify` command, documented in the [official repository](https://github.com/Graphify-Labs/graphify). Several projects use the name Graphify; this article refers only to Graphify-Labs' project. The repository ships `LICENSE` and `LICENSE-MIT` files, and GitHub reports the repository licence as Apache-2.0.
+Graphify is an open-source command-line tool and coding-assistant skill that turns a repository into a queryable knowledge graph. The graph connects source code, documentation, configuration and supported media, so an assistant can ask about relationships instead of repeatedly searching files from scratch. [official repository](https://github.com/Graphify-Labs/graphify).
 
 Graphify is useful when a repository has relationships that isolated search results do not recover: a request handler calls a service, the service reads a schema, an ADR explains a constraint and a test verifies the behaviour. Graphify represents entities as nodes and relationships as edges, then provides commands to inspect nodes, ask scoped questions and trace paths.
 

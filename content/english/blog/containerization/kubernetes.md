@@ -10,7 +10,7 @@ Kubernetes (K8s) is an open-source container orchestration platform that automat
 
 ## Architecture
 
-![img.png](../img/kubernetes-architecture.png)
+![img.png](../img/png/kubernetes-architecture.png)
 
 A Kubernetes cluster is composed of two main types of nodes:
 

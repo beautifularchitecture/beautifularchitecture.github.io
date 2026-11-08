@@ -8,7 +8,7 @@ summary = 'Comprehensive reference on all 44+ microservice design patterns catal
 
 Microservice design patterns — catalogued primarily by Chris Richardson in _Microservices Patterns_ (44+ patterns across 8 categories) — provide battle-tested solutions to recurring problems in distributed systems. This reference covers all pattern groups, their sub-patterns, when to apply each and the trade-offs involved, followed by supplementary Microsoft cloud patterns.
 
-![](../img/chris-richardson-microservice.png)
+![](../img/png/chris-richardson-microservice.png)
 
 ---
 

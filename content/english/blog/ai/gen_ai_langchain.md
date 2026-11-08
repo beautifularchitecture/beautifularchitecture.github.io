@@ -451,7 +451,7 @@ vectorstore.similarity_search(query, filter={"is_active": True})
 
 ### MultiVector Retrieval
 
-![Multi-Vector Retrieval](../img/multivectorretrieval.png)
+![Multi-Vector Retrieval](../img/png/multivectorretrieval.png)
 
 - **Problem**: Mixed-content documents (text + tables) can lose structure if split only by text.
 - **Design Pattern**: Follows _CQRS (Command Query Responsibility Segregation)_ principle separate write (doc updates) and read (retrieval) models for consistency.
@@ -503,7 +503,7 @@ retriever = MultiVectorRetriever(
 
 ### Recursive Abstractive Processing for Tree-Organized Retrieval —
 
-![Raptor](../img/RAPTOR.png)
+![Raptor](../img/png/RAPTOR.png)
 
 - **Problem:**
   - RAG systems must handle:
@@ -564,7 +564,7 @@ for r in results:
 
 ### ColBERT (Contextually Late Interactions using BERT): Optimizing Embeddings
 
-![ColBERT](../img/ColBERT.png)
+![ColBERT](../img/png/ColBERT.png)
 
 - **Problem with standard embeddings:**
   - They **compress** the whole text into one **fixed-length vector**.
@@ -656,7 +656,7 @@ for r in results:
 
 ### Multi-Query Retrieval
 
-![multiquery.png](../img/multiquery.png)
+![multiquery.png](../img/png/multiquery.png)
 
 - **Problem:** A single user query may not capture the full scope of information needed for a comprehensive answer.
 
@@ -678,7 +678,7 @@ for r in results:
 
 ### RAG-Fusion
 
-![RAPTOR.png](../img/RAPTOR.png)
+![RAPTOR.png](../img/png/RAPTOR.png)
 Sometimes **information space is large** and **spread out** or **diverse** and a single query is **insufficient** to capture all relevant context.
 RAG-Fusion (Retrieval-Augmented Generation with Fusion) is an **extension** of the **multi-query retrieval strategy**. It enhances the retrieval process by introducing a **final reranking step** using the **Reciprocal Rank Fusion (RRF)** algorithm.
 
@@ -910,7 +910,7 @@ Relational databases require SQL queries, which are not naturally compatible wit
 
 #### 14. ReAct (Reason + Act)
 
-![ReAct.png](../img/ReAct.png)
+![ReAct.png](../img/png/ReAct.png)
 
 - Combines reasoning steps with tool or function calls.
 - Model alternates between generating thoughts and taking actions (API calls, tool invocation).
