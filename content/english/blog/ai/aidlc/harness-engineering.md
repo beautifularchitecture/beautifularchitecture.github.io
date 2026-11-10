@@ -37,7 +37,7 @@ Stages name their lead agent. Agents never name stages. This keeps work and work
 ### How Work Flows
 
 - **Engine** ([`core/tools/aidlc-orchestrate.ts`](https://github.com/awslabs/aidlc-workflows/blob/main/core/tools/aidlc-orchestrate.ts)) — Deterministic. Reads `aidlc-state.md` and compiled `stage-graph.json`, picks next step, emits one typed directive. Subcommands: `next`, `continue` (internal), `report`, `park`, `team-board` (read-only), `wait` (bounded read-only).
-- **Conductor** ([`skills/aidlc/SKILL.md`](https://github.com/awslabs/aidlc-workflows/blob/main/skills/aidlc/SKILL.md)) — Thin forwarding loop that executes each directive.
+- **Conductor** ([`harness/claude/skills/aidlc/SKILL.md`](https://github.com/awslabs/aidlc-workflows/blob/main/harness/claude/skills/aidlc/SKILL.md), projected to `<harness-dir>/skills/aidlc/SKILL.md`) — Thin forwarding loop that executes each directive.
 
 **Routing lives in the engine.** Your stage files, scopes, and rules are the inputs that steer it—the conductor never decides the route.
 
@@ -89,13 +89,13 @@ Author in **`core/`** (harness-neutral source). Regenerate per-harness distribut
 $EDITOR core/aidlc-common/stages/inception/my-stage.md
 
 # 2. Regenerate all harness projections
-bun [scripts/package.ts](https://github.com/awslabs/aidlc-workflows/blob/main/scripts/package.ts)
+bun scripts/package.ts
 
 # 3. Verify determinism (CI guard)
 bun scripts/package.ts --check
 ```
 
-Commit [`core/`](https://github.com/awslabs/aidlc-workflows/tree/main/core), [`harness/`](https://github.com/awslabs/aidlc-workflows/tree/main/harness), [`plugins/`](https://github.com/awslabs/aidlc-workflows/tree/main/plugins) only. `--check` builds twice in independent temp roots and byte-compares. When instructed to run `aidlc engine graph compile`, run it against your installed harness projection.
+The packager is [`scripts/package.ts`](https://github.com/awslabs/aidlc-workflows/blob/main/scripts/package.ts). Commit [`core/`](https://github.com/awslabs/aidlc-workflows/tree/main/core), [`harness/`](https://github.com/awslabs/aidlc-workflows/tree/main/harness), [`plugins/`](https://github.com/awslabs/aidlc-workflows/tree/main/plugins) only. `--check` builds twice in independent temp roots and byte-compares. When instructed to run `aidlc engine graph compile`, run it against your installed harness projection.
 
 ### When to Cross Into Developer Reference
 
@@ -199,7 +199,7 @@ The calls that bite hardest:
 - **`consumes[].conditional_on` captures the brownfield/greenfield split.** A consume marked `conditional_on: brownfield` is only required when the workflow is brownfield. For an unconditional consume, omit the field entirely — there is no `always` value.
 - **`mode` is the communication topology** — who talks to whom while the body runs. `inline` runs short stages in the conductor's own context with supporters as adopted voices; `subagent` delegates the lead to a fresh context (long stages like Construction code generation) and, when supporters are declared, dispatches each as a mutually-blind spoke; `pipeline` chains supporters in declared order, each seeing all upstream work; `mob` runs all supporters in parallel against the lead's draft with one bounded objection round. **WHO** participates is `support_agents`; **HOW** they participate is `mode`. `pipeline` and `mob` require non-empty `support_agents`.
 - **`for_each` names the iteration artifact.** The five Construction stages (`functional-design`, `nfr-requirements`, `nfr-design`, `infrastructure-design`, `code-generation`) run once per Unit and each declare `for_each: unit-of-work`; the other stages omit the field and run once. Aggregation is inferred from the graph, not declared.
-- **`lead_agent` and `support_agents` validate against `core/agents/*.md`.** There's no hardcoded list — adding an agent means dropping its file in that directory (see [§6](#6-adding-an-agent)).
+- **`lead_agent` and `support_agents` validate against [`core/agents/*.md`](https://github.com/awslabs/aidlc-workflows/tree/main/core/agents).** There's no hardcoded list — adding an agent means dropping its file in that directory (see [§6](#6-adding-an-agent)).
 
 This is orientation, not the full contract. For the complete field table with types and constraints, see the Developer Reference's [Stage Definition](https://github.com/awslabs/aidlc-workflows/blob/main/docs/reference/15-stage-definition.md).
 
@@ -257,8 +257,8 @@ This is orientation, not the full contract. For the complete field table with ty
 Below the frontmatter, the body has three compartments, always in this order: `## Steps`, `## Sensors`, `## Learn`.
 
 - **`## Steps`** — the imperative prose the agent follows: load personas, read prior context, create the questions file, generate the artifacts, present the approval gate. This is where the stage's domain work lives, and it's the compartment you'll edit most when changing *what a stage does* without touching the graph.
-- **`## Sensors`** — a compact local summary: where outputs land, an `Imports:` line that mirrors the frontmatter `sensors:` list, and an `Upstream targets:` line that mirrors `consumes:` when `upstream-coverage` is imported. Stage-specific exceptions live here (an intentionally omitted sensor, ownership of a structured output); shared behavior lives in `stage-protocol-sensors.md`. See [§9 Sensors](#9-sensors).
-- **`## Learn`** — points to the conditional learning-loop contract in `stage-protocol-learnings.md` §13. Only when `directive.protocol_modules` lists `learnings`, maintain the four-heading diary at `directive.memory_path` while working, then surface and persist confirmed learnings before a human gate. When absent, keep no diary and skip the ritual. Workflow-time learning never rewrites the stage body.
+- **`## Sensors`** — a compact local summary: where outputs land, an `Imports:` line that mirrors the frontmatter `sensors:` list, and an `Upstream targets:` line that mirrors `consumes:` when `upstream-coverage` is imported. Stage-specific exceptions live here (an intentionally omitted sensor, ownership of a structured output); shared behavior lives in [`stage-protocol-sensors.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/aidlc-common/protocols/stage-protocol-sensors.md). See [§9 Sensors](#9-sensors).
+- **`## Learn`** — points to the conditional learning-loop contract in [`stage-protocol-learnings.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/aidlc-common/protocols/stage-protocol-learnings.md) §13. Only when `directive.protocol_modules` lists `learnings`, maintain the four-heading diary at `directive.memory_path` while working, then surface and persist confirmed learnings before a human gate. When absent, keep no diary and skip the ritual. Workflow-time learning never rewrites the stage body.
 
 The three compartments are fixed so a stage's sensor bindings and learning-loop pointer always have a place of their own, and adding one never restructures the body.
 
