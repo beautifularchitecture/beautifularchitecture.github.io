@@ -36,8 +36,8 @@ Stages name their lead agent. Agents never name stages. This keeps work and work
 
 ### How Work Flows
 
-- **Engine** (`core/tools/aidlc-orchestrate.ts`) — Deterministic. Reads `aidlc-state.md` and compiled `stage-graph.json`, picks next step, emits one typed directive. Subcommands: `next`, `continue` (internal), `report`, `park`, `team-board` (read-only), `wait` (bounded read-only).
-- **Conductor** (`skills/aidlc/SKILL.md`) — Thin forwarding loop that executes each directive.
+- **Engine** ([`core/tools/aidlc-orchestrate.ts`](https://github.com/awslabs/aidlc-workflows/blob/main/core/tools/aidlc-orchestrate.ts)) — Deterministic. Reads `aidlc-state.md` and compiled `stage-graph.json`, picks next step, emits one typed directive. Subcommands: `next`, `continue` (internal), `report`, `park`, `team-board` (read-only), `wait` (bounded read-only).
+- **Conductor** ([`skills/aidlc/SKILL.md`](https://github.com/awslabs/aidlc-workflows/blob/main/skills/aidlc/SKILL.md)) — Thin forwarding loop that executes each directive.
 
 **Routing lives in the engine.** Your stage files, scopes, and rules are the inputs that steer it—the conductor never decides the route.
 
@@ -54,23 +54,23 @@ Author in **`core/`** (harness-neutral source). Regenerate per-harness distribut
 
 | Change | Where | See |
 |---|---|---|
-| Edit a stage | `core/aidlc-common/stages/<phase>/<slug>.md` | §4 |
-| Add a new stage | New file in phase + wire dependencies | §5 |
-| Add/modify an agent | `core/agents/<name>-agent.md` | §6 |
-| Define/tune a scope | `core/scopes/aidlc-<name>.md` + stage `scopes:` | §7 |
-| Teach standing rules | `core/memory/{team,project}.md` (framework baseline) or space memory | §8 |
-| Wire a deterministic check | `core/sensors/<id>.md` + stage `sensors:` | §9 |
-| Add team domain knowledge | `aidlc/knowledge/<agent>-agent/` (space-level, runtime) | §10 |
-| Shape Construction & swarm | `core/memory/` + `units-generation` stage | §11 |
-| Port to a new harness | `harness/<name>/` + manifest/emit | §12 |
-| Author a reusable plugin | `plugins/<name>/` | §13 |
+| Edit a stage | [`core/aidlc-common/stages/<phase>/<slug>.md`](https://github.com/awslabs/aidlc-workflows/tree/main/core/aidlc-common/stages) | [§4 Anatomy of a Stage](#4-anatomy-of-a-stage) |
+| Add a new stage | New file in phase + wire dependencies | [§5 Adding a Stage](#5-adding-a-stage) |
+| Add/modify an agent | [`core/agents/<name>-agent.md`](https://github.com/awslabs/aidlc-workflows/tree/main/core/agents) | [§6 Adding an Agent](#6-adding-an-agent) |
+| Define/tune a scope | [`core/scopes/aidlc-<name>.md`](https://github.com/awslabs/aidlc-workflows/tree/main/core/scopes) + stage `scopes:` | [§7 Scopes](#7-scopes) |
+| Teach standing rules | [`core/memory/{team,project}.md`](https://github.com/awslabs/aidlc-workflows/tree/main/core/memory) (framework baseline) or space memory | [§8 Rules and the Learning Loop](#8-rules-and-the-learning-loop) |
+| Wire a deterministic check | [`core/sensors/<id>.md`](https://github.com/awslabs/aidlc-workflows/tree/main/core/sensors) + stage `sensors:` | [§9 Sensors](#9-sensors) |
+| Add team domain knowledge | `aidlc/knowledge/<agent>-agent/` (space-level, runtime) | [§10 Team Knowledge](#10-team-knowledge) |
+| Shape Construction & swarm | [`core/memory/`](https://github.com/awslabs/aidlc-workflows/tree/main/core/memory) + [`units-generation` stage](https://github.com/awslabs/aidlc-workflows/blob/main/core/aidlc-common/stages/inception/units-generation.md) | [§11 Construction and the Swarm](#11-construction-and-the-swarm) |
+| Port to a new harness | [`harness/<name>/`](https://github.com/awslabs/aidlc-workflows/tree/main/harness) + manifest/emit | [§12 Porting to a New Harness](#12-porting-to-a-new-harness) |
+| Author a reusable plugin | [`plugins/<name>/`](https://github.com/awslabs/aidlc-workflows/tree/main/plugins) | [§13 Authoring a Plugin](#13-authoring-a-plugin) |
 
 **Team knowledge is the only exception**: it lives at `aidlc/knowledge/` in your project space and is never overwritten by framework updates.
 
 ### Naming Rules & Validation
 
-- Stage filename stem must equal frontmatter `slug`. `aidlc-graph compile` rejects mismatches, duplicate slugs, multiple producers of same consumed artifact (names files/consumer).
-- Sensor filename/id consistency is compile-time enforced.
+- Stage filename stem must equal frontmatter `slug`. [`aidlc-graph compile`](https://github.com/awslabs/aidlc-workflows/blob/main/core/tools/aidlc-graph.ts) rejects mismatches, duplicate slugs, multiple producers of same consumed artifact (names files/consumer).
+- Sensor filename/id consistency is compile-time enforced ([sensor discovery regex](https://github.com/awslabs/aidlc-workflows/blob/main/core/tools/aidlc-graph.ts)).
 - Duplicate scope/agent names are loader errors naming both files. Filename↔name drift is reported by `/aidlc --doctor` as advisory.
 - **One owner per invariant.** Each workflow invariant — approval, stage transition, artifact presence, plan fingerprint — is enforced in exactly one place. If the same check lives in a stage's `## Steps` prose, in a sensor, and in a hook, you have duplicated logic, and the copies will drift. Pick the owner:
   - **Approval** → the stage's `reviewer` / `review_artifact` frontmatter, compiled into the gate transaction.
@@ -89,13 +89,13 @@ Author in **`core/`** (harness-neutral source). Regenerate per-harness distribut
 $EDITOR core/aidlc-common/stages/inception/my-stage.md
 
 # 2. Regenerate all harness projections
-bun scripts/package.ts
+bun [scripts/package.ts](https://github.com/awslabs/aidlc-workflows/blob/main/scripts/package.ts)
 
 # 3. Verify determinism (CI guard)
 bun scripts/package.ts --check
 ```
 
-Commit `core/`, `harness/`, `plugins/` only. `--check` builds twice in independent temp roots and byte-compares. When instructed to run `aidlc engine graph compile`, run it against your installed harness projection.
+Commit [`core/`](https://github.com/awslabs/aidlc-workflows/tree/main/core), [`harness/`](https://github.com/awslabs/aidlc-workflows/tree/main/harness), [`plugins/`](https://github.com/awslabs/aidlc-workflows/tree/main/plugins) only. `--check` builds twice in independent temp roots and byte-compares. When instructed to run `aidlc engine graph compile`, run it against your installed harness projection.
 
 ### When to Cross Into Developer Reference
 
@@ -128,11 +128,11 @@ This split is the key to knowing what you're editing:
 - Change a **frontmatter** field → you've changed the **graph** (a dependency edge, the leading agent, the execution mode).
 - Change the **body** → you've changed the **work** (what the agent actually does).
 
-The two are independent. A real stage is authored at `core/aidlc-common/stages/<phase>/<slug>.md` — for example `stages/inception/domain-design.md` (phases: `initialization`, `ideation`, `inception`, `construction`, `operation`).
+The two are independent. A real stage is authored at [`core/aidlc-common/stages/<phase>/<slug>.md`](https://github.com/awslabs/aidlc-workflows/tree/main/core/aidlc-common/stages) — for example [`stages/inception/domain-design.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/aidlc-common/stages/inception/domain-design.md) (phases: `initialization`, `ideation`, `inception`, `construction`, `operation`).
 
 ### The Frontmatter at a Glance
 
-The frontmatter is a flat block of YAML keys. Some are mechanical (`slug`, `phase`) and copied from a neighbouring stage. A handful carry real judgment. Here is a real stage's frontmatter (from `stages/inception/domain-design.md`, trimmed):
+The frontmatter is a flat block of YAML keys. Some are mechanical (`slug`, `phase`) and copied from a neighbouring stage. A handful carry real judgment. Here is a real stage's frontmatter (from [`stages/inception/domain-design.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/aidlc-common/stages/inception/domain-design.md), trimmed):
 
 ```yaml
 ---
@@ -330,7 +330,7 @@ A new stage is the most structural change a harness engineer makes — you intro
 
 ### Step 1 — Decide the Phase
 
-Stage files live under `core/aidlc-common/stages/<phase>/<slug>.md`. The phase is the directory:
+Stage files live under [`core/aidlc-common/stages/<phase>/<slug>.md`](https://github.com/awslabs/aidlc-workflows/tree/main/core/aidlc-common/stages). The phase is the directory:
 
 ```text
 core/aidlc-common/stages/
@@ -341,7 +341,9 @@ core/aidlc-common/stages/
 └── operation/
 ```
 
-The phase is not cosmetic: it determines which `phases/<phase>.md` rule layer attaches to the stage at compile time (a construction stage inherits the construction rule, an inception stage the inception rule; initialization has no phase rule file). Put the stage where its work actually happens in the lifecycle.
+Each phase directory contains real stage files — for example [`core/aidlc-common/stages/inception/domain-design.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/aidlc-common/stages/inception/domain-design.md).
+
+The phase is not cosmetic: it determines which [`phases/<phase>.md`](https://github.com/awslabs/aidlc-workflows/tree/main/core/memory/phases) rule layer attaches to the stage at compile time (a construction stage inherits the construction rule, an inception stage the inception rule; initialization has no phase rule file). Put the stage where its work actually happens in the lifecycle.
 
 ### Step 2 — Create the File with Required Frontmatter
 
@@ -502,13 +504,13 @@ Authoring the file and recompiling is data work — Markdown, YAML, JSON, no `.t
 
 ## Adding an Agent
 
-An **agent** is the *who* of the framework — a persona with a domain, a tool allowlist, and a tier. The 14 shipped agents comprise 11 domain experts (product, design, delivery, architecture, AWS platform, compliance, DevSecOps, development, quality, pipeline-deploy, operations), two review-only agents (`aidlc-product-lead-agent`, `aidlc-architecture-reviewer-agent`), and the adaptive-workflows composer (`aidlc-composer-agent`). When your team needs a domain the framework doesn't cover — a data-governance reviewer or a mobile specialist, say — add a persona by dropping a single Markdown file into `core/agents/`. No TypeScript.
+An **agent** is the *who* of the framework — a persona with a domain, a tool allowlist, and a tier. The 14 shipped agents comprise 11 domain experts (product, design, delivery, architecture, AWS platform, compliance, DevSecOps, development, quality, pipeline-deploy, operations), two review-only agents (`aidlc-product-lead-agent`, `aidlc-architecture-reviewer-agent`), and the adaptive-workflows composer (`aidlc-composer-agent`). When your team needs a domain the framework doesn't cover — a data-governance reviewer or a mobile specialist, say — add a persona by dropping a single Markdown file into [`core/agents/`](https://github.com/awslabs/aidlc-workflows/tree/main/core/agents). No TypeScript.
 
 The one thing to internalize is the two-step truth: dropping the file makes the agent **visible**; wiring it into a stage makes it **active**. Both steps are required, or you get an agent that exists and never runs.
 
 ### What a persona file is, and where it lives
 
-Every agent is one flat file at `core/agents/<slug>-agent.md`: YAML frontmatter on top, a Markdown body below. The shipped files all carry the `aidlc-` prefix (`aidlc-architect-agent.md`, `aidlc-developer-agent.md`); a file you add is yours and need not use that prefix.
+Every agent is one flat file at [`core/agents/<slug>-agent.md`](https://github.com/awslabs/aidlc-workflows/tree/main/core/agents): YAML frontmatter on top, a Markdown body below. The shipped files all carry the `aidlc-` prefix ([`aidlc-architect-agent.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/agents/aidlc-architect-agent.md), [`aidlc-developer-agent.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/agents/aidlc-developer-agent.md)); a file you add is yours and need not use that prefix.
 
 The installer treats the 14 shipped agent files as framework-owned. If you edit one in an installed project, the next `aidlc config` refresh stops with a conflict. To continue, either move your edited file out of the harness agent directory and rerun the command, or rerun it with `--force` to replace your edit with the shipped version:
 
@@ -524,7 +526,7 @@ Only the frontmatter is machine-read. The body is prose the agent reads about it
 
 ### The frontmatter, from a real agent
 
-Here is the frontmatter from a real agent, authored at `core/agents/aidlc-architect-agent.md`:
+Here is the frontmatter from a real agent, authored at [`core/agents/aidlc-architect-agent.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/agents/aidlc-architect-agent.md):
 
 ```yaml
 ---
@@ -559,7 +561,7 @@ Four of these carry real judgment. Here is what each decides.
 
 **`disallowedTools` must include `Task`.** Agents run as delegated workers; the conductor (the live `/aidlc` session) performs the `Task` call when the engine's `run-stage` directive carries `mode: subagent`. Allowing `Task` would let an agent spawn its own subagents, cascading the delegation chains the framework is built to prevent. Every shipped agent disallows `Task`, and so must yours. The Kiro projections remove this Claude-only frontmatter key and enforce the same no-nested-delegation boundary through Kiro's native agent tool configuration; any other `disallowedTools` value fails packaging or is drop-logged during plugin compose.
 
-**`tier` names the kind of work.** You never author raw `model:` or `effort:` in core agent frontmatter — those are projection OUTPUTS in the ignored local `dist/<harness>/` tree and versioned release runtime, derived from the tier table in `core/tools/aidlc-tiers.ts`. Pick:
+**`tier` names the kind of work.** You never author raw `model:` or `effort:` in core agent frontmatter — those are projection OUTPUTS in the ignored local `dist/<harness>/` tree and versioned release runtime, derived from the tier table in [`core/tools/aidlc-tiers.ts`](https://github.com/awslabs/aidlc-workflows/blob/main/core/tools/aidlc-tiers.ts). Pick:
 
 - **`judgment`** — for any persona whose work is multi-constraint reasoning that cascades downstream: interpreting ambiguous intent, weighing architectural trade-offs under dense context. A judgment agent inherits the session's model AND effort unless an explicit model policy overrides it.
 - **`balanced`** — for reviewer-shaped personas that judge novel input against explicit criteria.
@@ -579,18 +581,18 @@ The five MCP servers declared in the project-root `.mcp.json` are provisioned to
 
 Dropping the file makes the agent *visible*; wiring it into a stage makes it *active*. Both steps are required.
 
-- **Discovery makes it visible.** `loadAgents()` in `aidlc-lib.ts` reads every persona `.md` file in `.claude/agents/` (one named `aidlc-*` or carrying `display_name`, `examples`, `tier`, or `plugin`) on the next invocation and derives the metadata map. No code edit, no registration step — the file's presence is the registration. From this point the statusline can render its display name, and the team can add standards under its space-level `aidlc/knowledge/<slug>-agent/` directory.
+- **Discovery makes it visible.** `loadAgents()` in [`core/tools/aidlc-lib.ts`](https://github.com/awslabs/aidlc-workflows/blob/main/core/tools/aidlc-lib.ts) reads every persona `.md` file in `.claude/agents/` (one named `aidlc-*` or carrying `display_name`, `examples`, `tier`, or `plugin`) on the next invocation and derives the metadata map. No code edit, no registration step — the file's presence is the registration. From this point the statusline can render its display name, and the team can add standards under its space-level `aidlc/knowledge/<slug>-agent/` directory.
 - **Stage binding makes it active.** A stage names its lead and support agents by slug in its frontmatter `lead_agent` / `support_agents` fields (compiled into `stage-graph.json`). Until some stage references your slug, no `run-stage` directive names it, so the conductor never delegates to the persona.
 
 This mirrors the framework's core asymmetry — a stage names its agent; an agent never names its stages. So the agent file alone is inert by design. To put your new persona to work, edit the stage that should use it.
 
-Each agent also pairs with a knowledge directory you author at `core/knowledge/aidlc-<slug>-agent/` (framework methodology) and an optional team overlay at the space level, `aidlc/knowledge/<slug>-agent/` (your standards). The space-level `aidlc/knowledge/` directory is free-form and empty at bootstrap; the team creates the per-agent subdirectory when it has content — the engine does not scaffold it.
+Each agent also pairs with a knowledge directory you author at [`core/knowledge/aidlc-<slug>-agent/`](https://github.com/awslabs/aidlc-workflows/tree/main/core/knowledge) (framework methodology) and an optional team overlay at the space level, `aidlc/knowledge/<slug>-agent/` (your standards). The space-level `aidlc/knowledge/` directory is free-form and empty at bootstrap; the team creates the per-agent subdirectory when it has content — the engine does not scaffold it.
 
 ### The steps, end to end
 
 1. **Create the agent file** — `core/agents/<slug>-agent.md` with the required frontmatter: `name`, `display_name`, `examples`, `description`, `disallowedTools` (including `Task`), `tier`. An optional `tools:` allowlist narrows the persona; omit it to inherit the full session toolset. An optional `maxTurns: <n>` caps the turn budget. Write the body to match the shipped files' structure (Core Responsibilities, Collaboration, optional Memory Focus, Key Principles).
 2. **Add knowledge files** under `core/knowledge/aidlc-<slug>-agent/` for the methodology the persona should load on activation.
-3. **Wire it into stages** — add the slug to the `lead_agent` / `support_agents` frontmatter of each stage file (`core/aidlc-common/stages/<phase>/<slug>.md`) where it leads or supports, then regenerate with `bun scripts/package.ts` (or, in an installed tree, `aidlc engine graph compile`) so `stage-graph.json` regenerates. Never hand-edit `stage-graph.json`. This is the step that makes it active.
+3. **Wire it into stages** — add the slug to the `lead_agent` / `support_agents` frontmatter of each stage file ([`core/aidlc-common/stages/<phase>/<slug>.md`](https://github.com/awslabs/aidlc-workflows/tree/main/core/aidlc-common/stages)) where it leads or supports, then regenerate with `bun scripts/package.ts` (or, in an installed tree, `aidlc engine graph compile`) so `stage-graph.json` regenerates. Never hand-edit `stage-graph.json`. This is the step that makes it active.
 4. **Document the team-knowledge directory** — note that a team adds its standards under the space-level `aidlc/knowledge/<slug>-agent/`. The engine does not create this directory; the team creates it when it has content.
 5. **Update the hand-maintained doc tables** — the Phase Participation matrix and the agent→examples table do not regenerate themselves.
 
@@ -632,7 +634,7 @@ For a harness engineer, a scope is pure data, authored the same way every other 
 
 A scope is authored in two places, and the split is the whole idea: the scope's *identity* lives in its own file, and its *membership* (which stages run under it) lives transposed onto the stages.
 
-1. **The scope file** — `core/scopes/aidlc-<name>.md`. One file per scope, mirroring `core/sensors/`. The `feature` scope's frontmatter looks like this:
+1. **The scope file** — [`core/scopes/aidlc-<name>.md`](https://github.com/awslabs/aidlc-workflows/tree/main/core/scopes). One file per scope, mirroring `core/sensors/`. The [`feature`](https://github.com/awslabs/aidlc-workflows/blob/main/core/scopes/aidlc-feature.md) scope's frontmatter looks like this:
 
 ```yaml
 ---
@@ -655,7 +657,7 @@ collaborators: off
 The full-lifecycle scope for new feature work at practical depth. ...
 ```
 
-2. **The membership tag** — each stage's `scopes:` frontmatter, in `core/aidlc-common/stages/<phase>/<slug>.md`:
+2. **The membership tag** — each stage's `scopes:` frontmatter, in [`core/aidlc-common/stages/<phase>/<slug>.md`](https://github.com/awslabs/aidlc-workflows/tree/main/core/aidlc-common/stages):
 
 ```yaml
 scopes:
@@ -781,16 +783,16 @@ Rules are the **feedforward** half of the control loop — prose the agent reads
 
 ### The five layers, and which file you edit
 
-Rules live as Markdown files under `core/memory/` (the authored source for the space memory layer), one file per scope. There is no `scope:` frontmatter field — this implementation derives scope from the filename, so the file you pick *is* the scope you author at:
+Rules live as Markdown files under [`core/memory/`](https://github.com/awslabs/aidlc-workflows/tree/main/core/memory) (the authored source for the space memory layer), one file per scope. There is no `scope:` frontmatter field — this implementation derives scope from the filename, so the file you pick *is* the scope you author at:
 
 | You want a rule that applies to… | Edit | Scope |
 |---|---|---|
-| every project at your organization | `org.md` | org (framework default) |
-| every project your team runs | `team.md` | team |
-| this one project | `project.md` | project |
-| every stage in one phase | `phases/<phase>.md` | phase |
+| every project at your organization | [`core/memory/org.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/memory/org.md) | org (framework default) |
+| every project your team runs | [`core/memory/team.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/memory/team.md) | team |
+| this one project | [`core/memory/project.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/memory/project.md) | project |
+| every stage in one phase | [`core/memory/phases/<phase>.md`](https://github.com/awslabs/aidlc-workflows/tree/main/core/memory/phases) | phase |
 
-The four phase files are `phases/ideation.md`, `phases/inception.md`, `phases/construction.md`, and `phases/operation.md` (initialization is bootstrap-only and ships no rule file). A fifth layer — per-stage rules (`aidlc-stage-<slug>.md`) — is reserved for a future release; you cannot author one yet.
+The four phase files are [`phases/ideation.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/memory/phases/ideation.md), [`phases/inception.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/memory/phases/inception.md), [`phases/construction.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/memory/phases/construction.md), and [`phases/operation.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/memory/phases/operation.md) (initialization is bootstrap-only and ships no rule file). A fifth layer — per-stage rules (`aidlc-stage-<slug>.md`) — is reserved for a future release; you cannot author one yet.
 
 Two judgment calls drive which file you reach for:
 
@@ -886,7 +888,7 @@ A **sensor** is a deterministic check that the framework dispatches after a matc
 
 ### What a sensor is
 
-A sensor manifest is a Markdown file with YAML frontmatter under `core/sensors/`. The manifest describes the check and how to invoke it. It does not name the stages that use it. A stage binds to a sensor by listing the sensor's ID in its `sensors:` frontmatter field.
+A sensor manifest is a Markdown file with YAML frontmatter under [`core/sensors/`](https://github.com/awslabs/aidlc-workflows/tree/main/core/sensors). The manifest describes the check and how to invoke it. It does not name the stages that use it. A stage binds to a sensor by listing the sensor's ID in its `sensors:` frontmatter field.
 
 Three properties define the runtime behavior:
 
@@ -902,12 +904,12 @@ Six manifests ship under `sensors/`, each prefixed `aidlc-`:
 
 | Manifest | Dispatch | Checks |
 |---|---|---|
-| `aidlc-claim-sources.md` | Gate | Every Intent Capture claim carries a resolvable source tag; registered description, scope, and memory values match authoritative inputs; retained assumptions exactly match explicit human confirmation |
-| `aidlc-required-sections.md` | Gate | The output carries the required H2 headings — a generic content-shape check. Timestamp run records (`*-timestamp.md`) always pass |
-| `aidlc-upstream-coverage.md` | Gate | The stage's deliverables (evaluated as a set) reference each upstream artifact the stage declares it requires (`required: true`) or marks `cited: true`, by slug, wikilink, or the producing stage's directory path |
-| `aidlc-traceability.md` | Write: `**/traceability.json` | Validates stable upstream IDs, statuses, deterministic targets, and derived business-rule orphans |
-| `aidlc-linter.md` | Write: `.ts` / `.js` | Wraps your configured linter (ESLint by default) |
-| `aidlc-type-check.md` | Write: `.ts` / `.tsx` | Wraps your configured type-checker (`tsc` by default) |
+| [`aidlc-claim-sources.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/sensors/aidlc-claim-sources.md) | Gate | Every Intent Capture claim carries a resolvable source tag; registered description, scope, and memory values match authoritative inputs; retained assumptions exactly match explicit human confirmation |
+| [`aidlc-required-sections.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/sensors/aidlc-required-sections.md) | Gate | The output carries the required H2 headings — a generic content-shape check. Timestamp run records (`*-timestamp.md`) always pass |
+| [`aidlc-upstream-coverage.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/sensors/aidlc-upstream-coverage.md) | Gate | The stage's deliverables (evaluated as a set) reference each upstream artifact the stage declares it requires (`required: true`) or marks `cited: true`, by slug, wikilink, or the producing stage's directory path |
+| [`aidlc-traceability.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/sensors/aidlc-traceability.md) | Write: `**/traceability.json` | Validates stable upstream IDs, statuses, deterministic targets, and derived business-rule orphans |
+| [`aidlc-linter.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/sensors/aidlc-linter.md) | Write: `.ts` / `.js` | Wraps your configured linter (ESLint by default) |
+| [`aidlc-type-check.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/sensors/aidlc-type-check.md) | Write: `.ts` / `.tsx` | Wraps your configured type-checker (`tsc` by default) |
 
 All six shipped manifests define a `matches:` glob. On a write, the hook compares the changed path with that glob. At a gate, the state tool compares declared deliverable paths with the glob. `claim-sources` uses `**/{aidlc-docs,intents}/**`; `required-sections` and `upstream-coverage` use `**/{aidlc-docs,intents,codekb}/**`. Both patterns retain the legacy `aidlc-docs/` arm for pre-migration projects. `traceability` uses `**/traceability.json`. `linter` and `type-check` use `**/*.{ts,js}` and `**/*.{ts,tsx}` respectively. Read `aidlc-required-sections.md` end to end before authoring a sensor; it is the smallest shipped manifest and shows both its frontmatter and prose body.
 
@@ -938,7 +940,7 @@ During graph compilation, the resolver indexes manifests by ID and resolves each
 
 Adding a sensor is two writes: the manifest, then the binding.
 
-**1. Drop a manifest at `core/sensors/aidlc-<id>.md`.** The filename stem (minus the `aidlc-` prefix) must equal the frontmatter `id:`. The `aidlc-` filename prefix is mandatory for every sensor, custom ones included — the compile resolver discovers manifests with `SENSOR_FILE_REGEX = /^aidlc-([a-z][a-z0-9-]*)\.md$/` and silently skips any file without the prefix, so it is never discovered and never binds to a stage.
+**1. Drop a manifest at [`core/sensors/aidlc-<id>.md`](https://github.com/awslabs/aidlc-workflows/tree/main/core/sensors).** The filename stem (minus the `aidlc-` prefix) must equal the frontmatter `id:`. The `aidlc-` filename prefix is mandatory for every sensor, custom ones included — the compile resolver discovers manifests with `SENSOR_FILE_REGEX = /^aidlc-([a-z][a-z0-9-]*)\.md$/` and silently skips any file without the prefix, so it is never discovered and never binds to a stage.
 
 The frontmatter has five required fields and a handful of optional ones:
 
@@ -1060,7 +1062,7 @@ If you've read [§8 Rules and the Learning Loop](#8-rules-and-the-learning-loop)
 
 AI-DLC's knowledge is split into two tiers, and only one of them is yours to edit.
 
-**Tier 1 — methodology knowledge** ships with this implementation under `.claude/knowledge/`. It holds the methodology references each agent uses to run a stage — `aidlc-architect-agent/architecture-guide.md`, `aidlc-developer-agent/code-generation-guide.md`, and the cross-agent material in `aidlc-shared/`. **Leave it alone.** These are AI-DLC's files: a local edit to one stops the next `aidlc config` refresh with a conflict until you move it away or take the shipped file back with `--force`. A file you add there is kept, but it sits among AI-DLC's own files; put your own material in Tier 2.
+**Tier 1 — methodology knowledge** ships with this implementation under [`core/knowledge/`](https://github.com/awslabs/aidlc-workflows/tree/main/core/knowledge). It holds the methodology references each agent uses to run a stage — `aidlc-architect-agent/architecture-guide.md`, `aidlc-developer-agent/code-generation-guide.md`, and the cross-agent material in `aidlc-shared/`. **Leave it alone.** These are AI-DLC's files: a local edit to one stops the next `aidlc config` refresh with a conflict until you move it away or take the shipped file back with `--force`. A file you add there is kept, but it sits among AI-DLC's own files; put your own material in Tier 2.
 
 **Tier 2 — team knowledge** is yours to manage. It lives in the active space at `aidlc/knowledge/`, shorthand for `aidlc/spaces/<space>/knowledge/`. That directory sits beside the space's `memory/`, `codekb/`, and `intents/`, so its files are available across the space's intents. It holds your company-specific standards, policies, and conventions. The framework does not overwrite its contents. On the first `/aidlc`, the engine creates the empty knowledge directory and leaves you to add files. Put practices the framework should *enforce* in the space's memory layer at `aidlc/spaces/<active-space>/memory/`; use team knowledge for reference material agents consult.
 
@@ -1161,7 +1163,7 @@ The framework splits every decision by what kind of thing it is: determinism bel
 | Concern in Construction | Owner | Where it lives |
 |---|---|---|
 | The team's autonomy **posture** (a standing default) | you, the harness engineer | a rule in `core/memory/{team,project}.md` (data) |
-| What Units **can** parallelise | you, the harness engineer | the `units-generation` stage and its dependency DAG (data) |
+| What Units **can** parallelise | you, the harness engineer | the [`units-generation` stage](https://github.com/awslabs/aidlc-workflows/blob/main/core/aidlc-common/stages/inception/units-generation.md) and its dependency DAG (data) |
 | The **convergence check** the swarm trusts | you, the harness engineer | your project's own build/test command + a protected spec (data + project config) |
 | The actual autonomy **grant** for this project | the human | an explicit offer or on-demand request at runtime |
 | The swarm **driver** selection | the operator | the `AIDLC_USE_SWARM` environment variable |
@@ -1171,7 +1173,7 @@ The three rows marked "you" are the body of this section. The other three are co
 
 ### The autonomy posture — your real lever, written as a rule
 
-The standing recommendation lives under `## Walking Skeleton` in `core/memory/org.md`, refined by `team.md` and `project.md`. New source-producing solo Unit workflows record three independent settings:
+The standing recommendation lives under `## Walking Skeleton` in [`core/memory/org.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/memory/org.md), refined by [`team.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/memory/team.md) and [`project.md`](https://github.com/awslabs/aidlc-workflows/blob/main/core/memory/project.md). New source-producing solo Unit workflows record three independent settings:
 
 | Setting | New-workflow default | Meaning |
 |---|---|---|
