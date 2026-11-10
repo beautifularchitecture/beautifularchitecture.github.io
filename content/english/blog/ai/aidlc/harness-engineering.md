@@ -72,7 +72,13 @@ Author in **`core/`** (harness-neutral source). Regenerate per-harness distribut
 - Stage filename stem must equal frontmatter `slug`. `aidlc-graph compile` rejects mismatches, duplicate slugs, multiple producers of same consumed artifact (names files/consumer).
 - Sensor filename/id consistency is compile-time enforced.
 - Duplicate scope/agent names are loader errors naming both files. Filename↔name drift is reported by `/aidlc --doctor` as advisory.
-- One owner per invariant (approval/transition/presence/plan fingerprint). Same check may appear at multiple boundaries, but duplicating logic is a defect.
+- **One owner per invariant.** Each workflow invariant — approval, stage transition, artifact presence, plan fingerprint — is enforced in exactly one place. If the same check lives in a stage's `## Steps` prose, in a sensor, and in a hook, you have duplicated logic, and the copies will drift. Pick the owner:
+  - **Approval** → the stage's `reviewer` / `review_artifact` frontmatter, compiled into the gate transaction.
+  - **Transition** → the engine's `next` → `report` directive sequence; one emit path per checkbox move.
+  - **Presence** → `consumes[].required` resolved against `produces` at compile time.
+  - **Plan fingerprint** → the single transactional hash recorded when a plan is approved.
+  
+  The same *check* may appear at multiple boundaries (a sensor verifies shape, a gate verifies presence), but the *invariant* has one owner. Duplicate a check only when the boundaries are genuinely different; otherwise move it to the one place and reference it everywhere else.
 
 ### Build Model: Author in `core/`, Regenerate
 
