@@ -1,12 +1,16 @@
 +++
-date = '2026-07-05T10:00:20+10:00'
+date = '2026-11-13T10:00:20+10:00'
 draft = false
 title = 'DeepEval: CI-Gated Typed Metrics for LLM Outputs'
 tags = ['DeepEval', 'Evals', 'LLM', 'Testing', 'CI', 'Python', 'Metrics', 'Pytest', 'RAG']
 summary = "DeepEval is an open-source Python framework with 50+ ready-made metrics for LLM outputs: faithfulness, hallucination, toxicity, bias, G-Eval rubrics, agent and conversation metrics, plus deterministic checks. You build test cases, score them with metrics, and fail CI when a score drops below its threshold. This is the complete reference."
 +++
 
-![Class diagram of the DeepEval 4.2.8 API: test cases, metric base classes and their subclasses, parameter enums, datasets and goldens](../img/png/deepeval-class-diagram.png)
+![Class diagram of the DeepEval Python v4.3.4 API: representative test cases, metric base classes, datasets and goldens](../img/png/deepeval-class-diagram.png)
+
+> **Version checked:** DeepEval Python v4.3.4, the version named by the official docs when this post was updated on 2026-11-14. The metric catalogue and API details below describe that release; check the [official changelog](https://github.com/confident-ai/deepeval/blob/main/docs/content/changelog/changelog-2026.mdx) for later changes.
+
+The v4.3.4 changelog adds metadata support to conversation turns and moves tracing integrations to the `confident-trace` SDK. The metric families covered here remain the documented public API; use the changelog for release-by-release implementation changes.
 
 ## What DeepEval Does
 
@@ -213,7 +217,7 @@ Facts worth knowing:
 
 ## The Metric Catalogue
 
-The docs advertise "50+" metrics. Every metric is a subclass of one of three base classes, so the catalogue is easiest to read by starting from the base class and working down to the concrete metrics. The v4.2.8 release exposes the classes below.
+The docs advertise "50+" metrics. Every metric is a subclass of one of three base classes, so the catalogue is easiest to read by starting from the base class and working down to the concrete metrics. The v4.3.4 release exposes the classes below. The class diagram shows the core API and representative metric subclasses, not every concrete metric in this catalogue.
 
 | Category    | Base class                                             | `measure()` takes        | Returns      |
 | ----------- | ------------------------------------------------------ | ------------------------ | ------------ |
@@ -318,7 +322,7 @@ Take an `ArenaTestCase` and return the winning contestant's label instead of a 0
 - **Custom metrics:** subclass `BaseMetric` (or `BaseConversationalMetric`) to write a fully self-coded metric such as BLEU or ROUGE. See the [custom metrics page](https://deepeval.com/docs/metrics-custom).
 - **Trace metrics** (`TaskCompletionMetric`, `StepEfficiencyMetric`, `PlanAdherenceMetric`, `PlanQualityMetric`, `AgentLoopDetectionMetric`) require **LLM tracing**, because they judge the complete ordered trace rather than a single test case.
 - **RAGAS metrics** are not re-exported from `deepeval.metrics`; import `RagasMetric` (and the five `RAGAS*` classes) from `deepeval.metrics.ragas`.
-- **Community metrics** live under `deepeval.metrics.community`. In the released v4.2.8 package that module exports only `CitationFaithfulnessMetric`; `ToolPermissionMetric` and `AgentLoopDetectionMetric` are still exported from top-level `deepeval.metrics`. The documentation already shows the future `deepeval.metrics.community` import path for all three.
+- **Imports can change between releases.** Use the import path on each current metric documentation page. The catalogue below includes metrics from the core package and optional namespaces.
 
 ### How the scores are computed
 
@@ -557,14 +561,14 @@ There are four ways to execute metrics:
 
 `evaluate()` also accepts `hyperparameters`, `identifier`, `official`, and four config objects from `deepeval.evaluate`:
 
-| Config          | Fields (as of 4.2.8)                                                                                                                                                                                                                       |
+| Config          | Fields (as of 4.3.4)                                                                                                                                                                                                                       |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `AsyncConfig`   | `run_async=True`, `throttle_value=0` (seconds), `max_concurrent=20`. Lower concurrency or add throttling for rate limits.                                                                                                                  |
 | `DisplayConfig` | `show_indicator`, `print_results`, `verbose_mode`, `display_option` (`all` / `failing` / `passing`), `results_folder`, `results_subfolder`, `truncate_passing_cases`, `inspect_after_run`, `file_type` (`html` / `md`), `file_output_dir`. |
 | `ErrorConfig`   | `ignore_errors=False`, `skip_on_missing_params=False`                                                                                                                                                                                      |
 | `CacheConfig`   | `use_cache=False`, `write_cache=True`                                                                                                                                                                                                      |
 
-Docs discrepancy: the flags-and-configs page names the display field `display`, but the installed 4.2.8 signature is `display_option`. Trust `inspect.signature` over prose.
+The flags-and-configs page and installed package can differ as APIs evolve. Inspect the installed signature when code depends on a configuration field name.
 
 ### Local results
 
@@ -795,7 +799,7 @@ metric = ContainsMetric(["Paris", "capital"], threshold=0.66)
 metric.measure(test_case)
 ```
 
-**Gotchas (both verified against 4.2.8):**
+**Gotchas verified against v4.2.8; recheck against your pinned release:**
 
 - **No `a_measure()` means breakage.** `assert_test()` defaults to `run_async=True` and calls `a_measure()`.
 - **Don't use `*args` in `__init__`, and store every init argument under the same attribute name.** DeepEval copies metrics internally by calling `type(metric)(**vars(metric))`, filtered to your `__init__` parameter names. A signature like `__init__(self, *substrings, ...)` raised `TypeError: __init__() got an unexpected keyword argument 'substrings'` inside `assert_test`.
@@ -888,7 +892,7 @@ The companion repo includes [`scripts/example_deepeval.py`](https://github.com/b
 
 ### Sources used to verify this post
 
-- DeepEval docs (v4.2.8): [metrics introduction](https://deepeval.com/docs/metrics-introduction), [test cases](https://deepeval.com/docs/evaluation-test-cases), [datasets](https://deepeval.com/docs/evaluation-datasets), [unit testing in CI/CD](https://deepeval.com/docs/evaluation-unit-testing-in-ci-cd), [flags and configs](https://deepeval.com/docs/evaluation-flags-and-configs), [eval modes](https://deepeval.com/docs/evaluation-eval-modes), [CLI](https://deepeval.com/docs/command-line-interface), [data privacy](https://deepeval.com/docs/data-privacy), [custom metrics](https://deepeval.com/docs/metrics-custom)
+- DeepEval docs (checked against Python v4.3.4): [metrics introduction](https://deepeval.com/docs/metrics-introduction), [test cases](https://deepeval.com/docs/evaluation-test-cases), [datasets](https://deepeval.com/docs/evaluation-datasets), [unit testing in CI/CD](https://deepeval.com/docs/evaluation-unit-testing-in-ci-cd), [flags and configs](https://deepeval.com/docs/evaluation-flags-and-configs), [eval modes](https://deepeval.com/docs/evaluation-eval-modes), [CLI](https://deepeval.com/docs/command-line-interface), [data privacy](https://deepeval.com/docs/data-privacy), [custom metrics](https://deepeval.com/docs/metrics-custom)
 - Metric pages: [G-Eval](https://deepeval.com/docs/metrics-llm-evals), [Faithfulness](https://deepeval.com/docs/metrics-faithfulness), [Hallucination](https://deepeval.com/docs/metrics-hallucination), [Toxicity](https://deepeval.com/docs/metrics-toxicity), [Bias](https://deepeval.com/docs/metrics-bias), [Contextual Relevancy](https://deepeval.com/docs/metrics-contextual-relevancy), [Contextual Precision](https://deepeval.com/docs/metrics-contextual-precision), [JSON Correctness](https://deepeval.com/docs/metrics-json-correctness), [Pattern Match](https://deepeval.com/docs/metrics-pattern-match)
 - [DeepEval on PyPI](https://pypi.org/project/deepeval/) (release history, Python requirement, license)
 - [G-Eval paper (arXiv 2303.16634)](https://arxiv.org/abs/2303.16634)

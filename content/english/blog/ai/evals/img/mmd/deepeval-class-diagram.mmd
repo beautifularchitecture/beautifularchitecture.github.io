@@ -1,8 +1,8 @@
 classDiagram
-    %% DeepEval v4.2.8 docs (deepeval.com/docs): evaluation-test-cases, evaluation-multiturn-test-cases,
+    %% DeepEval Python v4.3.4 docs (deepeval.com/docs): evaluation-test-cases, evaluation-multiturn-test-cases,
     %% evaluation-arena-test-cases, evaluation-datasets, metrics-introduction, metrics-llm-evals
-    %% Not rendered/tested locally. Paste into mermaid.live to check.
-    %% The base class of each concrete metric is NOT stated in the docs; edges follow the original diagram.
+    %% Core API overview with representative metric subclasses, not a complete metric catalogue.
+    %% Metric inheritance edges follow the documented base classes.
     direction LR
 
     %% ===== 1. Test cases =====
@@ -45,6 +45,7 @@ classDiagram
       +audio: Audio
       +latency_ms: float
       +interrupted: bool
+      +metadata: dict
     }
     class Audio {
       +duration
@@ -96,11 +97,15 @@ classDiagram
       RETRIEVAL_CONTEXT
       TOOLS_CALLED
       EXPECTED_TOOLS
+      METADATA
+      TAGS
     }
     class MultiTurnParams {
       <<enumeration>>
       CONTENT
       TOOLS_CALLED
+      METADATA
+      TAGS
     }
 
 
@@ -168,6 +173,11 @@ classDiagram
       +rubric: list[Rubric]
       +model: str or DeepEvalBaseLLM
     }
+    class ConversationalJevEval {
+      +name: str
+      +evaluation_params: list[MultiTurnParams]
+      +questions: list[Noul or Score]
+    }
     class ArenaGEval {
       +name: str
       +criteria: str
@@ -212,7 +222,24 @@ classDiagram
     class KnowledgeRetentionMetric
     class RoleAdherenceMetric
     class ConversationCompletenessMetric
-    class ConversationalRelevancyMetric
+    class TurnRelevancyMetric
+    class TurnFaithfulnessMetric
+    class TurnContextualPrecisionMetric
+    class TurnContextualRecallMetric
+    class TurnContextualRelevancyMetric
+    class ToolUseMetric
+    class GoalAccuracyMetric
+    class TopicAdherenceMetric
+    class MCPTaskCompletionMetric
+    class MultiTurnMCPUseMetric
+    class TranscriptionAccuracyMetric
+    class VoiceNaturalnessMetric
+    class TurnTakingNaturalnessMetric
+    class SpeechIntelligibilityMetric
+    class VoiceConsistencyMetric
+    class AgentResponsivenessMetric
+    class AudioIntegrityMetric
+    class VoiceReliabilityMetric
 
     class UserDefinedMetric {
       <<user-defined>>
@@ -248,11 +275,29 @@ classDiagram
     BaseMetric <|-- UserDefinedMetric
 
     BaseConversationalMetric <|-- ConversationalGEval
+    BaseConversationalMetric <|-- ConversationalJevEval
     BaseConversationalMetric <|-- ConversationalDAGMetric
     BaseConversationalMetric <|-- KnowledgeRetentionMetric
     BaseConversationalMetric <|-- RoleAdherenceMetric
     BaseConversationalMetric <|-- ConversationCompletenessMetric
-    BaseConversationalMetric <|-- ConversationalRelevancyMetric
+    BaseConversationalMetric <|-- TurnRelevancyMetric
+    BaseConversationalMetric <|-- TurnFaithfulnessMetric
+    BaseConversationalMetric <|-- TurnContextualPrecisionMetric
+    BaseConversationalMetric <|-- TurnContextualRecallMetric
+    BaseConversationalMetric <|-- TurnContextualRelevancyMetric
+    BaseConversationalMetric <|-- ToolUseMetric
+    BaseConversationalMetric <|-- GoalAccuracyMetric
+    BaseConversationalMetric <|-- TopicAdherenceMetric
+    BaseConversationalMetric <|-- MCPTaskCompletionMetric
+    BaseConversationalMetric <|-- MultiTurnMCPUseMetric
+    BaseConversationalMetric <|-- TranscriptionAccuracyMetric
+    BaseVoiceMetric <|-- VoiceNaturalnessMetric
+    BaseVoiceMetric <|-- TurnTakingNaturalnessMetric
+    BaseVoiceMetric <|-- SpeechIntelligibilityMetric
+    BaseVoiceMetric <|-- VoiceConsistencyMetric
+    BaseVoiceMetric <|-- AgentResponsivenessMetric
+    BaseVoiceMetric <|-- AudioIntegrityMetric
+    BaseVoiceMetric <|-- VoiceReliabilityMetric
     BaseArenaMetric <|-- ArenaGEval
 
     GEval o-- Rubric
