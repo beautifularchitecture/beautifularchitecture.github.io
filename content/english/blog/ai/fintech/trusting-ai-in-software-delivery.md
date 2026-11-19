@@ -9,7 +9,7 @@ aliases = ['/blog/ai/fintech/trusting-ai/','/blog/ai/fintech/where-to-trust-ai/'
 
 ## Introduction
 
-AI-DLC for Inception, Construction and Operations, context engineering to decide what the model sees, prompt engineering to decide how it is asked, spec-driven development, evals and harness-enforced gates. Two questions came out of that work.
+My earlier work covered AI-DLC across Inception, Construction and Operations, context engineering to decide what the model sees, prompt engineering to decide how it is asked, spec-driven development, evals and harness-enforced gates. That work raised two questions.
 
 1. Where can AI be trusted?
 2. What engineering practices must exist before that trust is warranted?
@@ -22,12 +22,12 @@ This post is part of the fintech series. It builds on [The AI-DLC Approach to Fi
 
 ## What "trust" means in this post
 
-AI is trustworthy for a task when two conditions hold:
+An AI-assisted workflow earns trust for a task when two conditions hold:
 
-- You can rely on the output without repeating the work yourself.
-- You can detect and contain a wrong output before it reaches a user, a ledger or a regulator.
+- The workflow produces accurate enough output that you do not need to redo the task yourself.
+- The workflow can detect and contain a wrong output before it reaches a user, a ledger or a regulator.
 
-These are separate claims. The first concerns accuracy. The second concerns control. A system with excellent control and mediocre accuracy can still be trustworthy in a bounded role, because the control catches the errors. A system with excellent accuracy and no control is not trustworthy in a regulated domain, because nobody can prove the error was absent.
+These are separate claims. The first concerns accuracy. The second concerns control. A system with excellent control and mediocre accuracy can still be trusted in a bounded role, because the control catches errors before they cause harm. A system with excellent accuracy and no control is not trustworthy in a regulated domain, because nobody can establish that an error was absent.
 
 Three variables decide how much trust a task can carry.
 
@@ -208,7 +208,7 @@ AI-DLC calls the equivalent artifact Completion Criteria. The [approach post](/b
 
 Generated code can be checked deterministically. The behaviour of the agent that produced it cannot. [AI Skills and Tools by Phase](/blog/ai/fintech/ai-skills-by-phase/) places evals at Testing and Production: golden datasets, invariants, model-graded metrics and CI gates for non-deterministic output. The site's evaluation series covers the tooling in detail: [Evals](/blog/ai/evals/evals/), [Promptfoo](/blog/ai/evals/promptfoo/), [Braintrust](/blog/ai/evals/braintrust/) and [DeepEval](/blog/ai/evals/deepeval/).
 
-Track the measures that locate a failure, not just a single quality score. [Context Engineering](/blog/ai/fintech/context-engineering/) lists tokens per step, retrieval quality, tool-call accuracy, groundedness, task success and escalation rate. An escalation rate is a direct measure of how often the system needed a human, which is the trust question in numerical form.
+Track the measures that locate a failure, not just a single quality score. [Context Engineering](/blog/ai/fintech/context-engineering/) lists tokens per step, retrieval quality, tool-call accuracy, groundedness, task success and escalation rate. Escalation rate measures how often the system hands work to a person. Interpret it alongside task success, error rates and escalation reasons: a high rate can reflect either weak automation or a well-calibrated safety boundary.
 
 ### Layer 7: Independent review and adversarial checks
 
