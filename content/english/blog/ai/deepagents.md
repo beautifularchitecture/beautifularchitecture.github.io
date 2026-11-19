@@ -6,58 +6,73 @@ tags = ['LLM', 'AI', 'LangChain', 'Deep Agents', 'Agentic AI', 'Design Patterns'
 summary = "Comprehensive reference for building long-running, multi-step AI agents using LangChain's Deep Agents SDK — covering planning, file systems, subagents, memory, skills, sandboxes, backends, context management, human-in-the-loop, and deployment."
 +++
 
-Deep Agents is LangChain's opinionated agent harness for building agents that can plan, delegate, remember and act across complex multi-step tasks. It sits on top of LangChain core and the LangGraph runtime and ships with built-in tools for file management, subagent spawning, context compression and long-term memory, plus optional task planning.
+Deep Agents is a LangChain library for building agents that handle tasks with several steps. It combines LangChain components with the LangGraph runtime. It provides tools for working with files, delegating tasks to subagents and managing long conversations. Planning tools are optional. Persistent memory requires a suitable backend and configuration.
 
 ---
 
 ![Class diagram of the LangChain Deep Agents SDK: the create_deep_agent factory, the middleware stack, subagents, filesystem backends and sandbox protocols, result types, harness profiles and filesystem permissions](../img/png/deepagents-class-diagram.png)
 
-## Introduction
+## Chapter: The Problem Deep Agents Solves
 
-Before the Deep Agents SDK, building a production-grade agent required you to wire together context management, tool routing, summarization, filesystem access, human approvals and deployment yourself. Deep Agents packages all of that into a single harness so you can focus on what the agent does, not how it works.
+An agent that handles long tasks needs more than a model and a tool loop. It may also need context management, file access, task delegation, human approval and a deployment environment. Deep Agents provides components for these needs in one agent harness. You still choose and configure the components that your application requires.
 
 You can run the same harness two ways:
 
-- **Deep Agents SDK** (`deepagents` on [PyPI](https://pypi.org/project/deepagents/)) — open source, you host the agent yourself. Source: [github.com/langchain-ai/deepagents](https://github.com/langchain-ai/deepagents).
-- **Managed Deep Agents** — LangSmith runs the harness, Agent Server, sandboxes and schedules for you. This is the path the docs now recommend first for production.
+- **Deep Agents SDK** (`deepagents` on [PyPI](https://pypi.org/project/deepagents/)) — an open-source package that you run and host. Source: [github.com/langchain-ai/deepagents](https://github.com/langchain-ai/deepagents).
+- **Managed Deep Agents** — a LangSmith service that hosts the harness and provides related deployment features. Check the current [Managed Deep Agents documentation](https://docs.langchain.com/langsmith/python/managed-deep-agents-overview) for available features and requirements.
 
 This post focuses on the SDK, with a section on managed deployment near the end.
+
+## How to Read This Book
+
+An **agent harness** adds the components needed to run an agent around a model's tool-calling loop. Deep Agents combines that loop with a LangGraph runtime, file tools, context management, optional planning, subagents and control mechanisms. The runtime runs the agent. The filesystem stores working files. Context management keeps conversations within model limits. Subagents handle delegated tasks. Approval and permission settings let an application control selected actions.
+
+The chapters build that picture in layers:
+
+- **Foundation:** learn what an agent harness does and how Deep Agents is structured.
+- **Build an agent:** install the SDK, select a model and follow a research task from input to result.
+- **Agent operation:** add tools, manage context and choose where the agent stores files.
+- **Coordination and control:** use subagents and middleware, provide reusable knowledge, and configure approvals and filesystem permissions.
+- **Deployment and integration:** return structured results, stream progress, deploy the agent and connect it to other systems.
+- **Reference:** compare related tools, review use cases, troubleshoot errors, check version requirements and find API examples.
+
+Read the chapters in order to learn the concepts step by step. After that, use the later chapters to look up specific features.
 
 > **Version note.** Several features below depend on a minimum `deepagents` version. See [Version requirements](#version-requirements) at the end of the post and pin your version before copying code.
 
 ---
 
-## Concepts
+## Chapter: The Agent Harness Mental Model
 
 ### What is an Agent Harness?
 
-- An **agent harness** is the scaffolding that wraps the core LLM tool-calling loop with production-grade capabilities.
-- Deep Agents is an opinionated harness — it ships with defaults that work well out of the box (system prompts, file tools, subagents, summarization) and lets you override each layer.
-- Contrast with a **framework** (LangChain: building blocks) or a **runtime** (LangGraph: durable graph execution).
+- An **agent harness** is software that runs an agent's model-and-tool loop and supplies related capabilities, such as file tools and context management.
+- Deep Agents is a harness with built-in defaults, including a system prompt, filesystem tools and context summarization. You can configure or extend parts of the harness.
+- **LangChain** provides components for building agents. **LangGraph** provides the runtime used to execute and persist graph-based agents. Deep Agents builds on both.
 
 ### The Tool-Calling Loop
 
-- At its core, every agent is a loop: LLM generates a message → tools are called → results are appended → LLM generates again.
-- Deep Agents uses LangGraph's compiled state graph as the runtime engine for this loop, giving it durable execution, checkpointing, and streaming for free.
-- The harness adds built-in tools, context management, and middleware hooks on top of this core loop.
+- A tool-calling agent repeats these steps: the model returns a message, the application runs any requested tools, and the application sends the tool results back to the model.
+- Deep Agents runs this loop with a compiled LangGraph state graph. LangGraph provides execution features such as checkpointing and streaming when configured and used through its supported interfaces.
+- Deep Agents adds filesystem tools, context management and middleware to the model-and-tool loop.
 
 ### Context Window Management
 
-- LLMs have a finite context window — everything (system prompt, conversation history, tool results) must fit inside it.
-- **Context bloat** is the primary failure mode of long-running agents: tool results accumulate and eventually exceed the window.
-- Deep Agents addresses this with two built-in compression strategies: **offloading** (writing large content to the filesystem) and **summarization** (compressing old history). Both are automatic. Subagents add a third lever: **isolation**.
+- Each model has a context limit. The system prompt, conversation history and tool results all use part of that limit.
+- Long conversations can exceed the model's context limit when tool results and earlier messages accumulate.
+- Deep Agents can reduce context use by saving large content to its filesystem and by summarizing older messages. Subagents can also keep the details of a delegated task in a separate context.
 
 ### Virtual Filesystem
 
-- Instead of working directly with disk, Deep Agents gives agents a **virtual filesystem** backed by a pluggable backend.
-- Agents write, read, search and edit files as part of their normal work — this is how they offload large tool results and share state between tasks.
-- The same agent code works whether the backend is in-memory state, local disk, a cloud sandbox, or a custom store.
+- Deep Agents provides a **virtual filesystem**. A backend determines where its files are stored and which operations are available.
+- The agent can use filesystem tools to read, write, search and edit files. These files can hold work that would otherwise remain in conversation history.
+- Depending on the backend, files can be stored in graph state, on local disk, in a sandbox or in a persistent store. Backend choice affects persistence and access.
 
 ---
 
-## Core Architecture
+## Chapter: How the Harness Fits Together
 
-`create_deep_agent` is the single entry point. Its real signature (from the docs) is:
+`create_deep_agent` creates a Deep Agents agent. The following signature lists its main parameters; check the [API reference](https://reference.langchain.com/python/deepagents) for the signature supported by your installed version.
 
 ```python
 create_deep_agent(
@@ -86,7 +101,7 @@ create_deep_agent(
 
 ---
 
-## Installation and Setup
+## Chapter: Set Up the SDK
 
 ```bash
 # Core install
@@ -114,7 +129,7 @@ export TAVILY_API_KEY="your-key"
 
 ---
 
-## Quickstart — Research Agent
+## Chapter: Build Your First Research Agent
 
 ```python
 import os
@@ -160,19 +175,19 @@ result = agent.invoke({
 print(result["messages"][-1].content)
 ```
 
-**What typically happens:**
+**One possible execution:**
 
-1. The agent calls `write_todos` (because `TodoListMiddleware` was added) to break the task into steps.
+1. The agent can call `write_todos` because the example adds `TodoListMiddleware`. The tool lets the agent record task steps.
 2. It calls `internet_search` to gather information.
 3. It calls `write_file` / `read_file` to offload large search results.
-4. It may spawn a subagent if a subtask needs deep context isolation.
-5. It synthesizes and returns a final report.
+4. If the agent has a suitable subagent configured, it can delegate a subtask to that agent.
+5. The agent combines the available results and returns a report.
 
 ---
 
-## Supported Models
+## Chapter: Choose a Model Provider
 
-Deep Agents uses a `provider:model` format string. Any LangChain chat model that supports tool calling works. The strings below are the ones used in the official docs.
+Deep Agents can select a model with a `provider:model` string or receive an initialized LangChain chat model. The model must support tool calling. The identifiers below are examples, not a promise that every provider still offers each model. Check the current [Deep Agents model guide](https://docs.langchain.com/oss/python/deepagents/models) and your provider's model list before using one.
 
 | Provider     | Example Model String                                                | Notes                      |
 | ------------ | ------------------------------------------------------------------- | -------------------------- |
@@ -200,18 +215,18 @@ model = init_chat_model(
 agent = create_deep_agent(model=model, ...)
 ```
 
-**Connection resilience:** LangChain chat models automatically retry transient API failures with exponential backoff. For the exact defaults and tuning options, see the *Connection resilience* section of the LangChain Models docs.
+**Retries:** LangChain chat models retry some network errors, rate limits and server errors with exponential backoff. The retry count and other behavior depend on the integration and its configuration. See [LangChain's connection resilience guide](https://docs.langchain.com/oss/python/langchain/models#connection-resilience) for current details.
 
 ---
 
-## Built-in Tools (Harness Capabilities)
+## Chapter: Give the Agent Its Core Tools
 
 ### Planning — `write_todos` (opt-in)
 
-- Gives the agent a structured task list it can update during execution.
-- **Opt-in since v0.7:** add `TodoListMiddleware` from `langchain.agents.middleware` to `middleware=`. Earlier versions included it by default.
-- Tasks have statuses: `pending`, `in_progress`, `completed`, and are persisted in agent state.
-- Useful for long multi-step tasks, less capable models that benefit from an explicit accountability tool, and UIs that stream progress from agent state.
+- Adds a structured task list that the agent can update while it works.
+- **Opt-in since v0.7:** add `TodoListMiddleware` from `langchain.agents.middleware` to `middleware=`. Earlier versions enabled this middleware by default.
+- Each task has one of these statuses: `pending`, `in_progress` or `completed`. The task list is stored in agent state.
+- A task list can help with long tasks that have several steps. An application can also display task status to show progress.
 
 ```python
 from deepagents import create_deep_agent
@@ -236,10 +251,10 @@ agent = create_deep_agent(
 | `grep`       | Search file contents — files-only, content-with-context, or count modes                                        |
 | `execute`    | Run shell commands (only available with sandbox backends)                                                      |
 
-**Hiding or restricting filesystem tools:**
+**Choose which filesystem tools are available:**
 
-- To hide tools from the model, register a harness profile with `excluded_tools` (this shrinks the baseline prompt, since unused tool schemas are sent every turn).
-- To expose only a subset, pass a `tools` allowlist to your own `FilesystemMiddleware` instance (`deepagents>=0.7`). `read_file` must always be in the list.
+- To remove filesystem tools from the model's tool list, register a harness profile with `excluded_tools`. Fewer tool definitions can also reduce the prompt size.
+- To give the agent only selected filesystem tools, pass a `tools` allowlist to a `FilesystemMiddleware` instance (`deepagents>=0.7`). The allowlist must include `read_file`.
 
 ```python
 from deepagents import create_deep_agent
@@ -258,23 +273,23 @@ agent = create_deep_agent(
 )
 ```
 
-`FilesystemMiddleware` itself cannot be removed via `excluded_middleware`; it is required scaffolding.
+`FilesystemMiddleware` is required by the harness. You cannot remove it with `excluded_middleware`.
 
 ### Task Delegation — `task`
 
-- The main agent's tool for spawning subagents.
-- Accepts a subagent name and task description.
-- Synchronous subagents block until the subagent finishes, then return a single final report.
-- All subagent intermediate tool calls are invisible to the main agent — only the result comes back.
-- Subagents are stateless: they cannot send multiple messages back.
+- The `task` tool lets the main agent start a configured subagent.
+- A task call identifies the subagent and describes the work.
+- A synchronous task call waits for the subagent to finish, then returns its result.
+- The main agent receives the subagent's result. It does not receive the subagent's intermediate tool calls as messages in its own conversation.
+- A synchronous subagent returns one result for each task call. Use async subagents when the main agent needs to check or update work while it is running.
 
 ---
 
-## Context Management in Depth
+## Chapter: Keep Long Tasks Within Context
 
 ### Prompt Composition Order
 
-When you create a deep agent, the final system prompt is assembled in this order:
+When you create a deep agent, the harness assembles its system prompt from these parts, in this order:
 
 1. Your custom `system_prompt` (prepended)
 2. Base agent prompt
@@ -285,32 +300,32 @@ When you create a deep agent, the final system prompt is assembled in this order
 7. User-provided middleware prompts (if any)
 8. Human-in-the-loop prompt (when `interrupt_on` is set)
 
-Deep Agents Code (the terminal agent) additionally injects a local-context prompt with the current directory and project info.
+Deep Agents Code, the terminal agent, also adds information about the current directory and project.
 
 ### Offloading Large Content
 
-Deep Agents automatically offloads large content when tool inputs or results exceed a token threshold (default **20,000 tokens**):
+Deep Agents can move large tool inputs and results out of the conversation and into the filesystem. The documented default threshold is **20,000 tokens**; confirm the value for the SDK version you use.
 
 **Large tool inputs:**
 
-- File write/edit operations leave the full file content in conversation history.
-- As the session context crosses 85% of the model's available window, older tool calls are truncated and replaced with a pointer to the file on disk.
-- The file is already persisted, so nothing is lost.
+- File write and edit operations can add the full file content to conversation history.
+- When the session reaches 85% of the model's available context window, the middleware can replace older tool-call content with a reference to the saved file.
+- The saved file remains available through the configured backend. The conversation history is shortened, but the file content is retained there.
 
 **Large tool results:**
 
-- The result is written to the backend and replaced with a file path reference plus a preview of the first 10 lines.
-- The agent can re-read or search the file as needed.
+- The middleware writes the result to the configured backend and replaces the in-context result with a file path and a preview of its first 10 lines.
+- The agent can use filesystem tools to read or search the saved result.
 
-Built-in compression does not resize images or lower image resolution; see the Multimodal docs for how compression interacts with media.
+This compression does not resize images or reduce their resolution. See the [Deep Agents multimodal guide](https://docs.langchain.com/oss/python/deepagents/multimodality) for current details about media handling.
 
 ### Summarization
 
-When the context crosses the limit (default 85% of the model's `max_input_tokens`) and there is no more content eligible for offloading, Deep Agents summarizes the message history:
+When the context reaches its configured limit (documented default: 85% of the model's `max_input_tokens`) and offloading cannot reduce it enough, Deep Agents can summarize the message history:
 
-- **In-context summary:** An LLM generates a structured summary (session intent, artifacts created, next steps) that replaces the full conversation history in working memory.
-- **Filesystem preservation:** A text rendering of the original messages is written to the filesystem as a canonical record.
-- The agent stays aware of its goals (summary) but can recover details (filesystem search).
+- **Summary in context:** a model creates a summary of the session's goal, created files and next steps. The summary replaces older messages in the active context.
+- **Original messages in the filesystem:** a text copy of the original messages is saved to the configured backend.
+- The agent uses the summary to continue its work. It can search or read the saved messages when it needs earlier details.
 
 **Defaults:**
 
@@ -320,9 +335,9 @@ Context kept: 10% of tokens as recent context
 Fallback:     170,000-token trigger, 6 messages kept (if model profile unavailable)
 ```
 
-If any model call raises a standard `ContextOverflowError`, the deep agent immediately falls back to summarization and retries with the summary plus recent preserved messages.
+If a model call raises `ContextOverflowError`, the deep agent can summarize the conversation and retry with the summary and the recent messages that remain in context.
 
-**Customizing thresholds** — override the default `SummarizationMiddleware` by passing an instance (matching is done by `.name`; requires `deepagents>=0.7`). An override *replaces* the default, so it must be fully configured:
+**Set different thresholds** — pass a `SummarizationMiddleware` instance to replace the default middleware (`deepagents>=0.7`). The replacement must include the configuration it needs:
 
 ```python
 from deepagents import create_deep_agent
@@ -347,7 +362,7 @@ agent = create_deep_agent(
 
 `trigger` also accepts `("fraction", ...)` and a list of thresholds (combined with OR).
 
-**On-demand compaction** — give the agent a `compact_conversation` tool so it can compact between tasks instead of waiting for the threshold. Automatic summarization stays on:
+**Summarize on request** — add a `compact_conversation` tool so the agent can summarize between tasks. Automatic summarization remains enabled:
 
 ```python
 from deepagents import create_deep_agent
@@ -363,11 +378,11 @@ agent = create_deep_agent(
 )
 ```
 
-**Streaming tip:** tokens generated by the summarization step show up in message streams. Filter them with `metadata.get("lc_source") == "summarization"`.
+**Identify summary messages in a stream:** messages produced during summarization have `metadata["lc_source"] == "summarization"`. Use this metadata to distinguish them from the agent's other messages.
 
 ### Prompt Caching
 
-For Anthropic and Amazon Bedrock models (Claude or Nova), `create_deep_agent` automatically applies prompt caching to the static parts of the system prompt (base instructions, memory, skill content). No configuration is needed. To change the Anthropic cache TTL, override the middleware:
+For supported Anthropic and Amazon Bedrock models, `create_deep_agent` adds prompt-caching middleware for static prompt content such as base instructions, memory and skill content. The provider must support prompt caching. To change the Anthropic cache time-to-live (TTL), configure its middleware:
 
 ```python
 from langchain_anthropic.middleware import AnthropicPromptCachingMiddleware
@@ -380,20 +395,20 @@ agent = create_deep_agent(
 
 ### Runtime Context and Custom State
 
-- **Runtime context** (`context_schema=` + `context=` at invoke time) is per-run configuration such as user IDs or API keys. It is not shown to the model unless a tool or middleware adds it. It propagates to all subagents.
-- **Custom state** (`state_schema=`, `deepagents>=0.6.6`) is for data that must live in checkpointed graph state. Subclass `DeepAgentState` so the built-in `messages` reducer is preserved.
+- **Runtime context** (`context_schema=` and `context=` at invoke time) carries per-run values, such as a user ID. The model cannot see these values unless a tool or middleware exposes them. Runtime context is passed to subagents.
+- **Custom state** (`state_schema=`, `deepagents>=0.6.6`) adds data to the graph state saved by a checkpointer. Subclass `DeepAgentState` to retain the built-in handling of the `messages` field.
 
 ---
 
-## Filesystem Backends
+## Chapter: Choose Where Agent Files Live
 
-The virtual filesystem is powered by pluggable backends. Choose based on your persistence and execution needs.
+The virtual filesystem uses a backend to store files and perform file operations. Choose a backend based on how long files must persist and where the agent must run.
 
 ### StateBackend (Default)
 
-- Thread-scoped filesystem stored in LangGraph state.
-- Files persist across turns within a thread (via your checkpointer) but are not shared across threads.
-- Good for development and stateless agents.
+- Stores files in the LangGraph state for a thread.
+- With a checkpointer, files persist between turns in the same thread. They are not shared with other threads.
+- This backend is useful for development and agents that do not need to share files between threads.
 
 ```python
 from deepagents.backends import StateBackend
@@ -402,9 +417,9 @@ agent = create_deep_agent(model="openai:gpt-5.5", backend=StateBackend())
 
 ### FilesystemBackend (Local Disk)
 
-- Maps the virtual filesystem to real local disk.
-- Agents can read and write files directly on your machine — use with caution.
-- Tip: wrap it in a `CompositeBackend` so internal agent data (offloaded results, conversation history) isn't written next to your project files.
+- Maps virtual paths to files on local disk.
+- The agent can read and write files within the configured root directory. Set that directory carefully because the agent may change files there.
+- A `CompositeBackend` can route internal agent files, such as offloaded results, to a different backend from your project files.
 
 ```python
 from deepagents.backends import FilesystemBackend
@@ -416,8 +431,8 @@ agent = create_deep_agent(
 
 ### LocalShellBackend (Local Shell)
 
-- Like FilesystemBackend, but adds the `execute` tool for running shell commands on the host.
-- **Unrestricted shell access** — only use in safe, isolated environments.
+- Like `FilesystemBackend`, this backend maps files to local disk and adds an `execute` tool for shell commands on the host.
+- Commands run with the permissions of the host process. Use this backend only in an environment where those permissions are appropriate.
 
 ```python
 from deepagents.backends import LocalShellBackend
@@ -429,8 +444,8 @@ agent = create_deep_agent(
 
 ### StoreBackend (Cross-thread Persistence)
 
-- Backed by a LangGraph Store — files persist across threads and conversations.
-- When deploying to LangSmith, omit the `store` parameter — the platform provisions one automatically.
+- Uses a LangGraph Store so files can persist across threads and conversations.
+- In a LangSmith deployment, the platform may provide the store. Follow the deployment documentation for the configuration required by your setup.
 
 ```python
 from langgraph.store.memory import InMemoryStore
@@ -445,11 +460,11 @@ agent = create_deep_agent(
 )
 ```
 
-**Important:** The `namespace` parameter controls data isolation. In multi-user deployments, always set a namespace factory to isolate data per user or tenant.
+**Data isolation:** the `namespace` parameter determines where the store keeps each set of files. In a multi-user application, configure namespaces so one user or tenant cannot access another user's stored data.
 
 ### ContextHubBackend
 
-- Durable filesystem storage in a LangSmith Hub repo.
+- Stores filesystem data in a LangSmith Hub repository. Check the current integration documentation for availability and setup requirements.
 
 ```python
 from deepagents.backends import ContextHubBackend
@@ -463,8 +478,8 @@ agent = create_deep_agent(
 ### CompositeBackend (Hybrid Routing)
 
 - Routes different virtual paths to different backends.
-- Example: thread-scoped state for most files, durable store for `/memories/`.
-- This is the documented way to get long-term memory alongside ephemeral working files.
+- In this example, most files use thread-scoped state and files under `/memories/` use a persistent store.
+- This arrangement separates temporary working files from files intended to persist between conversations.
 
 ```python
 from deepagents.backends import CompositeBackend, StateBackend, StoreBackend
@@ -482,7 +497,7 @@ agent = create_deep_agent(
 
 ### Sandbox Backends (Isolated Code Execution)
 
-Sandboxes are backends that also give the agent an `execute` tool inside an isolated environment. Agents can install packages, run tests and execute scripts without touching your host. Only the `execute()` method is required of a provider; the base class builds all other file operations on top of it.
+Sandbox backends provide an `execute` tool that runs commands in a separate environment. The agent can install packages, run tests and execute scripts there without running those commands directly on the host. A sandbox provider implements `execute()`; the backend base class supplies the other file operations.
 
 | Sandbox          | Package                                   | Notes                                |
 | ---------------- | ----------------------------------------- | ------------------------------------ |
@@ -521,41 +536,43 @@ finally:
     modal_sandbox.terminate()
 ```
 
-**Why sandboxes:**
+**Reasons to use a sandbox:**
 
-- Security: code runs in isolation, protecting your host.
-- Clean environments: specific dependency versions without local setup.
-- Reproducibility: consistent environments across teams.
+- **Separate execution environment:** commands run in the sandbox instead of directly on the host. This does not guarantee that the host or other systems are protected from every risk.
+- **Separate dependencies:** install the required package versions in the sandbox without changing the host environment.
+- **Repeatable setup:** configure the same environment for multiple runs or team members.
 
 **Two integration patterns:**
 
-- **Sandbox as tool** (the pattern used in the docs' examples): the agent runs on your server and calls the sandbox through its backend. API keys stay outside the sandbox, and you can update agent code without rebuilding images.
-- **Agent in sandbox:** the agent runs inside the sandbox and you talk to it over the network. This mirrors local development but puts API keys inside the sandbox and needs extra communication infrastructure.
+- **Sandbox as a tool:** the agent runs in your application and uses its backend to send commands to the sandbox. Credentials used by the application can stay outside the sandbox. The application and sandbox have separate deployment lifecycles.
+- **Agent inside the sandbox:** the agent process runs in the sandbox, and your application communicates with it over a network connection. Any credentials the agent needs may be present in the sandbox, so configure credential access carefully.
 
 **Security notes:**
 
-- Sandboxes do not protect against context injection or network exfiltration. **Never put secrets inside a sandbox.** Keep authenticated calls in tools that run outside it.
-- Shut sandboxes down when finished; they cost money until you do. Set a TTL for idle environments.
-- Use `upload_files()` / `download_files()` from application code to move files across the sandbox boundary.
+- A sandbox does not by itself prevent an agent from being influenced by malicious input or from sending data over an allowed network connection. Limit network access and keep credentials outside the sandbox when possible. If credentials must be available inside it, apply the provider's security controls.
+- Stop sandboxes when they are no longer needed. Some providers charge while a sandbox is running. Configure an idle timeout (TTL) if the provider supports one.
+- Use `upload_files()` and `download_files()` in application code to transfer files between the application and the sandbox.
 
 ---
 
-## Subagents
+## Chapter: Delegate Work to Subagents
 
-Subagents solve the **context bloat problem** — when a subtask requires many tool calls, those results would otherwise fill the main agent's context. Subagents isolate that work; the main agent receives only the final result.
+Subagents perform tasks delegated by a main agent. A subagent can keep its own tool calls and results in a separate context. The main agent receives the subagent's returned result, which can reduce how much detail the main conversation must retain.
 
 ### When to Use Subagents
 
 | Use                                             | Avoid                                       |
 | ----------------------------------------------- | ------------------------------------------- |
-| Multi-step tasks that clutter main context      | Simple, single-step tasks                   |
-| Specialized domains needing custom instructions | When intermediate context must be preserved |
-| Tasks requiring a different model               | When overhead outweighs benefits            |
-| Keeping the main agent focused on coordination  |                                             |
+| Consider a subagent for...                       | Avoid a subagent when...                    |
+| ----------------------------------------------- | ------------------------------------------- |
+| A task with several steps and many tool results | The task is a single, simple operation      |
+| Work that needs its own instructions or tools   | The main agent needs every intermediate step |
+| Work that needs a different model               | Setup and coordination cost more than the task |
+| Work that can run separately from coordination |                                             |
 
 ### Default General-Purpose Subagent
 
-Every deep agent automatically gets a synchronous `general-purpose` subagent unless you provide your own with that name. It has filesystem tools, the main agent's model by default, and **inherits the main agent's skills**.
+The default configuration adds a synchronous `general-purpose` subagent unless you provide a subagent with that name. It has filesystem tools, uses the main agent's model by default and **inherits the main agent's skills**.
 
 - To **replace** it, pass a subagent named `general-purpose`.
 - To **re-prompt or rename** the auto-added one, set `general_purpose_subagent=GeneralPurposeSubagentProfile(...)` on the active harness profile.
@@ -586,7 +603,7 @@ agent = create_deep_agent(
 
 ### CompiledSubAgent (Custom LangGraph Graphs)
 
-For complex workflows, wrap a prebuilt, already-compiled LangGraph graph. `create_agent` already returns a compiled graph, so **do not call `.compile()` on it**. A custom graph must have a `"messages"` state key.
+For a more complex subagent, pass a prebuilt, compiled LangGraph graph. `create_agent` returns a compiled graph, so do not call `.compile()` on its result. A custom graph must include a `"messages"` key in its state.
 
 ```python
 from deepagents import create_deep_agent, CompiledSubAgent
@@ -614,7 +631,7 @@ Note: `CompiledSubAgent` and remote `AsyncSubAgent` specs do not inherit the par
 
 ### Forked Subagents (Beta)
 
-By default a subagent is **isolated**: it sees only the task description. With `mode: "fork"` it inherits the parent's conversation history and state instead, which is useful when the subagent continues work the parent already started (for example, drafting review comments for issues the parent found).
+By default, a subagent runs in **isolated** mode and receives the task description. With `mode: "fork"`, it also receives the parent's conversation history and state. Fork mode can help when a subagent must continue work that the parent has already started, such as drafting review comments about issues the parent found.
 
 ```python
 comment_writer = {
@@ -625,14 +642,14 @@ comment_writer = {
 }
 ```
 
-- Requires `deepagents>=0.7.13` and is in beta.
-- `skills` is rejected on forks; `system_prompt` is appended to the parent's prompt as an addendum.
-- Forks cannot call `task`; they must finish the work themselves.
-- A fork can reuse the parent's prompt cache for the matching prefix, so avoid rewriting the shared prompt or tools if you want cache hits.
+- Fork mode requires `deepagents>=0.7.13` and is a beta feature.
+- Fork mode does not accept `skills`. Its `system_prompt` is added to the parent's prompt.
+- A forked subagent cannot call `task` to delegate another task. It must complete its assigned work itself.
+- A fork may reuse cached prompt content when its prompt begins with the same content as the parent's prompt. Changes to the shared prompt or tools can prevent that reuse.
 
-### Structured Output from Subagents
+### Structured Results from Subagents
 
-Subagents can return structured JSON to the parent instead of free-form text (`deepagents>=0.5.3`):
+Subagents can return JSON that follows a schema instead of an unstructured text result (`deepagents>=0.5.3`):
 
 ```python
 from pydantic import BaseModel, Field
@@ -651,7 +668,7 @@ research_subagent = {
 }
 ```
 
-The parent receives the JSON-serialized result as the `ToolMessage` content.
+The parent receives the serialized result in the `ToolMessage` content.
 
 ### Multiple Specialized Subagents Pattern
 
@@ -684,18 +701,18 @@ agent = create_deep_agent(
 )
 ```
 
-**Workflow:** Main agent plans → delegates collection → passes results to analyzer → sends insights to writer → compiles final output. Each subagent works with clean, focused context.
+**Workflow:** the main agent plans the work, then delegates data collection, analysis and report writing to the configured subagents. It combines their results into the final output. Each subagent receives the task assigned to it and its configured context.
 
 ### Subagent Best Practices
 
-**Write clear, specific descriptions** — the main agent uses descriptions to choose which subagent to call:
+**Give each subagent a clear description.** The main agent uses these descriptions when choosing a subagent:
 
 ```
 ✅  "Analyzes financial data and generates investment insights with confidence scores"
 ❌  "Does finance stuff"
 ```
 
-**Detailed system prompts with output format guidance:**
+**Give each subagent specific instructions, including the required result format:**
 
 ```python
 system_prompt="""You are a thorough researcher.
@@ -710,7 +727,7 @@ Output format:
 Keep response under 500 words."""
 ```
 
-**Minimal tool sets** — only give subagents what they need:
+**Give each subagent only the tools it needs:**
 
 ```python
 # ✅ Focused
@@ -720,7 +737,7 @@ Keep response under 500 words."""
 {"tools": [send_email, web_search, database_query, file_upload]}
 ```
 
-**Concise return values** — instruct subagents to summarize, not dump:
+**Ask subagents for concise results.** They should summarize findings instead of returning all raw data:
 
 ```python
 system_prompt="""Return:
@@ -732,7 +749,7 @@ Do NOT include raw data or intermediate tool outputs. Under 300 words."""
 
 ### Context Propagation to Subagents
 
-Runtime context passed on `.invoke()` automatically propagates to all subagents:
+Runtime context supplied to `.invoke()` is also available to subagents:
 
 ```python
 from dataclasses import dataclass
@@ -765,15 +782,15 @@ result = agent.invoke(
 )
 ```
 
-All subagents receive the same context. For per-subagent settings, use namespaced fields (for example `fact_checker_strict_mode`) or read `runtime.config["metadata"]["lc_agent_name"]` inside a tool to branch on which agent called it.
+All subagents receive the same runtime context. To give each subagent different settings, use separate namespaced fields, such as `fact_checker_strict_mode`. A tool can also inspect `runtime.config["metadata"]["lc_agent_name"]` to identify the calling agent.
 
 ---
 
-## Async Subagents
+## Chapter: Run Subagents Asynchronously
 
-Deep Agents also support **async subagents** (`AsyncSubAgent`) for long-running tasks, parallel workstreams, and mid-flight steering. Unlike synchronous subagents (which block the supervisor until they return a single report), async subagents run in parallel and expose launch, check, update, and cancel tools so the main agent can monitor progress and intervene while a task is running.
+Deep Agents also supports **asynchronous subagents** (`AsyncSubAgent`). They are designed for long-running or parallel tasks. A synchronous subagent makes the main agent wait for one result. An asynchronous subagent provides tools to start, check, update and cancel work while it runs.
 
-Async subagents flow through their own middleware (`AsyncSubAgentMiddleware`), independent of the synchronous `task` stack, so you can use both in the same agent.
+Async subagents use `AsyncSubAgentMiddleware`, which is separate from the middleware for synchronous `task` calls. An agent can be configured to use both types.
 
 | | Synchronous (`task`) | Async (`AsyncSubAgent`) |
 |---|---|---|
@@ -783,9 +800,9 @@ Async subagents flow through their own middleware (`AsyncSubAgentMiddleware`), i
 
 ---
 
-## Interpreters and Dynamic Subagents
+## Chapter: Create Specialized Agents at Runtime
 
-An **interpreter** adds an `eval` tool that runs JavaScript in a scoped QuickJS runtime. It lets the agent compose tools programmatically — loops, batching, deterministic data transformations — without shell access. Interpreters do **not** provide shell access, package installs, or filesystem and network access; use a sandbox backend for those.
+An **interpreter** adds an `eval` tool that runs JavaScript in a restricted QuickJS runtime. The agent can use code to call tools in loops, process batches or transform data. The interpreter does not provide shell commands, package installation, filesystem access or network access. Use a sandbox backend when the agent needs those capabilities.
 
 ```bash
 pip install -U "deepagents[quickjs]"
@@ -803,13 +820,13 @@ agent = create_deep_agent(
 
 Requires `langchain-quickjs>=0.2.0` and Python 3.11+.
 
-**Dynamic subagents (beta):** when an agent has both subagents and the interpreter middleware, it can dispatch subagents *from code* — fanning work out across many items in loops and parallel batches, then synthesizing results. This is on by default; pass `CodeInterpreterMiddleware(subagents=False)` to require the normal `task` path. The built-in interpreter prompt treats the word "workflow" in a request as a cue to orchestrate through code.
+**Dynamic subagents (beta):** when both subagents and interpreter middleware are configured, the agent can start subagents from interpreter code. This supports work over multiple items or batches. Dynamic subagents are enabled by default in this configuration. Set `CodeInterpreterMiddleware(subagents=False)` to disable them and require the regular `task` tool. The built-in interpreter instructions use the word "workflow" as a signal that code-based orchestration may be appropriate.
 
 ---
 
-## Middleware
+## Chapter: Extend the Agent Pipeline
 
-Middleware intercepts the agent loop to add cross-cutting behaviour — logging, caching, prompt injection, PII detection, or custom hooks.
+Middleware runs at defined points in the agent loop. It can add shared behavior such as logging, caching, prompt changes, personal information detection or custom hooks.
 
 ### Default Middleware (the "bare" stack)
 
@@ -833,9 +850,9 @@ Middleware intercepts the agent loop to add cross-cutting behaviour — logging,
 
 ### Where Your Middleware Lands
 
-Middleware you pass is merged into the stack by `.name`: an instance whose name matches a built-in replaces it in place (`deepagents>=0.7`); anything else is inserted after `PatchToolCallsMiddleware` and before the profile extras, `SkillsMiddleware`, prompt caching and memory.
+Deep Agents combines the middleware you provide with its built-in middleware. In `deepagents>=0.7`, an instance with the same `.name` as built-in middleware replaces that middleware. Other middleware is added after `PatchToolCallsMiddleware` and before profile extras, skills, prompt caching and memory middleware.
 
-Declarative subagents do **not** inherit the main agent's middleware customization; pass overrides in the subagent's own `middleware` field. The general-purpose subagent does inherit overrides of default middleware.
+Declarative subagents do **not** inherit custom middleware from the main agent. Set middleware for a declarative subagent in that subagent's `middleware` field. The general-purpose subagent does inherit replacements for default middleware.
 
 ### Custom Middleware
 
@@ -861,7 +878,7 @@ agent = create_deep_agent(
 )
 ```
 
-**Concurrency warning:** Do NOT mutate `self` attributes (or other shared values) in middleware hooks — it causes race conditions when subagents, parallel tools, or concurrent threads run simultaneously. The counter above is fine for a single-run demo; for anything real, use graph state, which is scoped to a thread.
+**Concurrent execution:** Do not change `self` attributes or other shared values from middleware hooks. Subagents, parallel tools or concurrent threads could access the same value at the same time and cause inconsistent results. The counter above is only a single-run example. For application state, use graph state or another storage mechanism that supports your concurrency requirements.
 
 ```python
 # ✅ Safe: update graph state
@@ -879,17 +896,17 @@ class CustomMiddleware(AgentMiddleware):
 
 ---
 
-## Memory and Skills
+## Chapter: Give the Agent Reusable Knowledge
 
 ### Memory (AGENTS.md Files)
 
-Memory files are always loaded into the agent's context at startup. They provide persistent, session-independent background that keeps the agent consistent across conversations.
+When configured, memory files are added to the agent's context at startup. They can provide background information across sessions, such as project conventions or user preferences.
 
 - Uses the [AGENTS.md standard](https://agents.md/).
-- Typically contains: coding style, project conventions, user preferences, domain guidelines.
-- Content is stored in the configured backend (`StateBackend`, `StoreBackend`, or `FilesystemBackend`), and the agent can update it based on interactions and feedback.
-- Unlike skills, memory is always injected — there is no progressive disclosure. Keep it minimal.
-- You must add the expected memory files to the backend before creating the agent (or seed them via `files` with the default `StateBackend`).
+- A memory file can contain coding style, project conventions, user preferences or domain guidance.
+- Memory files are read from the configured backend. The agent can update them if its tools and permissions allow it.
+- Configured memory content is included at startup. Unlike skills, it is not loaded only when relevant, so keep the files concise.
+- Add the configured memory files to the backend before invoking the agent. The example seeds `/AGENTS.md` in the default `StateBackend` through the `files` state.
 
 ```python
 from deepagents import create_deep_agent
@@ -915,16 +932,16 @@ result = agent.invoke(
 )
 ```
 
-**Long-term memory across threads** uses a `CompositeBackend` that routes `/memories/` to a `StoreBackend` (see [Backends](#compositebackend-hybrid-routing)). The path starts empty; tell the agent in the system prompt what to save there and the agent creates files on demand. Use `permissions` to make memory read-only when only application code should update it.
+**Memory shared across threads** requires persistent storage. This example uses a `CompositeBackend` that routes `/memories/` to a `StoreBackend` (see [Backends](#compositebackend-hybrid-routing)). The `/memories/` path is initially empty. Tell the agent what information it may save there; it can then create files using its filesystem tools. Use `permissions` to prevent the agent from changing memory files when only application code should update them.
 
 ### Skills (SKILL.md Files)
 
-Skills are directories containing a `SKILL.md` file with instructions and metadata. They follow the [Agent Skills standard](https://agentskills.io/).
+Each skill is a directory containing a `SKILL.md` file with instructions and metadata. Deep Agents follows the [Agent Skills standard](https://agentskills.io/).
 
-- Skills use **progressive disclosure** — only the frontmatter of each skill is loaded at startup; the full content is loaded only when the agent determines it's relevant.
-- A skill directory can include scripts, templates, reference docs, and other assets.
-- Custom subagents do **not** inherit skills from the main agent — only the general-purpose subagent does. Give a custom subagent its own via the `skills` field.
-- Keep each skill focused on one workflow or domain; move detailed reference material into separate files.
+- Skills use **progressive disclosure**: the agent receives the skill metadata first and loads the full instructions when the skill is relevant.
+- A skill directory can also contain scripts, templates, reference documents and other files.
+- Custom subagents do **not** inherit the main agent's skills. Set a subagent's `skills` field to give it skills. The general-purpose subagent inherits skills from the main agent.
+- Keep each skill focused on one task or subject. Put detailed reference information in separate files when appropriate.
 
 ```python
 from deepagents import create_deep_agent
@@ -957,11 +974,11 @@ result = agent.invoke(
 
 ---
 
-## Human-in-the-Loop
+## Chapter: Put Human Approval at the Right Boundaries
 
-Human-in-the-loop (HITL) pauses agent execution before specific tool calls and waits for a human decision. It uses LangGraph's interrupt mechanism.
+Human-in-the-loop (HITL) pauses the agent before selected tool calls and waits for a human decision. Deep Agents uses LangGraph interrupts to pause and resume execution.
 
-**Requires a checkpointer** (e.g. `MemorySaver`) to persist state during the pause.
+**A checkpointer is required** to save the agent's state while execution is paused. `MemorySaver` is used in this example.
 
 ```python
 from langchain.tools import tool
@@ -997,25 +1014,25 @@ agent = create_deep_agent(
 
 **HITL decision options (when set to `True`):**
 
-- `approve`: Execute the tool as-is.
-- `edit`: Modify the tool's input arguments before execution.
-- `reject`: Skip the tool call entirely.
-- `respond`: Add guidance for the agent instead of running the tool.
+- `approve`: run the tool with its current arguments.
+- `edit`: change the tool's arguments before it runs.
+- `reject`: do not run the tool.
+- `respond`: send guidance to the agent without running the tool.
 
 **Use cases:**
 
-- Safety gates for destructive operations (delete, overwrite).
-- User verification before expensive API calls (email, payment).
-- Compliance workflows requiring human sign-off.
-- Interactive debugging — inspect and guide agent reasoning.
+- Require approval before destructive operations, such as deleting or overwriting files.
+- Ask the user to confirm actions such as sending an email or making a payment.
+- Require sign-off for workflows that have an approval requirement.
+- Pause execution so a person can inspect the request and provide guidance.
 
-HITL can be configured for both the main agent and individual subagents; a subagent's `interrupt_on` overrides the inherited value. Interrupts can also come from filesystem permission rules (see below).
+Configure HITL for the main agent or for individual subagents. A subagent's `interrupt_on` setting takes precedence over the inherited setting. Filesystem permission rules can also pause selected filesystem operations.
 
 ---
 
-## Filesystem Permissions
+## Chapter: Constrain Filesystem Access
 
-Declare permission rules to control which files and directories agents can read or write.
+Use permission rules to specify which filesystem paths the agent may read or change.
 
 ```python
 from deepagents import create_deep_agent, FilesystemPermission
@@ -1039,25 +1056,25 @@ Each `FilesystemPermission` has three fields:
 | `paths` | `list[str]` | Glob patterns (e.g. `["/workspace/**"]`). Supports `**` for recursive matching and `{a,b}` for alternation. |
 | `mode` | `"allow" \| "deny" \| "interrupt"` | Allow, deny, or pause for human approval. Defaults to `"allow"`. |
 
-**Evaluation:** rules are evaluated in declaration order and the first match wins. If no rule matches, the operation is **allowed** (permissive default). Put specific rules (like a deny on `.env`) before broad allows, and end with a catch-all deny if you want an allowlist.
+**Rule evaluation:** Deep Agents checks rules in declaration order and applies the first matching rule. If no rule matches, the operation is allowed. Put specific deny rules, such as a rule for `.env` files, before broader allow rules. To allow only selected paths, add a final rule that denies all other paths.
 
-**Mode `interrupt`** (`deepagents>=0.6.8`) pauses for human approval on write tools (`write_file`, `edit_file`, `delete`) instead of allowing or denying. It needs a checkpointer and merges with any `interrupt_on` you set. Anchor interrupt patterns with a literal leading segment (such as `/secrets/**`); fully unanchored patterns over-fire.
+**Mode `interrupt`** (`deepagents>=0.6.8`) pauses supported write operations (`write_file`, `edit_file`, `delete`) for human approval. It requires a checkpointer and works with `interrupt_on`. Start interrupt path patterns with a literal path segment, such as `/secrets/**`. Patterns without a fixed starting path can match more paths than intended.
 
 **Limits and caveats:**
 
-- Requires `deepagents>=0.5.2`.
-- Applies only to the built-in filesystem tools. Custom tools and MCP tools that touch the filesystem are not covered; use backend policy hooks for those.
-- **Does not apply to sandbox backends**, because `execute` can run arbitrary commands.
-- With a `CompositeBackend` whose default is a sandbox, every permission path must be scoped under a known route prefix, otherwise `NotImplementedError` is raised.
-- Deleting a directory is all-or-nothing: the `write` permission is checked on the target and every descendant. Exact-match behavior for deleting a plain file needs `deepagents>=0.7.3`.
+- Filesystem permissions require `deepagents>=0.5.2`.
+- These rules apply to the built-in filesystem tools. They do not restrict custom tools or MCP tools that access files. Apply separate controls to those tools or to their backend.
+- Filesystem permissions do not restrict shell commands run through a sandbox's `execute` tool.
+- If a `CompositeBackend` uses a sandbox as its default backend, scope each permission path under a configured route prefix. Otherwise, Deep Agents raises `NotImplementedError`.
+- Deleting a directory checks write permission for the target directory and its contents. Exact path matching when deleting a regular file requires `deepagents>=0.7.3`.
 
-**Subagents** inherit the parent's permissions by default. When you set `permissions` on a subagent, they **replace** the parent's entirely — they are not merged.
+**Subagents** inherit the parent's permissions unless the subagent defines its own `permissions`. A subagent's permission list replaces the parent's list; the two lists are not combined.
 
 ---
 
-## Structured Output
+## Chapter: Return Data Your Application Can Trust
 
-Agents can return structured, validated data instead of free-form text using a schema as `response_format`:
+Set `response_format` to a schema when the application needs a structured result instead of free-form text. The agent returns data that can be validated against that schema:
 
 ```python
 from pydantic import BaseModel, Field
@@ -1088,9 +1105,9 @@ print(report.temperature, report.condition)
 
 ---
 
-## Streaming
+## Chapter: Stream Progress and Subagent Activity
 
-Deep Agents support real-time streaming through LangGraph's streaming interface:
+Use LangGraph's streaming interface to receive updates while the agent runs:
 
 ```python
 for chunk in agent.stream(
@@ -1102,7 +1119,7 @@ for chunk in agent.stream(
 
 ### Stream subagents
 
-For typed projections (messages, tool calls, values, subagents), use `stream_events`. Deep Agents add `stream.subagents`, which gives each delegated `task` call its own handle with `.name`, `.messages`, `.tool_calls`, `.output`, and nested subagent streams:
+For structured stream events, use `stream_events`. Deep Agents adds `stream.subagents`: each delegated `task` call has a handle with fields such as `.name`, `.messages`, `.tool_calls` and `.output`. The handle can also expose nested subagent streams:
 
 ```python
 stream = agent.stream_events(
@@ -1122,7 +1139,7 @@ for name, item in stream.interleave("messages", "subagents"):
 
 ### Tracing subagents
 
-Every run executed by a subagent or the coordinator carries its agent name in LangSmith metadata under `lc_agent_name`, so you can filter by subagent in the UI or the SDK:
+LangSmith run metadata includes the executing agent's name in `lc_agent_name`. Use that field to filter runs by agent in the LangSmith interface or SDK:
 
 ```python
 from langsmith import Client
@@ -1136,9 +1153,9 @@ runs = client.list_runs(
 
 ---
 
-## System Prompt Composition
+## Chapter: Shape the Agent’s Instructions
 
-Each deep agent should have a custom system prompt tailored to its use case. The custom prompt is **prepended** to the built-in harness prompt — you layer on top of the defaults.
+Write a system prompt that describes the agent's role and task. Deep Agents places the custom prompt before the built-in harness prompt.
 
 ```python
 agent = create_deep_agent(
@@ -1155,13 +1172,13 @@ agent = create_deep_agent(
 )
 ```
 
-`system_prompt` accepts a string or a `SystemMessage` (structured content blocks are preserved for the main agent; subagent dictionary specs stay strings). It is static; for per-run prompts (for example, admin vs read-only access) use `@dynamic_prompt` middleware that reads `request.runtime.context` or `request.runtime.store`.
+`system_prompt` accepts a string or a `SystemMessage`. Structured content blocks are preserved for the main agent; dictionary-based subagent prompts must be strings. The `system_prompt` value does not change between runs. To create a prompt from per-run values, use `@dynamic_prompt` middleware and read `request.runtime.context` or `request.runtime.store`.
 
-**What the built-in prompt covers:** how to use the filesystem tools, subagents, context management and output formatting. You don't need to re-explain these — describe your agent's role and domain. See [Prompt Composition Order](#prompt-composition-order) for the full assembly.
+**Built-in instructions:** Deep Agents already explains how to use its filesystem tools, subagents, context management and output format. In your custom prompt, describe the agent's role and subject area. See [Prompt Composition Order](#prompt-composition-order) for how the prompts are assembled.
 
 ### Harness profiles (beta)
 
-Harness profiles let you adjust the assembled prompt, tools, middleware and subagents for a specific provider or model. `base_system_prompt` replaces the base prompt outright, and `system_prompt_suffix` appends to it. The built-in Anthropic and OpenAI profiles ship only a suffix. Profiles can also set `excluded_tools` and `tool_description_overrides`.
+Harness profiles let you configure prompts, tools, middleware and subagents for a provider or model. `base_system_prompt` replaces the base prompt. `system_prompt_suffix` adds text to the end of the assembled prompt. Built-in Anthropic and OpenAI profiles provide a suffix. A profile can also set `excluded_tools` and `tool_description_overrides`.
 
 ```python
 from deepagents import (
@@ -1182,15 +1199,15 @@ register_harness_profile(
 )
 ```
 
-The general-purpose subagent resolves its base prompt as: `general_purpose_subagent.system_prompt` (if set) → profile `base_system_prompt` (if set) → SDK default, with the suffix layered on top.
+The general-purpose subagent uses the first available base prompt in this order: `general_purpose_subagent.system_prompt`, the profile's `base_system_prompt`, then the SDK default. Deep Agents adds `system_prompt_suffix` after that base prompt.
 
 ---
 
-## Deployment
+## Chapter: Run the Agent in Production
 
 ### Managed Deep Agents (public beta)
 
-Managed Deep Agents (MDA) lets LangSmith run the harness, Agent Server, sandboxes and schedules. You write the agent as a project folder — `agent.py`, `instructions.md`, `skills/`, `tools/`, `middleware/`, and optional `sandbox/`, `memory.py`, `identity.py`, `channels/`, `schedules/`, `evals/` — and the `mda` CLI deploys it. It is in public beta on LangSmith Cloud.
+Managed Deep Agents (MDA) is a LangSmith service for running and deploying agents. An agent project can contain files such as `agent.py`, `instructions.md`, `skills/`, `tools/` and `middleware/`, plus optional configuration for sandboxes, memory, identity, channels, schedules and evaluations. The `mda` command-line tool can run the project locally or deploy it. Check the [Managed Deep Agents documentation](https://docs.langchain.com/langsmith/python/managed-deep-agents-overview) for current availability and setup.
 
 ```bash
 uvx --from managed-deepagents mda init research-assistant
@@ -1211,7 +1228,7 @@ agent = define_deep_agent(
 )
 ```
 
-`define_deep_agent` takes the same parameters as `create_deep_agent` minus the managed ones, plus a required static `name`. The difference is who compiles the agent: with `create_deep_agent` you own the backend, store, checkpointer and server; with `define_deep_agent` the managed runtime supplies them. Every deployment gets the Agent Server API, threads, runs, streaming, and an MCP endpoint.
+`define_deep_agent` accepts most of the same agent configuration as `create_deep_agent`, plus a required static `name`. With `create_deep_agent`, your application configures and runs the backend, store, checkpointer and server. With `define_deep_agent`, the managed runtime supplies the managed services supported by the deployment. Check the service documentation for the current APIs and features included with a deployment.
 
 ### Self-hosted
 
@@ -1219,37 +1236,37 @@ agent = define_deep_agent(
 langgraph build   # Produces a standalone Docker image
 ```
 
-Deploy the image anywhere — your own infrastructure, Kubernetes, cloud VMs — or configure a custom LangSmith Deployment. Your tools, middleware and subagents carry over unchanged between managed and self-hosted modes.
+Deploy the image on infrastructure you manage, such as Kubernetes or a cloud virtual machine, or configure a LangSmith Deployment. Check each deployment environment for compatibility. Some configuration may need to change when moving between managed and self-hosted deployments.
 
 ### Tracing and Observability
 
-Connect to [LangSmith](https://smith.langchain.com) for tracing, debugging and evaluation:
+Connect to [LangSmith](https://smith.langchain.com) to trace and inspect runs and to evaluate agent behavior:
 
 ```bash
 export LANGSMITH_API_KEY="your-key"
 export LANGSMITH_TRACING=true
 ```
 
-LangSmith Engine monitors traces, detects issues, and proposes fixes.
+LangSmith Engine can analyze traces and suggest fixes. See the [LangSmith Engine documentation](https://docs.langchain.com/langsmith) for current capabilities.
 
 ### Forms of Deep Agents
 
-* **Deep Agents SDK** (`deepagents` PyPI package) — self-hosted, full control, described throughout this post.
-* **Managed Deep Agents** — LangSmith-hosted runtime (public beta; `mda` CLI).
-* **Deep Agents Code (`dcode`)** — a pre-built terminal coding agent built on Deep Agents, with the code interpreter enabled so dynamic subagents work out of the box. Install with `curl -LsSf https://langch.in/dcode | bash`.
-* **Deep Agents.js** — a JavaScript/TypeScript SDK (`createDeepAgent`) at github.com/langchain-ai/deepagentsjs.
+* **Deep Agents SDK** (`deepagents` on PyPI) — the Python package described in this article. You run and host it.
+* **Managed Deep Agents** — a LangSmith-hosted runtime managed with the `mda` CLI. Check the service documentation for current availability.
+* **Deep Agents Code (`dcode`)** — a terminal coding agent built with Deep Agents. Its installation and included features can change; use the [official project instructions](https://langch.in/dcode) before installing it.
+* **Deep Agents.js** — a JavaScript and TypeScript SDK with a `createDeepAgent` API. See the [official repository](https://github.com/langchain-ai/deepagentsjs) for current status and usage.
 
 ---
 
-## Protocols and Interoperability
+## Chapter: Connect Agents to Other Systems
 
 ### Agent Client Protocol (ACP)
 
-ACP lets Deep Agents work inside code editors that support the protocol, such as Zed. It exposes your agent over a standard interface that editors can call, and you can use dynamic subagents in the coding agent of your choice over ACP.
+The Agent Client Protocol (ACP) lets compatible editors, such as Zed, communicate with an agent through a shared interface. Whether a specific Deep Agents setup supports ACP or dynamic subagents depends on its integration and configuration.
 
 ### MCP (Model Context Protocol)
 
-Deep Agents fully support MCP. Load tools from any MCP server and pass them to `tools=`. Install `langchain[mcp]` and use the adapter:
+You can connect MCP tools to a Deep Agents agent through a LangChain MCP adapter. The following example connects to an MCP server and passes its tools to `create_deep_agent`. Check the current [LangChain MCP documentation](https://docs.langchain.com/oss/python/langchain/mcp) for supported transports and setup:
 
 ```python
 from deepagents import create_deep_agent
@@ -1266,13 +1283,13 @@ async def main():
         )
 ```
 
-Deployed Managed Deep Agents also expose an MCP endpoint, so you can call an agent as a tool from Claude Code or another MCP client.
+Some Managed Deep Agents deployments provide an MCP endpoint. When available, an MCP client such as Claude Code can call the deployed agent through that endpoint. Check the deployment documentation for configuration details.
 
 ---
 
-## Deep Agents vs. Claude Agent SDK
+## Chapter: Compare Deep Agents with Other Harnesses
 
-Both are agent harnesses, but they make different tradeoffs. The table below follows LangChain's own comparison page (drafted April 16, 2026), so treat it as a vendor-authored view and check the Claude Agent SDK docs for the other side.
+This table compares Deep Agents with the Claude Agent SDK. The comparison is based on [LangChain's documentation](https://docs.langchain.com/oss/python/deepagents/comparison), which describes both products from LangChain's perspective. Product features and deployment options can change; check the official documentation for current details before making a decision.
 
 | Feature               | Deep Agents                                        | Claude Agent SDK                                   |
 | --------------------- | -------------------------------------------------- | -------------------------------------------------- |
@@ -1284,13 +1301,13 @@ Both are agent harnesses, but they make different tradeoffs. The table below fol
 | **Multi-tenancy**     | Built-in: scoped threads, per-user sandboxes, RBAC | Build it yourself                                  |
 | **License**           | MIT                                                | MIT (Claude Code itself is proprietary)            |
 
-**Choose Deep Agents if:** you want model and infrastructure flexibility, built-in multi-tenant deployment, and the option to run managed or self-hosted with the same agent code.
+**Consider Deep Agents if** you need to choose among model providers and execution backends, and want to evaluate both managed and self-hosted deployment options.
 
-**Choose Claude Agent SDK if:** you are already invested in the Anthropic ecosystem and want to self-host and build the API, auth and multi-tenant layers yourself.
+**Consider the Claude Agent SDK if** your application uses Claude and you want to build and operate your own server, authentication and multi-tenant features.
 
 ---
 
-## Comparison: Deep Agents vs. LangChain create_agent vs. LangGraph
+## Chapter: Choose the Right LangChain Abstraction
 
 |                         | Deep Agents                          | LangChain `create_agent`     | LangGraph                          |
 | ----------------------- | ------------------------------------ | ---------------------------- | ---------------------------------- |
@@ -1307,47 +1324,47 @@ Both are agent harnesses, but they make different tradeoffs. The table below fol
 
 ---
 
-## Common Patterns and Use Cases
+## Chapter: Apply the Architecture to Real Work
 
 ### Pattern 1: Research and Report Agent
 
-Use internet search + filesystem for offloading + subagent for deep-dive research.
+Combine an internet search tool, filesystem storage for research results and a subagent for a separate research task.
 
-- Main agent: plans, coordinates, writes final report.
-- Research subagent: does multi-search deep research, returns concise summary.
+- The main agent plans the work, assigns the research task and writes the final report.
+- The research subagent searches the sources it can access and returns a concise summary.
 
 ### Pattern 2: Coding Agent with Sandbox
 
-Use a sandbox backend + the `execute` tool for the full software development lifecycle.
+Use a sandbox backend and the `execute` tool to run development commands in the sandbox.
 
-- Agent can install packages, run tests, fix code, commit via git.
-- Human-in-the-loop on `write_file` and `execute` for sensitive operations.
-- Keep secrets out of the sandbox; put authenticated calls in host-side tools.
+- The agent can install packages, run tests, change code and run Git commands in the sandbox, subject to its permissions.
+- Configure human approval for `write_file` and `execute` if people must review those operations.
+- Avoid placing secrets in the sandbox. Run authenticated operations through tools in the host application when possible.
 
 ### Pattern 3: Enterprise Document Processor
 
-Use AGENTS.md for company style guides + skills for domain-specific workflows + StoreBackend for persistence.
+Use `AGENTS.md` for company-wide guidance, skills for specific workflows and `StoreBackend` when information must persist across threads.
 
-- Memory keeps corporate tone and format consistent across sessions.
-- Skills load domain expertise (e.g. legal review, financial analysis) only when relevant.
+- Memory can provide the same style and format guidance in each session.
+- Skills can provide specialized instructions for work such as document review or financial analysis when the agent uses them.
 
 ### Pattern 4: Multi-Tenant SaaS Agent
 
-Use CompositeBackend (StateBackend for session, StoreBackend for user memory) + namespace factory for data isolation.
+Use `CompositeBackend` to route session files to `StateBackend` and persistent user files to `StoreBackend`. Configure a namespace factory to separate users' stored data.
 
-- Each user gets isolated session state.
-- User preferences and history persist across conversations in the store.
+- Each user's session state is stored separately when the application assigns separate threads.
+- The store can preserve user preferences and history between conversations when the namespace and storage are configured for that purpose.
 
 ### Pattern 5: Data Pipeline Agent
 
-Use multiple specialized subagents (collector → analyzer → formatter) with structured output at each step.
+Use separate subagents to collect data, analyze it and format the result. Define a structured output schema for each step that requires a specific data format.
 
-- Each subagent returns a validated Pydantic model.
-- Main agent orchestrates the pipeline without context bloat.
+- Each subagent can return data validated against a Pydantic model.
+- The main agent coordinates the steps and receives each subagent's returned result.
 
 ---
 
-## Troubleshooting
+## Chapter: Diagnose Common Failures
 
 ### Subagent not being called
 
@@ -1381,7 +1398,7 @@ Use multiple specialized subagents (collector → analyzer → formatter) with s
 
 ---
 
-## Version Requirements
+## Chapter: Check Compatibility Before Copying Examples {#version-requirements}
 
 | Feature | Minimum `deepagents` |
 | - | - |
@@ -1396,7 +1413,7 @@ Use multiple specialized subagents (collector → analyzer → formatter) with s
 
 ---
 
-## Summary of Key APIs
+## Chapter: Keep the Core API at Hand
 
 ```python
 # Create a deep agent
@@ -1437,7 +1454,7 @@ result = agent.invoke(
 
 ---
 
-## Further Reading
+## Chapter: Continue Learning
 
 - [Deep Agents Docs](https://docs.langchain.com/oss/python/deepagents/overview)
 - [Deep Agents GitHub](https://github.com/langchain-ai/deepagents)

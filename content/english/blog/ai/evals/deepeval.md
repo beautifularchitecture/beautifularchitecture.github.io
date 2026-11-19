@@ -69,20 +69,38 @@ Constructor options shared by most LLM-judged metrics e.g. (FaithfulnessMetric):
 
 - Not every metric has every parameter (the non-LLM ones are much smaller), and metric-specific options are listed per metric below.
 
-Two rules that bite people:
+### At least one metric must decide pass or fail
 
-- **Something must be able to fail.** `evaluate()` and `assert_test()` mark a test case as passed only when a metric returns `is_successful()` (`score >= threshold`). A metric with `threshold=None` runs in score-only mode: it records `score` and `reason`, but `is_successful()` returns `None` and the metric never votes on the test case's status. A metric with `flaky=True` is computed and reported as usual, but its failure never decides that status. If every metric you pass is score-only or flaky, nothing is left to render a verdict, so DeepEval raises an error instead of reporting a silent pass. One gating metric is enough:
+`evaluate()` and `assert_test()` need at least one metric that can give each test case a pass or fail result. A metric with a numeric `threshold` can do that: it passes when `score >= threshold` and fails when `score < threshold`.
 
-  ```python
-  # raises: neither metric is allowed to decide pass/fail
-  evaluate([tc], [FaithfulnessMetric(threshold=None)])   # score-only
-  evaluate([tc], [AnswerRelevancyMetric(flaky=True)])    # never decides
+Some metrics report scores without deciding the test case's status:
 
-  # fine: the first metric only reports, the second gates
-  evaluate([tc], [FaithfulnessMetric(flaky=True), AnswerRelevancyMetric()])
-  ```
+- **Score-only metric:** set `threshold=None`. DeepEval records the metric's `score` and `reason`. The metric's `is_successful()` method returns `None`, so the metric does not pass or fail the test case.
+- **Flaky metric:** set `flaky=True`. DeepEval computes and reports the score and verdict, but a failing result does not fail the test case.
 
-- LLM metrics need the right **test case fields**. Missing ones raise errors unless you skip them (`-s` flag or `ErrorConfig(skip_on_missing_params=True)`).
+An evaluation with only score-only or flaky metrics has no metric to decide the test case's status. DeepEval raises an error. Add at least one non-flaky metric with a numeric threshold. The example uses an `AnswerRelevancyMetric` as that pass/fail check. These rules are described in the [official metrics guide](https://deepeval.com/docs/metrics-introduction).
+
+```python
+from deepeval import evaluate
+from deepeval.metrics import AnswerRelevancyMetric, FaithfulnessMetric
+from deepeval.test_case import LLMTestCase
+
+tc = LLMTestCase(
+    input="What is the capital of France?",
+    actual_output="Paris is the capital of France.",
+    expected_output="Paris is the capital of France.",
+    retrieval_context=["Paris is the capital of France."],
+)
+
+metrics = [
+    FaithfulnessMetric(threshold=None),  # Reports a score; does not decide pass/fail.
+    AnswerRelevancyMetric(threshold=0.7), # Decides pass/fail for the case.
+]
+
+evaluate(test_cases=[tc], metrics=metrics)
+```
+
+LLM metrics also require specific fields in the test case. If a required field is missing, DeepEval raises an error unless you enable missing-parameter handling with `-s` or `ErrorConfig(skip_on_missing_params=True)`.
 
 ## When to Use DeepEval
 
