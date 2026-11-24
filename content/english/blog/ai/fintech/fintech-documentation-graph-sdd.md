@@ -1,20 +1,22 @@
 +++
-date = '2026-11-21T12:00:45+10:00'
+date = '2026-11-23T12:00:45+10:00'
 draft = false
 title = 'Software Design Specification: Fintech Documentation Graph in Neo4j'
 tags = ['AI', 'Context Engineering', 'Neo4j', 'Fintech', 'Software Design', 'Knowledge Graph', 'GraphRAG']
 summary = "Design a Neo4j graph for fintech documentation and agent context."
 +++
 
-This specification defines a system that converts four Markdown documentation repositories into a Neo4j knowledge graph and a context service for coding agents. The Git repositories remain the source of truth. Neo4j stores a derived projection that preserves folder hierarchy, document structure, Markdown links, front matter metadata and semantic embeddings.
+An agent that builds a fintech feature needs the feature document, its design, its non-functional requirements, its API contract and its runbook. Keyword search over Markdown returns text without those relationships. Vector search returns similar passages without the links that connect one artifact to another.
 
-The system answers lookups by feature, persona, document type, full-text term, embedding similarity and graph path. The context service returns a ranked, budgeted bundle with provenance so an agent can build a feature from the documents linked to that feature.
+This design keeps Git as the source of truth and builds a Neo4j projection that preserves folder hierarchy, document structure, Markdown links, front matter metadata and semantic embeddings. A context service answers lookups by feature, persona, document type, full-text term, embedding similarity and graph path. It returns a ranked, budgeted bundle with provenance so an agent can build a feature from the documents linked to that feature.
+
+The rest of this post is a software design specification. It defines the graph model, ingestion pipeline, retrieval queries, context assembly rules, access control, operations and delivery phases. The target reader is a platform engineer who builds context services for coding agents.
 
 ## Purpose and scope
 
 The software design specification covers the following responsibilities:
 
-- Discover and ingest the four documentation repositories.
+- Discover and ingest every registered documentation repository.
 - Parse front matter, heading structure and Markdown links.
 - Model repositories, domains, applications, documents, sections and chunks as graph nodes.
 - Resolve internal links to graph nodes and record unresolved links as issues.
@@ -29,21 +31,46 @@ The specification excludes the following work:
 - Training or fine-tuning an embedding model.
 - Selecting a hosted LLM for the consuming agent.
 
+## Usage pattern buckets
+
+The specification classifies every consumer action into five buckets. A bucket groups requirements by the input the caller supplies and the result the caller receives. One requirement can use several buckets. These buckets classify use; they do not describe ingestion stages.
+
+| #   | Bucket                                  | Caller supplies                                           | Result                                                         | Examples in this design                                                                                                  |
+| --- | --------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Key lookup                              | An exact identifier or narrow property value              | The matching nodes and their metadata                          | Feature by `featureKey`, persona by `Persona.key`, document by `docId`                                                   |
+| 2   | Discovery search                        | Text, a term or an embedding                              | Ranked candidate nodes                                         | Full-text `SEARCH`, vector `SEARCH`                                                                                      |
+| 3   | Relationship navigation                 | A starting node                                           | Connected, referencing or enclosing nodes                      | Linked artifacts, backlinks, impact analysis, folder and domain containment                                              |
+| 4   | Compound retrieval and context assembly | Two or more bucket inputs or a final evidence requirement | A ranked, deduplicated, budgeted bundle with provenance        | Feature plus linked artifacts, hybrid lookup, incident investigation, context bundle                                     |
+| 5   | Governed use and assurance              | A consumer identity, policy, cutoff or validation rule    | An allowed, current, traceable result or proof of graph health | Repository predicates, `PUBLISHED` filters, freshness checks, provenance, link issues, validation queries, rebuild proof |
+
+Buckets 1 and 2 produce seed nodes. Bucket 3 expands seed nodes through graph relationships. Bucket 4 combines two or more of buckets 1, 2 and 3 and shapes the final answer. Bucket 5 applies constraints and checks to all four earlier buckets.
+
+The stakeholder use cases map to the buckets as follows:
+
+| Stakeholder use case                                                            | Buckets |
+| ------------------------------------------------------------------------------- | ------- |
+| AI coding agent builds a named feature from linked documents.                   | 1, 3, 4 |
+| Agent harness fetches a bounded context bundle for one task.                    | 2, 3, 4 |
+| Documentation maintainer finds broken links after a refactor.                   | 3, 5    |
+| Domain architect finds every document that references a section.                | 3       |
+| Compliance reviewer verifies that published documents name a persona and owner. | 1, 5    |
+| Platform engineer detects documents that reference an old commit.               | 1, 5    |
+
 ## Assumptions
 
 The design uses the following assumptions. Each assumption is configuration, not a fixed schema constant.
 
-| ID  | Assumption                                                                                                                                                              | Design consequence                                                                                  |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| A1  | The current estate has four repositories: one fintech-level repository, a payment domain repository, a charging domain repository and one application-level repository. | The system stores repository count and level as data. Additional repositories use the same adapter. |
-| A2  | Every hierarchy level uses defined folder paths and Markdown artifacts.                                                                                                 | Folder nodes and document nodes are derived from file paths.                                        |
-| A3  | Front matter exists on every document and carries a `persona` value.                                                                                                    | The parser normalizes persona values into `Persona` nodes.                                          |
-| A4  | Links use CommonMark inline links or reference links.                                                                                                                   | The parser handles both link forms.                                                                 |
-| A5  | Markdown files in Git are the source of truth.                                                                                                                          | Neo4j is a rebuildable read model.                                                                  |
-| A6  | The initial embedding model emits 1536-dimensional vectors and uses cosine similarity.                                                                                  | The vector index stores that dimension. A model change triggers a reindex procedure.                |
-| A7  | Each consuming agent has an identity that the context service can read.                                                                                                 | The service applies per-repository access rules before returning context.                           |
+| ID  | Assumption                                                                                                                                                                                                                                                             | Design consequence                                                                                                                                        |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | The current registry contains four repositories: one fintech-level repository, one payment domain repository, one charging domain repository and one application-level repository. The registry accepts any number of domain-level and application-level repositories. | The system stores level and scope as data and instantiates one adapter per registry entry. No query, index or procedure assumes a fixed repository count. |
+| A2  | Every hierarchy level uses defined folder paths and Markdown artifacts.                                                                                                                                                                                                | Folder nodes and document nodes are derived from file paths.                                                                                              |
+| A3  | Front matter exists on every document and carries a `persona` value.                                                                                                                                                                                                   | The parser normalizes persona values into `Persona` nodes.                                                                                                |
+| A4  | Links use CommonMark inline links or reference links.                                                                                                                                                                                                                  | The parser handles both link forms.                                                                                                                       |
+| A5  | Markdown files in Git are the source of truth.                                                                                                                                                                                                                         | Neo4j is a rebuildable read model.                                                                                                                        |
+| A6  | The initial embedding model emits 1536-dimensional vectors and uses cosine similarity.                                                                                                                                                                                 | The vector index stores that dimension. A model change triggers a reindex procedure.                                                                      |
+| A7  | Each consuming agent has an identity that the context service can read.                                                                                                                                                                                                | The service applies per-repository access rules before returning context.                                                                                 |
 
-A1 records the current estate only. The graph does not contain a four-repository limit.
+A1 records the current registry only. Domain and application repositories are data, not schema. Adding a repository requires a registry entry and an adapter profile, not a graph model change.
 
 ## Goals and non-goals
 
@@ -56,7 +83,8 @@ A1 records the current estate only. The graph does not contain a four-repository
 | Support connected lookup | A lookup expands one graph hop from every seed result.                                                                            |
 | Assemble context         | The context endpoint returns a bundle that respects a token budget and carries source provenance.                                 |
 | Rebuild safely           | A full rebuild from empty storage produces the same document set and link set as an incremental run at the same commits.          |
-| Meet latency             | The context endpoint returns a feature bundle within 500 ms at p95 under the load profile defined by the capacity test.           |
+| Scale registry           | Adding a domain or application repository needs only a registry entry and adapter profile. No Cypher query or index changes.      |
+| Meet latency             | The context endpoint returns a feature bundle within 500 ms at p95 under the load profile in Capacity test.                       |
 
 The system does not replace Git as the source of truth. The system does not decide which document content is correct. The system does not write to documentation repositories.
 
@@ -141,14 +169,16 @@ flowchart LR
 
 ### Repository inventory
 
-| Logical level | Current repository                   | Repository node property                     | Downward relationship                 |
+The table lists the current registry entries. Each additional domain or application repository becomes another row with its own `repoKey`, `level`, scope and adapter profile. Several repositories may share one `Domain` or one `Application`.
+
+| Logical level | Current registry entry               | Repository node property                     | Downward relationship                 |
 | ------------- | ------------------------------------ | -------------------------------------------- | ------------------------------------- |
 | Fintech       | Fintech documentation repository     | `level = 'fintech'`                          | `SCOPED_TO` the fintech domain scope. |
 | Domain        | Payment domain repository            | `level = 'domain'`, `domainKey = 'payment'`  | `CONTAINS` payment applications.      |
 | Domain        | Charging domain repository           | `level = 'domain'`, `domainKey = 'charging'` | `CONTAINS` charging applications.     |
 | Application   | Application documentation repository | `level = 'application'`                      | `ABOUT` one application in a domain.  |
 
-The adapter configuration declares `repoKey`, `level`, `sourceUrl`, `defaultBranch`, `frontMatterProfile`, `linkBase` and `crossRepoMap`. The `crossRepoMap` maps a repository name used in a Markdown link to a `repoKey`.
+The adapter configuration declares `repoKey`, `level`, `sourceUrl`, `defaultBranch`, `frontMatterProfile`, `linkBase` and `crossRepoMap`. The `crossRepoMap` maps a repository name used in a Markdown link to a `repoKey`. The registry loads all adapter configurations at startup and the scheduler resolves each entry to its own commit.
 
 ### Folder and document model
 
@@ -162,23 +192,26 @@ Text splitting runs inside each section. Each `Chunk` node stores a contiguous s
 
 Source-specific front matter keys are mapped to canonical properties by the repository adapter. The canonical fields are fixed across all repositories.
 
-| Canonical field | Type           | Required | Purpose                                                                                            |
-| --------------- | -------------- | -------- | -------------------------------------------------------------------------------------------------- |
-| `docId`         | STRING         | yes      | Derived key in the form `{repoKey}:{sourcePath}`.                                                  |
-| `title`         | STRING         | yes      | Display title from front matter or the first heading.                                              |
-| `docType`       | STRING         | yes      | One of `Feature`, `Design`, `NFR`, `ADR`, `Runbook`, `PersonaSpec`, `API`, `Glossary` or `Policy`. |
-| `persona`       | LIST<STRING>   | yes      | Persona values normalized from a single value or a list.                                           |
-| `status`        | STRING         | yes      | One of `DRAFT`, `REVIEW`, `PUBLISHED` or `DEPRECATED`.                                             |
-| `owner`         | STRING         | no       | Named owner of the document.                                                                       |
-| `version`       | STRING         | no       | Document version declared by the source repository.                                                |
-| `sourcePath`    | STRING         | yes      | Path relative to the repository root.                                                              |
-| `sourceUrl`     | STRING         | yes      | HTTPS URL to the file at the pinned commit.                                                        |
-| `commitSha`     | STRING         | yes      | Commit used for this ingestion run.                                                                |
-| `updatedAt`     | ZONED DATETIME | yes      | Update timestamp from front matter or Git history.                                                 |
-| `summary`       | STRING         | no       | Short description used by full-text search.                                                        |
-| `tags`          | LIST<STRING>   | no       | Repository-specific tags.                                                                          |
+| Canonical field | Type           | Required | Purpose                                                                                                                 |
+| --------------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `docId`         | STRING         | yes      | Derived key in the form `{repoKey}:{sourcePath}`.                                                                       |
+| `featureKey`    | STRING         | no       | Feature identifier used by feature lookup. Required when `docType` is `Feature`. Derived from `sourcePath` when absent. |
+| `title`         | STRING         | yes      | Display title from front matter or the first heading.                                                                   |
+| `docType`       | STRING         | yes      | One of `Feature`, `Design`, `NFR`, `ADR`, `Runbook`, `PersonaSpec`, `API`, `Glossary` or `Policy`.                      |
+| `persona`       | LIST<STRING>   | yes      | Persona values normalized from a single value or a list.                                                                |
+| `status`        | STRING         | yes      | One of `DRAFT`, `REVIEW`, `PUBLISHED` or `DEPRECATED`.                                                                  |
+| `owner`         | STRING         | no       | Named owner of the document.                                                                                            |
+| `version`       | STRING         | no       | Document version declared by the source repository.                                                                     |
+| `sourcePath`    | STRING         | yes      | Path relative to the repository root.                                                                                   |
+| `sourceUrl`     | STRING         | yes      | HTTPS URL to the file at the pinned commit.                                                                             |
+| `commitSha`     | STRING         | yes      | Commit used for this ingestion run.                                                                                     |
+| `updatedAt`     | ZONED DATETIME | yes      | Update timestamp from front matter or Git history.                                                                      |
+| `summary`       | STRING         | no       | Short description used by full-text search.                                                                             |
+| `tags`          | LIST<STRING>   | no       | Repository-specific tags.                                                                                               |
 
 A document of type `Feature` receives both the `Document` and `Feature` labels. The same rule applies to `Design`, `NFR`, `ADR`, `Runbook`, `PersonaSpec`, `API`, `Glossary` and `Policy`. The property `docType` remains available for generic filtering.
+
+For a `Feature` document, the parser sets `featureKey` from the front matter field of the same name when the field is present. When the field is absent, the parser takes the last path segment of `sourcePath`, removes the `.md` extension, lowercases the result and replaces spaces with hyphens. The derived value is stable for a given repository path.
 
 ### Markdown link model
 
@@ -194,7 +227,7 @@ Resolution follows a fixed order:
 
 An anchor is resolved against the heading slugs of the target document. This system defines `slug(title)` as lowercase text, removal of characters outside letters, digits, spaces and hyphens, replacement of spaces with hyphens, collapse of repeated hyphens and a numeric suffix for duplicate headings inside one document. The resolver stores both `rawTarget` and `anchor`. A link to a section stores the section identifier. A link to a document with an unmatched anchor stores the document identifier and the anchor string.
 
-Every `LINKS_TO` relationship stores `linkText`, `rawTarget`, `resolvedTarget`, `anchor`, `ordinal` and `chunkId`. Backlinks need no separate materialization because Cypher traverses incoming `LINKS_TO` relationships directly.
+Every `LINKS_TO` relationship stores `linkText`, `rawTarget`, `resolvedTarget`, `anchor`, `ordinal`, `chunkId` and `resolutionStatus`. The `resolutionStatus` value is `RESOLVED` for an internal document or section target, `EXTERNAL` for an `https://` destination and `UNRESOLVED` for a destination with no target. An `UNRESOLVED` link also produces a `LinkIssue` whose `docId` is the source document identifier. Backlinks need no separate materialization because Cypher traverses incoming `LINKS_TO` relationships directly.
 
 ## Graph data model
 
@@ -204,8 +237,8 @@ erDiagram
   FOLDER ||--o{ FOLDER : CONTAINS
   FOLDER ||--o{ DOCUMENT : CONTAINS
   DOMAIN ||--o{ APPLICATION : CONTAINS
-  REPOSITORY ||--o| DOMAIN : SCOPED_TO
-  REPOSITORY ||--o| APPLICATION : SCOPED_TO
+  REPOSITORY }o--o| DOMAIN : SCOPED_TO
+  REPOSITORY }o--o| APPLICATION : SCOPED_TO
   DOCUMENT ||--o{ SECTION : HAS_SECTION
   SECTION ||--o{ SECTION : HAS_SUBSECTION
   SECTION ||--o{ CHUNK : HAS_CHUNK
@@ -216,46 +249,50 @@ erDiagram
   SECTION }o--o| LINK_ISSUE : REPORTS
   CHUNK }o--|| EMBEDDING_MODEL : EMBEDDED_WITH
   INGESTION_RUN ||--o{ DOCUMENT : PRODUCED
+  INGESTION_RUN }o--o{ REPOSITORY : PINNED_TO
   CONTEXT_REQUEST ||--o{ CHUNK : USED
 ```
 
 ### Node definitions
 
-| Label            | Unique key  | Required properties                                                    | Purpose                                        |
-| ---------------- | ----------- | ---------------------------------------------------------------------- | ---------------------------------------------- |
-| `Repository`     | `repoKey`   | `level`, `name`, `sourceUrl`, `defaultBranch`                          | One source Git repository.                     |
-| `Folder`         | `folderId`  | `repoKey`, `path`, `name`                                              | One directory in a repository.                 |
-| `Domain`         | `domainKey` | `name`                                                                 | A fintech domain such as payment or charging.  |
-| `Application`    | `appKey`    | `domainKey`, `name`                                                    | One application inside a domain.               |
-| `Document`       | `docId`     | `repoKey`, `sourcePath`, `docType`, `status`, `commitSha`, `updatedAt` | One Markdown artifact.                         |
-| `Section`        | `sectionId` | `docId`, `headingPath`, `level`, `startLine`, `endLine`                | One heading-scoped region.                     |
-| `Chunk`          | `chunkId`   | `docId`, `sectionId`, `ordinal`, `text`, `tokenCount`, `embedding`     | One retrieval unit.                            |
-| `Persona`        | `key`       | `displayName`                                                          | One canonical persona value.                   |
-| `ExternalLink`   | `url`       | `host`                                                                 | One destination outside the four repositories. |
-| `LinkIssue`      | `issueId`   | `rawTarget`, `sourceSectionId`, `reason`                               | One unresolved or invalid link.                |
-| `EmbeddingModel` | `modelKey`  | `name`, `dimensions`, `version`                                        | One embedding model version.                   |
-| `IngestionRun`   | `runId`     | `startedAt`, `finishedAt`, `status`, `commitSha`                       | One ingestion execution.                       |
-| `ContextRequest` | `requestId` | `submittedAt`, `consumer`, `queryHash`, `tokenCount`                   | One served context bundle.                     |
+| Label            | Unique key  | Required properties                                                                                     | Purpose                                                   |
+| ---------------- | ----------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `Repository`     | `repoKey`   | `level`, `name`, `sourceUrl`, `defaultBranch`                                                           | One source Git repository.                                |
+| `Folder`         | `folderId`  | `repoKey`, `path`, `name`                                                                               | One directory in a repository.                            |
+| `Domain`         | `domainKey` | `name`                                                                                                  | A fintech domain such as payment or charging.             |
+| `Application`    | `appKey`    | `domainKey`, `name`                                                                                     | One application inside a domain.                          |
+| `Document`       | `docId`     | `repoKey`, `sourcePath`, `docType`, `status`, `commitSha`, `updatedAt`                                  | One Markdown artifact.                                    |
+| `Section`        | `sectionId` | `docId`, `repoKey`, `headingPath`, `level`, `startLine`, `endLine`                                      | One heading-scoped region.                                |
+| `Chunk`          | `chunkId`   | `docId`, `sectionId`, `repoKey`, `ordinal`, `text`, `tokenCount`, `embedding`, `sourceUrl`, `commitSha` | One retrieval unit.                                       |
+| `Persona`        | `key`       | `displayName`                                                                                           | One canonical persona value.                              |
+| `ExternalLink`   | `url`       | `host`                                                                                                  | One destination outside the configured repositories.      |
+| `LinkIssue`      | `issueId`   | `docId`, `rawTarget`, `sourceSectionId`, `reason`                                                       | One unresolved or invalid link.                           |
+| `EmbeddingModel` | `modelKey`  | `name`, `dimensions`, `version`                                                                         | One embedding model version.                              |
+| `IngestionRun`   | `runId`     | `startedAt`, `finishedAt`, `status`                                                                     | One ingestion execution over all registered repositories. |
+| `ContextRequest` | `requestId` | `submittedAt`, `consumer`, `queryHash`, `tokenCount`                                                    | One served context bundle.                                |
 
-`Chunk` carries denormalized `repoKey`, `domainKey`, `docType`, `status` and `updatedAt` properties. Those properties support in-index vector filtering. The graph writer sets them in the same transaction as the chunk upsert.
+`Section` carries a denormalized `repoKey` for repository filtering. `Chunk` carries denormalized `repoKey`, `domainKey`, `docType`, `status`, `updatedAt`, `sourceUrl` and `commitSha` properties. The first five support in-index vector filtering. `sourceUrl` and `commitSha` provide item provenance without a second query. The graph writer sets these properties in the same transactions as the section and chunk upserts.
+
+`Feature` documents carry `featureKey` as defined in Front matter normalization. `LinkIssue` carries `docId` so stale issues can be removed without traversing relationships.
 
 ### Relationship definitions
 
-| Relationship     | Source label             | Target label                            | Properties                                                                                    | Purpose                                           |
-| ---------------- | ------------------------ | --------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `CONTAINS`       | `Repository` or `Folder` | `Folder` or `Document`                  | none                                                                                          | Preserves source path hierarchy.                  |
-| `SCOPED_TO`      | `Repository`             | `Domain` or `Application`               | `level`                                                                                       | Declares the repository scope.                    |
-| `CONTAINS`       | `Domain`                 | `Application`                           | none                                                                                          | Preserves domain to application hierarchy.        |
-| `ABOUT`          | `Document`               | `Application`                           | none                                                                                          | Declares the application described by a document. |
-| `HAS_SECTION`    | `Document`               | `Section`                               | none                                                                                          | Links a document to a top-level section.          |
-| `HAS_SUBSECTION` | `Section`                | `Section`                               | none                                                                                          | Preserves heading nesting.                        |
-| `HAS_CHUNK`      | `Section`                | `Chunk`                                 | none                                                                                          | Links a section to its text slices.               |
-| `HAS_PERSONA`    | `Document`               | `Persona`                               | `sourceField`                                                                                 | Links front matter persona values.                |
-| `LINKS_TO`       | `Section`                | `Document`, `Section` or `ExternalLink` | `linkText`, `rawTarget`, `resolvedTarget`, `anchor`, `ordinal`, `chunkId`, `resolutionStatus` | Preserves Markdown navigation.                    |
-| `REPORTS`        | `Section`                | `LinkIssue`                             | `detectedAt`                                                                                  | Records a broken link at its source.              |
-| `EMBEDDED_WITH`  | `Chunk`                  | `EmbeddingModel`                        | `embeddedAt`                                                                                  | Records vector provenance.                        |
-| `PRODUCED`       | `IngestionRun`           | `Document`                              | none                                                                                          | Records which run wrote a document.               |
-| `USED`           | `ContextRequest`         | `Chunk`                                 | `rank`, `reasons`                                                                             | Records served evidence.                          |
+| Relationship     | Source label             | Target label                            | Properties                                                                                    | Purpose                                             |
+| ---------------- | ------------------------ | --------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `CONTAINS`       | `Repository` or `Folder` | `Folder` or `Document`                  | none                                                                                          | Preserves source path hierarchy.                    |
+| `SCOPED_TO`      | `Repository`             | `Domain` or `Application`               | `level`                                                                                       | Declares the repository scope.                      |
+| `CONTAINS`       | `Domain`                 | `Application`                           | none                                                                                          | Preserves domain to application hierarchy.          |
+| `ABOUT`          | `Document`               | `Application`                           | none                                                                                          | Declares the application described by a document.   |
+| `HAS_SECTION`    | `Document`               | `Section`                               | none                                                                                          | Links a document to a top-level section.            |
+| `HAS_SUBSECTION` | `Section`                | `Section`                               | none                                                                                          | Preserves heading nesting.                          |
+| `HAS_CHUNK`      | `Section`                | `Chunk`                                 | none                                                                                          | Links a section to its text slices.                 |
+| `HAS_PERSONA`    | `Document`               | `Persona`                               | `sourceField`                                                                                 | Links front matter persona values.                  |
+| `LINKS_TO`       | `Section`                | `Document`, `Section` or `ExternalLink` | `linkText`, `rawTarget`, `resolvedTarget`, `anchor`, `ordinal`, `chunkId`, `resolutionStatus` | Preserves Markdown navigation.                      |
+| `REPORTS`        | `Section`                | `LinkIssue`                             | `detectedAt`                                                                                  | Records a broken link at its source.                |
+| `EMBEDDED_WITH`  | `Chunk`                  | `EmbeddingModel`                        | `embeddedAt`                                                                                  | Records vector provenance.                          |
+| `PRODUCED`       | `IngestionRun`           | `Document`                              | none                                                                                          | Records which run wrote a document.                 |
+| `PINNED_TO`      | `IngestionRun`           | `Repository`                            | `repoKey`, `commitSha`                                                                        | Records one repository's pinned commit for one run. |
+| `USED`           | `ContextRequest`         | `Chunk`                                 | `rank`, `reasons`                                                                             | Records served evidence.                            |
 
 ## Schema: constraints and indexes
 
@@ -355,7 +392,7 @@ OPTIONS {indexConfig: {
 }};
 ```
 
-The [SEARCH clause](https://neo4j.com/docs/cypher-manual/current/clauses/search/) is available for vector indexes from Neo4j 2026.01 and for full-text indexes from Neo4j 2026.09. The deployment therefore requires Neo4j 2026.09 or later. Older deployments replace `SEARCH` with `db.index.fulltext.queryNodes()` and `db.index.vector.queryNodes()`, which are deprecated in Cypher 25 from Neo4j 2026.10. Verify each procedure name against the [Cypher manual](https://neo4j.com/docs/cypher-manual/current/) before using that fallback.
+The [SEARCH clause](https://neo4j.com/docs/cypher-manual/current/clauses/search/) is available for vector indexes from Neo4j 2026.01 and for full-text indexes from Neo4j 2026.09. The deployment therefore requires Neo4j 2026.09 or later. Older deployments replace full-text `SEARCH` with `db.index.fulltext.queryNodes()`, which is deprecated in Cypher 25 from Neo4j 2026.10. They replace vector `SEARCH` with `db.index.vector.queryNodes()`, which is [deprecated in Neo4j 2026.04](https://neo4j.com/docs/cypher-manual/current/indexes/search-indexes/vector-indexes/). The `IN` predicate inside vector `SEARCH` requires Neo4j 2026.06 or later, which the deployment target satisfies. Verify each procedure name against the [Cypher manual](https://neo4j.com/docs/cypher-manual/current/) before using that fallback.
 
 ### Index coverage
 
@@ -367,12 +404,12 @@ Cypher 25 reports six index types through `SHOW INDEXES`: `RANGE`, `TEXT`, `POIN
 | Composite range   | Document repository and path plus section document and level.      | Created with `CREATE INDEX` on several properties.                  |
 | Text              | Title substring and heading substring predicates.                  | Created with `CREATE TEXT INDEX`.                                   |
 | Point             | No spatial predicate exists in the use case.                       | Not created.                                                        |
-| Lookup            | Node label and relationship type lookups.                          | Created automatically by Neo4j and never dropped.                   |
+| Lookup            | Node label and relationship type lookups.                          | Created by default. Recreate with `CREATE LOOKUP INDEX` if dropped. |
 | Full-text         | Word search over titles, summaries, headings and chunk text.       | Created with `CREATE FULLTEXT INDEX`.                               |
 | Vector            | Semantic similarity over chunk embeddings.                         | Created with `CREATE VECTOR INDEX`.                                 |
 | Unique constraint | All identifier properties listed above.                            | Enforced by uniqueness constraints and their backing range indexes. |
 
-Composite indexes and relationship indexes are not separate index types. A composite index is a range index on several properties. `link_resolution_status` is a range index on relationship properties. Uniqueness is enforced by constraints because Cypher 25 has no standalone `CREATE UNIQUE INDEX` statement. The backing indexes appear in `SHOW INDEXES` with an `owningConstraint` value.
+Composite indexes and relationship indexes are not separate index types. A composite index is a range index on several properties. `link_resolution_status` is a range index on relationship properties. Uniqueness is enforced by constraints. The backing indexes appear in `SHOW INDEXES` with an `owningConstraint` value.
 
 ## Ingestion pipeline
 
@@ -400,7 +437,7 @@ sequenceDiagram
 
 The pipeline has seven stages.
 
-1. **Discover.** The scheduler reads repository configuration and resolves each repository to one commit SHA. The adapter records the commit in an `IngestionRun` node with status `RUNNING`.
+1. **Discover.** The scheduler reads every repository entry and resolves each repository to one commit SHA. The adapter creates one `IngestionRun` node with status `RUNNING` and one `PINNED_TO` relationship per repository that carries that repository's commit SHA.
 2. **Parse.** The Markdown parser emits one canonical record per document, one record per heading and one record per chunk. The parser rejects a document with a missing required canonical field and writes a `LinkIssue` with reason `INVALID_FRONT_MATTER`.
 3. **Embed.** The embedding generator vectors each chunk and records the `modelKey`. A vector with a length other than the configured dimension stops the run before any graph write.
 4. **Upsert nodes.** The graph writer applies one batched transaction per repository. Every node key uses `MERGE` so repeated runs at the same commit produce no duplicates.
@@ -412,16 +449,17 @@ Batching uses `UNWIND` and `CALL { ... } IN TRANSACTIONS OF 1000 ROWS`. Short tr
 
 ### Upsert statements
 
-The run node and document nodes are created in one statement per batch.
+The run node and document nodes are created in one statement per repository batch. The graph writer resolves one commit SHA per repository. Each batch writes a `PINNED_TO` relationship that carries that SHA, so a run records every repository it ingested.
 
 ```cypher
 MERGE (run:IngestionRun {runId: $runId})
 SET run.startedAt = coalesce(run.startedAt, datetime()),
-    run.commitSha = $commitSha,
     run.status = 'RUNNING'
 WITH run
 UNWIND $documents AS doc
 MATCH (repo:Repository {repoKey: doc.repoKey})
+MERGE (run)-[p:PINNED_TO {repoKey: repo.repoKey}]->(repo)
+SET p.commitSha = $commitSha
 MERGE (d:Document {docId: doc.docId})
 SET d += doc.properties
 MERGE (run)-[:PRODUCED]->(d)
@@ -445,7 +483,7 @@ MERGE (m:EmbeddingModel {modelKey: $modelKey})
 MERGE (c)-[:EMBEDDED_WITH]->(m);
 ```
 
-Link resolution uses the target kind to select the write path. The document target case is shown below. Section targets and external targets use the same `MERGE` pattern with their own labels and keys.
+Link resolution uses the target kind to select the write path. The document target case is shown below. Section targets and external targets use the same `MERGE` pattern with their own labels and keys. A `LinkIssue` write sets `docId` from the `docId` of the source `Section`.
 
 ```cypher
 UNWIND $links AS link
@@ -455,7 +493,37 @@ MERGE (s)-[l:LINKS_TO {ordinal: link.ordinal}]->(t)
 SET l += link.relationshipProperties;
 ```
 
-Stale artifacts are removed by comparing identifier sets.
+Stale artifacts are removed by comparing identifier sets. The graph writer runs four statements in this order: chunks, link issues, sections and documents. Each statement uses the `docId` property stored on the artifact, so nested sections are removed without a variable-length traversal. `DETACH DELETE` on a `Chunk` removes `USED` relationships from `ContextRequest` nodes. The `ContextRequest` nodes themselves remain as audit history.
+
+```cypher
+MATCH (d:Document)
+WHERE d.repoKey = $repoKey
+  AND NOT d.docId IN $currentDocIds
+WITH collect(d.docId) AS staleDocIds
+MATCH (c:Chunk)
+WHERE c.docId IN staleDocIds
+DETACH DELETE c;
+```
+
+```cypher
+MATCH (d:Document)
+WHERE d.repoKey = $repoKey
+  AND NOT d.docId IN $currentDocIds
+WITH collect(d.docId) AS staleDocIds
+MATCH (i:LinkIssue)
+WHERE i.docId IN staleDocIds
+DETACH DELETE i;
+```
+
+```cypher
+MATCH (d:Document)
+WHERE d.repoKey = $repoKey
+  AND NOT d.docId IN $currentDocIds
+WITH collect(d.docId) AS staleDocIds
+MATCH (s:Section)
+WHERE s.docId IN staleDocIds
+DETACH DELETE s;
+```
 
 ```cypher
 MATCH (d:Document)
@@ -480,7 +548,11 @@ WHERE d.status = 'PUBLISHED'
 RETURN d.docId AS docId, d.title AS title;
 
 MATCH (r:IngestionRun {runId: $runId})
-RETURN r.status AS status, r.startedAt AS startedAt, r.finishedAt AS finishedAt;
+OPTIONAL MATCH (r)-[p:PINNED_TO]->(repo:Repository)
+RETURN r.status AS status,
+       r.startedAt AS startedAt,
+       r.finishedAt AS finishedAt,
+       collect({repoKey: repo.repoKey, commitSha: p.commitSha}) AS pinnedCommits;
 ```
 
 ## Lookup and retrieval patterns
@@ -489,7 +561,7 @@ Every query uses parameters. No query concatenates user input into Cypher text.
 
 ### Feature lookup
 
-A feature lookup starts at the feature document and returns every linked artifact. The result includes the link text from the feature document so the agent sees why each artifact is relevant.
+A feature lookup starts at the feature document and returns every linked artifact. `Feature` documents carry `featureKey` as defined in Front matter normalization. The result includes the link text from the feature document so the agent sees why each artifact is relevant.
 
 ```cypher
 MATCH (f:Document:Feature {featureKey: $featureKey})
@@ -531,10 +603,11 @@ ORDER BY d.updatedAt DESC;
 
 ### Full-text lookup
 
-Full-text lookup uses the `SEARCH` clause on `documentation_search`. The score is valid only within one full-text result set.
+Full-text lookup uses the `SEARCH` clause on `documentation_search`. The score is valid only within one full-text result set. Full-text `SEARCH` has no in-index `WHERE` clause, so the repository filter is a post-filter in the enclosing `MATCH`.
 
 ```cypher
 MATCH (n:Document|Section|Chunk)
+WHERE n.repoKey IN $allowedRepoKeys
   SEARCH n IN (
     FULLTEXT INDEX documentation_search
     FOR $query
@@ -549,7 +622,7 @@ ORDER BY relevance DESC;
 
 ### Vector similarity lookup
 
-Vector lookup uses the `SEARCH` clause on `chunk_embeddings`. The `WHERE` clause inside `SEARCH` filters during vector search, so every property in that clause appears in the index definition. The over-fetch limit of 100 leaves enough candidates after filtering and before the final limit of 10.
+Vector lookup uses the `SEARCH` clause on `chunk_embeddings`. The `WHERE` clause inside `SEARCH` filters during vector search, so every property in that clause appears in the index definition. The service builds `$repoKeys` from the intersection of the request `repoKeys` and the repositories allowed for the consumer identity. The over-fetch limit of 100 leaves enough candidates after filtering and before the final limit of 10.
 
 ```cypher
 MATCH (c:Chunk)
@@ -702,7 +775,7 @@ The deployment uses separate identities for ingestion and serving.
 | `context_service`   | Database access and graph read.                                                          | Reads the documentation graph through parameterized queries. |
 | `admin_service`     | User and role administration.                                                            | Runs against the `system` database only.                     |
 
-Agent processes receive credentials for `context_service`. Agent processes never receive credentials for `ingestion_service`. Repository visibility is enforced in the context service before Cypher executes by adding `c.repoKey IN $allowedRepoKeys` to every seed query. Neo4j role and privilege administration follows the [authentication and authorization guide](https://neo4j.com/docs/operations-manual/current/authentication-authorization/), the [manage users guide](https://neo4j.com/docs/operations-manual/current/authentication-authorization/manage-users/) and the [manage roles guide](https://neo4j.com/docs/operations-manual/current/authentication-authorization/manage-roles/). Bolt connections use encryption in production.
+Agent processes receive credentials for `context_service`. Agent processes never receive credentials for `ingestion_service`. Repository visibility is enforced in the context service. The service reads the consumer identity and adds a repository predicate to every Cypher statement it executes: `d.repoKey IN $allowedRepoKeys` in feature, persona, path and freshness statements, `c.repoKey IN $allowedRepoKeys` in vector seed statements, and the matching node variable in full-text and one-hop expansion statements. The service sends no statement without that predicate. Neo4j role and privilege administration follows the [authentication and authorization guide](https://neo4j.com/docs/operations-manual/current/authentication-authorization/), the [manage users guide](https://neo4j.com/docs/operations-manual/current/authentication-authorization/manage-users/) and the [manage roles guide](https://neo4j.com/docs/operations-manual/current/authentication-authorization/manage-roles/). Bolt connections use encryption in production.
 
 Every response carries `sourceUrl` and `commitSha` provenance. The audit log records the consumer identity, query hash and returned chunk identifiers. Sensitive values in documentation are handled by the source repositories; the graph stores text from those files without a separate redaction step. Repository owners must keep secrets out of documentation files.
 
@@ -723,11 +796,17 @@ The following metrics are emitted by the ingestion worker and the context servic
 
 `SHOW INDEXES` confirms index availability and population state. `SHOW CONSTRAINTS` confirms schema state. The deployment stores expected schema definitions in version control and compares them with the live schema during deployment. Query logging follows the [Neo4j logging guide](https://neo4j.com/docs/operations-manual/current/monitoring/logging/).
 
+### Capacity test
+
+The capacity test builds the graph from every registered repository at its pinned commit and runs for 10 minutes. It sends 100 concurrent context requests. Half of the requests supply a `featureKey` and a fixed `query`. Half supply the same `query` without a `featureKey`. Every request sets `maxTokens` to 4096. The test measures latency at the context service boundary from request receipt to response completion. The latency goal in the goals table passes when p95 is at or below 500 ms and no request exceeds 5000 ms.
+
+The test records the full latency distribution and the token count of every bundle. A change to the graph model or the assembler requires a new run of the same test.
+
 ## Deployment and operations
 
 The target is a Neo4j 2026.09 or later database with the enterprise features required by the chosen hosting mode. The deployment records the Neo4j version, Cypher default version, store format and index configuration in the operations catalogue.
 
-Backup and restore cover both the graph and the ingestion configuration. A full rebuild uses an empty database and replays all four repositories from pinned commits. The rebuild result is compared with the live graph using document counts, section counts, chunk counts and link counts.
+Backup and restore cover both the graph and the ingestion configuration. A full rebuild uses an empty database and replays every registered repository from its pinned commit. The rebuild result is compared with the live graph using document counts, section counts, chunk counts and link counts.
 
 An embedding model change follows a fixed procedure.
 
@@ -744,7 +823,7 @@ Schema migrations run before ingestion. Application deployments run after the in
 
 ### Phase 1: repository registry and parser
 
-The team creates adapter configuration for the four repositories and implements front matter normalization, heading parsing and link extraction. The output is a canonical JSON record per document. Acceptance requires exact reproduction of the folder tree and heading tree from a sample repository.
+The team creates adapter configuration for every registered repository and implements front matter normalization, heading parsing and link extraction. The output is a canonical JSON record per document. Acceptance requires exact reproduction of the folder tree and heading tree from a sample repository.
 
 ### Phase 2: graph schema and ingestion
 
@@ -756,7 +835,7 @@ The team implements feature, persona, full-text, vector, path and freshness quer
 
 ### Phase 4: context assembly
 
-The team implements the request contract, rank fusion, deduplication, source caps, token budgeting, provenance and audit writes. Acceptance requires the goals table to pass under the capacity test.
+The team implements the request contract, rank fusion, deduplication, source caps, token budgeting, provenance and audit writes. Acceptance requires the goals table to pass under the load profile in Capacity test.
 
 ### Phase 5: hardening and operations
 
@@ -777,30 +856,41 @@ The team adds role separation, metrics, alerts, backup procedures, rebuild drill
 | Context bundles carry provenance.                    | Every item contains `sourceUrl` and the response contains commit SHAs.         |
 | Agents cannot write to the graph.                    | Connection test with `context_service` credentials fails on a write statement. |
 | A rebuild from empty storage matches the live graph. | Node counts and relationship counts match across both graphs.                  |
+| A new repository needs no schema change.             | Add a registry entry, ingest it and run the existing validation queries.       |
 
 ## Risks and mitigations
 
-| Risk                                            | Mitigation                                                                                                     |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Link targets move between repositories.         | `crossRepoMap` and two-pass resolution keep link targets explicit. Unmatched targets become `LinkIssue` nodes. |
-| Repository count changes.                       | Repository records are configuration. The schema stores level as a property.                                   |
-| Embedding model changes.                        | `EmbeddingModel` nodes record model version and the reindex procedure switches index names.                    |
-| One repository dominates results.               | Per-repository caps apply after fusion and before token budgeting.                                             |
-| Stale graph content.                            | Every document stores `commitSha` and `updatedAt`. Freshness lookup and rebuild drills detect drift.           |
-| Large ingestion transactions.                   | `CALL { ... } IN TRANSACTIONS OF 1000 ROWS` bounds each write batch.                                           |
-| Front matter differs between repositories.      | Each adapter maps source keys to one canonical field set before graph write.                                   |
-| Agents treat missing evidence as known content. | `NO_EVIDENCE` is an explicit response and the service returns an empty `items` list.                           |
+| Risk                                            | Mitigation                                                                                                                                                     |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Link targets move between repositories.         | `crossRepoMap` and two-pass resolution keep link targets explicit. Unmatched targets become `LinkIssue` nodes.                                                 |
+| Repository count changes.                       | Registry entries and adapter profiles are configuration. `level` and scope are properties, and `SCOPED_TO` allows many repositories per domain or application. |
+| Embedding model changes.                        | `EmbeddingModel` nodes record model version and the reindex procedure switches index names.                                                                    |
+| One repository dominates results.               | Per-repository caps apply after fusion and before token budgeting.                                                                                             |
+| Stale graph content.                            | Every document stores `commitSha` and `updatedAt`. Freshness lookup and rebuild drills detect drift.                                                           |
+| Large ingestion transactions.                   | `CALL { ... } IN TRANSACTIONS OF 1000 ROWS` bounds each write batch.                                                                                           |
+| Front matter differs between repositories.      | Each adapter maps source keys to one canonical field set before graph write.                                                                                   |
+| Agents treat missing evidence as known content. | `NO_EVIDENCE` is an explicit response and the service returns an empty `items` list.                                                                           |
 
 ## Open decisions
 
 The following decisions require confirmation from the repository owners before Phase 2.
 
-1. The exact mapping of four repositories to logical levels and domain names.
+1. The exact mapping of the current repositories to logical levels and domain names.
 2. The source-specific front matter keys that map to `persona`, `status`, `owner` and `updatedAt`.
 3. The embedding model name, dimension and hosting location.
 4. The token budget, per-repository cap and latency target for the first deployment.
 5. The repository visibility rules for each consumer identity.
 6. The heading slug algorithm used by the documentation renderer, for comparison with `slug(title)`.
+
+## Design takeaways
+
+The design separates the source of truth from the read model. Git owns the documents. Neo4j stores a projection that a full rebuild can reproduce from pinned commits. The registry is configuration, so new domain and application repositories add nodes and relationships without changing the schema.
+
+The graph carries navigation as data. A feature document links to its design, NFR, API contract and runbook. The context service follows those links instead of inferring which passages belong together.
+
+Retrieval has several entry points. Direct feature and persona lookups need no vector index. Full-text and vector lookups provide seeds. Graph expansion adds connected documents. Rank fusion keeps the scores from different retrieval methods separate.
+
+Every returned item carries its Git URL and commit SHA. An agent can cite the source and a reviewer can trace the version. An empty result with `NO_EVIDENCE` tells the agent to report missing documentation instead of inventing content.
 
 ## References
 
