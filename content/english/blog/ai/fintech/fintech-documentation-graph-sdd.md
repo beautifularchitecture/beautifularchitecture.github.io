@@ -1,5 +1,5 @@
 +++
-date = '2026-11-23T12:00:45+10:00'
+date = '2026-11-24T12:00:45+10:00'
 draft = false
 title = 'Software Design Specification: Fintech Documentation Graph in Neo4j'
 tags = ['AI', 'Context Engineering', 'Neo4j', 'Fintech', 'Software Design', 'Knowledge Graph', 'GraphRAG']
@@ -33,7 +33,7 @@ The specification excludes the following work:
 
 ## Usage pattern buckets
 
-The specification classifies every consumer action into five buckets. A bucket groups requirements by the input the caller supplies and the result the caller receives. One requirement can use several buckets. These buckets classify use; they do not describe ingestion stages.
+The specification classifies every consumer action into five buckets. A bucket groups requirements by the input the caller supplies and the result the caller receives. One requirement can use several buckets. The buckets are a project-specific classification, not a standard. They create no interoperability or conformance claim. These buckets classify use; they do not describe ingestion stages.
 
 | #   | Bucket                                  | Caller supplies                                           | Result                                                         | Examples in this design                                                                                                  |
 | --- | --------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -55,6 +55,26 @@ The stakeholder use cases map to the buckets as follows:
 | Domain architect finds every document that references a section.                | 3       |
 | Compliance reviewer verifies that published documents name a persona and owner. | 1, 5    |
 | Platform engineer detects documents that reference an old commit.               | 1, 5    |
+
+## Standards and design patterns
+
+This specification defines patterns for one system. The five usage buckets, the seven ingestion stages, the lookup patterns and the context assembly rules are project-specific designs. No cited source defines them as a standard. They do not create a conformance target for other systems.
+
+The sequence `competency questions → ontology design → ingestion → structured extraction → validation → GraphRAG retrieval` is a composite workflow, not a standard. Competency questions come from ontology engineering. [Uschold and Grüninger (1996)](https://doi.org/10.1017/S0269888900007797) described them as questions that specify the requirements for an ontology. [Keet and Khan (2024)](https://arxiv.org/html/2412.13688) classified five competency question types and mapped them to ontology development tasks. W3C publishes standards for ontology representation and validation, including [RDF](https://www.w3.org/TR/rdf11-concepts/), [OWL 2](https://www.w3.org/TR/owl2-overview/) and [SHACL](https://www.w3.org/TR/shacl/). Neo4j publishes an [open Ontology Graph Specification](https://neo4j.com/docs/ontology-graph-spec/) for JSON or YAML ontology documents validated by [JSON Schema](https://json-schema.org/specification). The [Neo4j knowledge graph builder guide](https://neo4j.com/docs/neo4j-graphrag-python/current/user_guide_kg_builder.html) documents an experimental ingestion pipeline. GraphRAG is a research and product approach, not a standard. These sources cover parts of the sequence. No cited source defines the complete sequence as a standard.
+
+| Component in this SDD              | Status                                                                                                                                                          | Conformance in this design                                                                                                 |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Usage pattern buckets              | Project-specific classification.                                                                                                                                | Used to group requirements. No external conformance claim.                                                                 |
+| Ingestion stages                   | Project-specific sequence implemented by the scheduler, adapters, parser and graph writer.                                                                      | Verified by rebuild drills and validation queries. No external conformance claim.                                          |
+| Lookup and retrieval patterns      | Project-specific Cypher query patterns for this graph model.                                                                                                    | Verified by automated tests and `EXPLAIN` output. No external conformance claim.                                           |
+| Canonical JSON records             | Project data structure emitted by the Markdown parser.                                                                                                          | Not an ontology document format. This design does not define a JSON Schema for the records.                                |
+| Markdown link syntax               | [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/#links) specification.                                                                                   | The parser handles inline links and reference links. CommonMark is not a W3C Recommendation.                               |
+| Graph schema operations            | Neo4j product behaviour defined in the [Cypher manual](https://neo4j.com/docs/cypher-manual/current/).                                                          | Constraints and indexes follow Neo4j documentation. These operations are not W3C standards.                                |
+| W3C ontology standards             | RDF, OWL 2 and SHACL are W3C standards for ontology representation and RDF graph validation.                                                                    | This design stores a Neo4j property graph. The design does not claim RDF, OWL 2 or SHACL conformance.                      |
+| Neo4j Ontology Graph Specification | Open Neo4j specification for JSON or YAML ontology documents.                                                                                                   | This design does not consume an ontology document. The specification is not a W3C Recommendation.                          |
+| GraphRAG approaches                | Research and product patterns documented by [Edge et al.](https://arxiv.org/abs/2404.16130) and [Neo4j](https://neo4j.com/docs/neo4j-graphrag-python/current/). | This design implements retrieval over a documentation graph. The design does not claim conformance to a GraphRAG standard. |
+
+This design uses the word "standard" only for cited W3C Recommendations. The design uses the word "specification" for CommonMark, JSON Schema and the Neo4j Ontology Graph Specification. The design uses the word "pattern" for repeatable solutions inside this system. A pattern becomes a requirement only when this document defines it and the acceptance criteria verify it.
 
 ## Assumptions
 
@@ -435,7 +455,7 @@ sequenceDiagram
   W->>N: Mark run COMPLETED
 ```
 
-The pipeline has seven stages.
+The pipeline has seven project-specific stages. The seven stages are a design pattern for this system. They are not an external standard.
 
 1. **Discover.** The scheduler reads every repository entry and resolves each repository to one commit SHA. The adapter creates one `IngestionRun` node with status `RUNNING` and one `PINNED_TO` relationship per repository that carries that repository's commit SHA.
 2. **Parse.** The Markdown parser emits one canonical record per document, one record per heading and one record per chunk. The parser rejects a document with a missing required canonical field and writes a `LinkIssue` with reason `INVALID_FRONT_MATTER`.
@@ -557,7 +577,7 @@ RETURN r.status AS status,
 
 ## Lookup and retrieval patterns
 
-Every query uses parameters. No query concatenates user input into Cypher text.
+The lookup patterns in this section are project-specific designs. They are not an external standard. Every query uses parameters. No query concatenates user input into Cypher text.
 
 ### Feature lookup
 
@@ -892,10 +912,15 @@ Retrieval has several entry points. Direct feature and persona lookups need no v
 
 Every returned item carries its Git URL and commit SHA. An agent can cite the source and a reviewer can trace the version. An empty result with `NO_EVIDENCE` tells the agent to report missing documentation instead of inventing content.
 
+Standards and patterns have separate roles. [RDF](https://www.w3.org/TR/rdf11-concepts/), [OWL 2](https://www.w3.org/TR/owl2-overview/) and [SHACL](https://www.w3.org/TR/shacl/) are W3C standards. The five usage buckets, seven ingestion stages, lookup patterns and context assembly rules are project-specific patterns. This SDD claims no conformance to RDF, OWL 2, SHACL or a GraphRAG standard.
+
 ## References
 
 - Neo4j Cypher: [indexes](https://neo4j.com/docs/cypher-manual/current/indexes/), [create indexes](https://neo4j.com/docs/cypher-manual/current/indexes/performance-indexes/create-indexes/), [full-text indexes](https://neo4j.com/docs/cypher-manual/current/indexes/search-indexes/full-text-indexes/), [vector indexes](https://neo4j.com/docs/cypher-manual/current/indexes/search-indexes/vector-indexes/), [SEARCH clause](https://neo4j.com/docs/cypher-manual/current/clauses/search/), [constraints](https://neo4j.com/docs/cypher-manual/current/constraints/) and [transactions](https://neo4j.com/docs/cypher-manual/current/introduction/cypher-neo4j/).
 - Neo4j operations: [transaction management](https://neo4j.com/docs/operations-manual/current/database-internals/transaction-management/), [authentication and authorization](https://neo4j.com/docs/operations-manual/current/authentication-authorization/), [manage users](https://neo4j.com/docs/operations-manual/current/authentication-authorization/manage-users/), [manage roles](https://neo4j.com/docs/operations-manual/current/authentication-authorization/manage-roles/) and [logging](https://neo4j.com/docs/operations-manual/current/monitoring/logging/).
-- Neo4j GenAI: [GraphRAG Python documentation](https://neo4j.com/docs/neo4j-graphrag-python/) and [embeddings and vector indexes](https://neo4j.com/docs/genai/tutorials/current/embeddings-vector-indexes/).
+- Neo4j GenAI: [GraphRAG Python documentation](https://neo4j.com/docs/neo4j-graphrag-python/), [knowledge graph builder guide](https://neo4j.com/docs/neo4j-graphrag-python/current/user_guide_kg_builder.html) and [embeddings and vector indexes](https://neo4j.com/docs/genai/tutorials/current/embeddings-vector-indexes/).
+- Ontology engineering: [Uschold and Grüninger (1996)](https://doi.org/10.1017/S0269888900007797) and [Keet and Khan (2024)](https://arxiv.org/html/2412.13688).
+- Ontology standards and formats: [RDF 1.1 Concepts](https://www.w3.org/TR/rdf11-concepts/), [OWL 2 Overview](https://www.w3.org/TR/owl2-overview/), [SHACL](https://www.w3.org/TR/shacl/), [JSON Schema specification](https://json-schema.org/specification) and [Neo4j Ontology Graph Specification](https://neo4j.com/docs/ontology-graph-spec/).
+- GraphRAG research: [Edge et al. (2024)](https://arxiv.org/abs/2404.16130).
 - Markdown: [CommonMark links](https://spec.commonmark.org/0.31.2/#links).
 - Related posts in this repository: `content/english/blog/ai/graph-rag-neo4j.md` and `content/english/blog/system_design/neo4j-complete-tutorial.md`.
