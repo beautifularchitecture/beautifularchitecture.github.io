@@ -3,149 +3,94 @@ date = '2026-11-14T12:00:00+10:00'
 draft = true
 title = 'Where I Trust AI in Fintech Software Delivery'
 tags = ['AI', 'Fintech', 'Software Delivery', 'Trust', 'Context Engineering', 'Evals', 'Agentic AI']
-summary = "From vibe coding to governed delivery: where AI earns trust in fintech."
+summary = "How token limits, reusable capabilities and a knowledge structure changed where we trust AI."
 +++
 
-<!-- Status: blocks 1 and 2 drafted. Remaining blocks are TODO. Set draft = false when complete. -->
+<!-- Status: full story draft. Persona decision rights are grounded in the earlier persona post. Review before clearing draft. -->
 
-An AI agent can return a working-looking change in minutes. That change still needs a source of truth, a test, a reviewer and a rollback path. Fast generation is not fast delivery.
+I lead the AI work for our delivery organisation. When the first coding models reached us, I expected the hard part to be adoption. I was wrong. The hard part was learning where a fast answer could be trusted.
 
-The experiments behind this site began with the simplest posture: describe a task in conversation and accept what the model produces. That is vibe coding. It made output cheap. It also moved the cost of verification to the reviewer.
+This is the sequence that changed my view. Each step solved one problem and exposed the next one.
 
-This post follows the changes to that posture in sequence. Each change fixed a failure that the previous posture exposed.
+## Look what it can do
 
-## Vibe coding and the prompt response
+When the tools first arrived, I asked teams to try them on real work rather than toy prompts. A developer asked for a payment-status endpoint and got a working handler. A second request produced tests. A third produced a short explanation of the design. The answers arrived in minutes.
 
-The first posture was conversational generation. We described a task, accepted the generated change and moved to the next task. Output became cheap. Correctness did not. Prompt engineering was our first response to that gap.
+I remember the feeling in those reviews. We were comparing the model with the blank page, not with a reviewed design. A first version looked like progress because it existed.
 
-### The constraints we started with
+A first version is not a delivery. A fintech change still needs an approved rule, a test that proves the rule, a reviewer who understands the audit consequence and a rollback path. The model gave us the first artifact. It did not give us the other four.
 
-Early tools gave us a small context window and a monthly usage allocation. The context window limited how much code and documentation the model could see in one request. The usage allocation limited how many attempts the team could afford in a month.
+I started to separate two questions. Can the model produce something that looks right? Can we show that it is right? Early demos answered only the first question.
 
-The constraint was inconvenient. It also produced a useful discipline. We learned to select the material that mattered, to state the task narrowly and to stop paying tokens for restatement. Token budgeting was our first engineering practice around AI.
+## The token wall
 
-### Context drift and loss
+Then the constraint became visible. We were encouraged to use AI more. People on my teams ran out of token allocation before the sprint ended. Some waited for the monthly reset. Others asked me for an extension.
 
-Vibe coding is conversational. Each follow-up question stays in the thread. The thread drifts away from the original goal, and the coding agent still receives the whole history as context.
+I stopped treating tokens as an API detail and started treating them as a budget. A budget changes behaviour. If a request fails on the last day of a sprint, the cost is not latency. The work stops until the next cycle.
 
-Every irrelevant turn is paid for on every later call. Anthropic describes context as a finite attention budget: as tokens accumulate, recall and long-range reasoning lose precision ([Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)). A long chat is not just noisy. It is expensive.
+We changed how we worked. We cut restatement. We stopped pasting whole repositories into a request. We asked which document actually carried the rule and loaded that one. A request that failed after three retries cost more than a request that succeeded once, so reducing rework became a way of protecting the allocation.
 
-There are a few failure modes. **Context poisoning** happens when an error enters the context and later steps build on it. **Context distraction** happens when history pushes the agent to repeat past actions instead of reasoning about the current task. **Context confusion** happens when irrelevant tools or documents lead the model toward the wrong instruction. **Context clash** happens when contradictory information leaves the agent choosing between incompatible assumptions ([Weaviate, 2025](https://weaviate.io/blog/context-engineering)).
+There was a second cost. Anthropic describes context as a finite attention budget with diminishing returns. Every new token draws on that budget ([Anthropic, 2025](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)). Long threads were not just expensive. They made recall worse.
 
-When the window fills, the harness compacts or prunes the history. Compaction summarises older turns and restarts the window with that summary. The choice of what to keep is a lossy decision. Anthropic warns that aggressive compaction removes subtle context whose importance becomes clear only later. Pruning removes passages judged unneeded. Compaction can preserve the shape of a conversation and drop the constraint that mattered.
+I learned to ask two questions before any request. What does the model need to see? What can it safely ignore? Those questions became the start of context engineering, long before we had a name for it.
 
-These failures are not prompt problems. They are context problems. The conversational posture created a new class of failure, and fixing the instruction would not fix the context. The [context engineering notes](/blog/ai/fintech/context-engineering/) catalogue these failure modes in detail.
+Token accounting also changed the shape of a request. We treated the window as a sequence of decisions: standing rules first, then the approved spec, then the current repository state, then evidence from the last run. Material that did not change the next action stayed out. When a thread grew too long, we wrote the decisions to a file and restarted from that file instead of carrying the transcript. Anthropic calls this structured note-taking, and it is the practical answer to lossy compaction ([Anthropic, 2025](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)). A compacted summary can keep the shape of a conversation and drop the one constraint that mattered. A file with named fields makes that loss visible.
 
-### Velocity, accuracy and review
+We did not remove the budget problem. We made it manageable. A bounded bundle costs less, fails less often and leaves room for rework.
 
-Generated code and pull requests arrived at scale. Incorrect code and documents arrived with the working ones. Every wrong artifact needed rework, and every rework round consumed another portion of the monthly allocation.
+## Building the capability layer
 
-We adopted two habits to break the loop. We shrank the request before sending it, and we inspected the output before asking for more. Across teams I watched, the same loop appeared: generation at scale followed by rework that consumed the allocation. Reducing rework became a way of reducing token spend.
+Teams around me responded by building capabilities. Skills, agents, custom instructions, hooks, scripts and MCP tools appeared in repositories. Each one started as an instruction written down in a form the model could reuse.
 
-Velocity did not improve accuracy. A generated change can compile and still implement the wrong rule. The reviewer had to compare the change with the requirement rather than with the model's explanation. Passing tests established that the change met the tests. The tests had to come from an approved specification. Generated documents carried the same risk: a readable summary is not an approved source of truth.
+Anthropic defines prompt engineering as methods for writing and organising LLM instructions ([Anthropic, 2025](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)). That is exactly what these artifacts were. A skill captured a repeated task. A custom instruction carried a standing rule into every session. A hook ran a check at a fixed point. A script made a step deterministic. An MCP tool gave the agent a controlled way to reach an external system.
 
-### The review bottleneck
+This solved a real problem. A prompt in a file can be reviewed and diffed. A skill can be handed to another engineer. Two people starting the same task no longer depend on two different conversational phrasings. We moved from asking well to having a reusable way of asking.
 
-People generated code and documents they had not read. The reviewer became the first person to check whether the artifact matched the task. That moved accountability from the producer to the reviewer.
+I still see demos that stop here. The team shows a library of prompts, a set of skills and an agent that chains them together. The instruction is repeatable. The facts are not. The prompt can say "follow the payment-limit policy". It cannot tell the agent which policy version is current, where the ADR lives or whether the repository has already changed.
 
-The bottleneck grew with volume. In fintech, the reviewer also carries the audit consequence of a wrong control or a wrong customer message. The review bottleneck is the failure that made vibe coding stop scaling for us.
+A prompt can ask the agent to run tests. It cannot stop the agent from shipping when the tests fail. That is a harness job.
 
-### What I saw across teams and demos
+So the capability layer answered "how to create" for a growing set of tasks. It left "what to create" untouched.
 
-Prompt libraries, skills, custom instructions, agents, scripts and hooks appeared as the first response. Skills were built and distributed. Demos combined them into elaborate workflows.
+There was also a governance problem inside the capability layer. Skills and instructions were written by whoever needed them. Two teams could carry two versions of the same standing rule. A prompt that quoted an old policy kept working long after the policy changed. More prompt files created more places for rules to drift apart.
 
-These artifacts made the instruction repeatable. They became the first prompt libraries we treated as project assets.
+We started treating each capability as a repository artifact. It has an owner, a review path and a version. A hook that enforces a check is reviewed like code. A skill that carries a rule is reviewed like a standard. An MCP tool is granted only the access its task needs. None of that gives the capability the facts it needs. Governance stops a capability from becoming an unowned instruction. It does not tell the agent which policy version is current.
 
-### What prompting fixed
+## The problem that prompts did not solve
 
-Prompt engineering gave the instruction a stable form. A prompt became a file in the repository. The team could review the file, diff the file and reuse it across sessions. Two people starting the same task no longer depended on two different conversational phrasings.
+This is where the context failures showed up. Weaviate names four. Context poisoning puts an error into the context and later steps build on it. Context distraction pushes the agent to repeat past behaviour instead of reasoning about the current task. Context confusion lets irrelevant tools or documents pull the model toward the wrong instruction. Context clash leaves it choosing between contradictory assumptions ([Weaviate, 2025](https://weaviate.io/blog/context-engineering)).
 
-It also made the request smaller. We stated the task, the output shape and the constraints before calling the model. That discipline cut restatement and reduced the number of retries that consumed the monthly allocation.
+Length made each failure more likely. Chroma tested 18 models and found that accuracy becomes unreliable as input length grows, even on simple tasks ([Chroma, 2025](https://research.trychroma.com/context-rot)). Liu et al. found that recall is highest when relevant information sits at the beginning or end of a long context and degrades in the middle ([Liu et al., 2023](https://arxiv.org/abs/2307.03172)). When a window filled, the harness compacted or pruned history. Compaction is a summary, and a summary can drop the constraint that mattered.
 
-Skills and custom instructions carried standing rules into each session. Agents, scripts and hooks turned some repeated steps into defined actions. Anthropic defines prompt engineering as methods for writing and organising LLM instructions. Our prompt libraries did exactly that ([Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)).
+In fintech these are not abstract failures. A stale policy version becomes a wrong limit. A retrieved customer message becomes an instruction. A summary of a design discussion loses the one restriction that kept a control in place.
 
-### What prompting could not fix
+I stopped trying to fix this with larger windows. A larger window holds more material. It does not decide which material is true.
 
-A better instruction did not supply the facts. The prompt could say "follow the payment-limit policy". It could not tell the model which policy version was current, where the ADR lived or whether the repository had already changed. Prompt engineering writes the request. Context engineering decides what the model can see.
+Here is the failure I use when I explain this to new teams. A feature document links to a payment-limit policy. The policy was superseded, but the link still points at the old document. An earlier turn in the conversation states the new limit. The retrieved chunk states the old limit. The agent now holds a clash. If it resolves the clash toward the retrieved chunk, the generated code enforces the wrong control. If the conversation is compacted before review, the correction can disappear and the wrong limit survives as the only visible value. No amount of instruction wording fixes that. The fix is status on the policy, one approved version in the bundle and provenance that shows which version was used.
 
-It did not enforce anything. A prompt can ask the agent to run tests. A harness can refuse to advance until the tests pass. The instruction carries no power to stop an action.
+## A structure for what to create
 
-It did not control context growth. Skills, retrieved documents and long histories still accumulated in the window. Poisoning, distraction, confusion and clash remained possible. Compaction still removed material judged unneeded.
+My answer was a taxonomy and an ontology. Both are our project design. They are not an external standard and make no conformance claim. The [documentation graph specification](/blog/ai/fintech/fintech-documentation-graph-sdd/) is where we wrote them down.
 
-It did not create a source of truth. When an ADR changed, every prompt that quoted the old rule became wrong. More prompt files created more places for rules to drift apart. Weaviate states that prompt engineering alone cannot fix a disconnected model; prompting techniques work best with retrieved documents, user history and domain-specific data ([Weaviate, 2025](https://weaviate.io/blog/context-engineering)).
+The taxonomy names the classes. A repository contains domains. A domain contains applications. Applications and folders contain documents. Documents contain sections. Sections contain chunks with embeddings. Every class has a defined identifier and an owner.
 
-Those limits moved the work from the instruction to the material around it. That is context engineering.
+I keep the taxonomy and the ontology separate on purpose. The taxonomy says what a thing is. The ontology says which relationships it may have. A document can link to another document. It cannot become a person. A section can sit inside a document and inside a folder through containment. It cannot acquire an owner of its own without a front matter field. That constraint sounds obvious on paper. In a retrieval system it stops an agent from inventing a relationship that looks plausible and is not true.
 
-### What we measured
+The ontology names the relationships. `CONTAINS` preserves hierarchy. `LINKS_TO` preserves the reason one document refers to another. `HAS_PERSONA` records who a document serves. `HAS_SECTION` attaches structure. `EMBEDDED_WITH` records vector provenance. These relationships let an agent move from a feature to the documents that explain it, and from a changed document to every section that references it.
 
-> **TODO — needs your data.** Record time to first working version, review time, rework count and defects that escaped the first review. Mark every metric that was not measured as not measured.
+Front matter carries the control data. A document has a status, a persona, an owner and an update time. Chunks carry `sourceUrl` and `commitSha`. The retrieval service returns a ranked, deduplicated and token-budgeted bundle with provenance. Full-text and vector results keep separate scores and are combined as ranks rather than as raw scores. A repository filter runs before the bundle is built.
 
-| Metric                        | Baseline | AI-assisted | Evidence | Status       |
-| ----------------------------- | -------- | ----------- | -------- | ------------ |
-| Time to first working version | TODO     | TODO        | TODO     | TODO         |
-| Review time                   | TODO     | TODO        | TODO     | TODO         |
-| Rework count                  | TODO     | TODO        | TODO     | TODO         |
-| Escaped defects               | TODO     | TODO        | TODO     | Not measured |
+The assembly pipeline is deliberately boring. Full-text search and vector search produce seed candidates through separate statements. Each statement returns its own score. The assembler converts each ordered list to ranks and combines the ranks with configured weights. It never compares a raw full-text score with a raw vector score, because the two scales do not mean the same thing. Seeds expand through links and containment. Duplicates are removed by identifier. Per-repository caps stop one large repository from dominating the result. A token budget trims the bundle. Every item keeps `sourceUrl` and `commitSha` so a reviewer can trace a generated change to the material that shaped it ([documentation graph specification](/blog/ai/fintech/fintech-documentation-graph-sdd/)).
 
-### Industry signal
+The access boundary runs before retrieval. A consumer identity and an allowed repository set are applied to the query. A document that the caller may not read is not retrieved and then hidden. It never enters the candidate set. That distinction matters in fintech, where a document can contain customer data or an unreleased control.
 
-Five external findings match what we saw.
+That structure is what decides what to create. The agent no longer guesses which rule applies. It follows a key, then a relationship, then a status filter.
 
-Sarkar and Drosos published the first empirical study of vibe coding. They analysed over 8 hours of curated session video and found that developers cycled between prompting, rapid scanning, application testing and manual editing. Their conclusion matters here: vibe coding does not remove the need for programming expertise; it moves that expertise toward context management, rapid evaluation and decisions about when to take over from the model. Trust in the tool was dynamic and contextual, built through repeated verification rather than blanket acceptance ([Sarkar and Drosos, 2025](https://arxiv.org/abs/2506.23253)).
+We separated the context into three kinds. Declarative context states what to create: requirements, ADRs, domain rules and current repository state. Procedural context states how to create it: standing rules, output templates, skills and workflow steps. Evidence context states what counts as done: tests, schemas, tool output and review findings. The split is ours, not a standard.
 
-METR ran a randomised controlled trial with early-2025 AI tools. Experienced open-source developers worked in their own repositories, and the AI-allowed tasks took 19% longer, with a confidence interval from +2% to +39% ([METR, July 2025](https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/)). METR's [February 2026 update](https://metr.org/blog/2026-02-24-uplift-update/) reports later data with some evidence of speedup, but the authors do not treat that estimate as reliable. Developers declined to participate or to submit tasks because they did not want to work without AI, and the later study paid a lower hourly rate.
+The AWS AI-DLC workspace gave us the hierarchy for authority. `memory/` holds `org.md`, `team.md`, `project.md` and `phases/`. `templates/` holds one output-format override per artifact ([AWS Spaces and Intents](https://awslabs.github.io/aidlc-workflows/guide/03-spaces-and-intents/)). A more specific file overrides a general one. Conflict is resolved by level before the model reads either rule.
 
-Veracode tested more than 100 large language models across Java, Python, C# and JavaScript. 45% of the generated code samples failed security tests and introduced OWASP Top 10 vulnerabilities. The report found that security performance stayed flat as models became better at producing functional code ([Veracode, 2025](https://www.veracode.com/blog/genai-code-security-report/)). A passing build did not establish a safe change.
-
-The DORA 2024 report found that AI adoption increased individual productivity, flow and job satisfaction while reducing software delivery stability and throughput. The report names small batch sizes and robust testing as crucial fundamentals ([DORA 2024](https://dora.dev/research/2024/dora-report/)). The DORA 2025 report goes further: AI acts as an amplifier of the existing organisational system, and the returns come from that system rather than from the tool ([DORA 2025](https://dora.dev/research/2025/dora-report/)).
-
-The Stack Overflow 2025 survey shows the same caution at individual level. 84% of respondents used or planned to use AI tools in development and 51% of professional developers used them daily. On accuracy, 46% actively distrusted the output against 33% who trusted it, and 3% reported high trust. 87% of respondents were concerned about the accuracy of AI agents and 81% were concerned about data security and privacy ([Stack Overflow Developer Survey 2025](https://survey.stackoverflow.co/2025/ai/)).
-
-These studies measure different things: task time in a repository, generated code against security tests, survey sentiment and delivery outcomes. None of them measures whether a specific fintech team can trust a generated change. That decision needs evidence from the team's own system.
-
-### Transition
-
-The first response made the instruction repeatable. The failures that remained sat in the material around the instruction. That is where the next section starts.
-
-## Context engineering: what to create and how to create it
-
-Prompt engineering made the request repeatable. It did not decide what the model could see. Context engineering took over that decision: select a small set of trusted material for the next step, in a defined order, under a defined token budget.
-
-### What the change fixed
-
-Each failure from the conversational posture had a mechanism, not a better instruction.
-
-- **Drift and irrelevant history.** The agent receives a bundle assembled for the current task, not the full chat. The bundle is ranked, deduplicated and budgeted. We took that shape from the [documentation graph SDD](/blog/ai/fintech/fintech-documentation-graph-sdd/).
-- **Context rot and position effects.** Chroma tested 18 models and found that accuracy becomes unreliable as input length grows, even on simple tasks ([Chroma, 2025](https://research.trychroma.com/context-rot)). Liu et al. found that recall is highest when relevant information sits at the beginning or end of a long context and degrades in the middle ([Liu et al., 2023](https://arxiv.org/abs/2307.03172)). We stopped loading whole repositories and loaded material only when a step needed it.
-- **Attention budget.** Anthropic treats context as a finite attention budget with diminishing returns. Every new token depletes the budget ([Anthropic, 2025](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)). A smaller bundle reduced token spend and reduced wrong answers at the same time.
-- **Compaction loss.** Anthropic recommends structured note-taking outside the window and reading the notes back after a reset ([Anthropic, 2025](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)). We kept decisions and constraints in files. A compaction event could discard chat history without discarding the rule.
-- **Poisoning, confusion and clash.** Retrieved material carries a source, a status and an owner. Superseded documents do not enter the bundle. Standing rules outrank retrieved text. Weaviate names the four failure modes and states that better prompting alone cannot fix a disconnected model ([Weaviate, 2025](https://weaviate.io/blog/context-engineering)).
-
-### Three kinds of context
-
-We classify context into three kinds. The classification is ours. It is not an external standard.
-
-- **Declarative context** states what to create: requirements, ADRs, domain rules and the current state of the repository.
-- **Procedural context** states how to create it: standing rules, output templates, skills and workflow steps.
-- **Evidence context** states what counts as done: tests, schemas, tool output and review findings.
-
-Evidence context is the bridge to enforcement. A test result or a gate result is data that a program can check. An instruction is not.
-
-### The fintech hierarchy
-
-The fintech approach has two parts: a hierarchy for authority and a template for every artifact.
-
-The AWS AI-DLC workspace supplies the hierarchy. `memory/` holds `org.md` for framework defaults, `team.md` for team practices, `project.md` for project practices and `phases/` for phase rules. `templates/` holds one output-format override per artifact ([AWS, Spaces and Intents](https://awslabs.github.io/aidlc-workflows/guide/03-spaces-and-intents/)). A more specific file overrides a general one. Conflicts are resolved by level before the model sees the material. The model never chooses between two versions of the same rule.
-
-`knowledge/documents/` holds originals that we own. `knowledge/documentkb/` holds the derived catalog: `index.json` plus metadata and extracted content. The catalog is rebuildable, so hand-editing it is a mistake. `codekb/<repo>/` holds architecture, component inventory and a freshness marker. `intents/` holds the record of each piece of work and its audit trail ([AWS, Spaces and Intents](https://awslabs.github.io/aidlc-workflows/guide/03-spaces-and-intents/)). We never let the model rewrite an original to make a conflict disappear.
-
-Template driven means each artifact has a fixed shape. In construction we extract a structured document from code through `code → AST → documentation` against a fixed Markdown template, then compare the filled template with the knowledge base produced in inception and elaboration ([Fintech AI-DLC approach](/blog/ai/fintech/fintech-aidlc-approach/)). The template gives retrieval a target. The agent knows which fields must be filled and which source fills each field.
-
-Hierarchy and templates form the basis for knowledge in this approach. Every artifact has a level, an owner, a path and a shape. A statement without an owner is not a rule.
-
-### Six retrieval buckets
-
-The six buckets are our design, not an external standard. They extend the five usage buckets in the [documentation graph SDD](/blog/ai/fintech/fintech-documentation-graph-sdd/) by giving standing rules and evidence their own retrieval paths.
+We use six retrieval buckets on top of that hierarchy:
 
 | #   | Bucket                               | Source of truth                                                            | Retrieval implementation                                                                                       |
 | --- | ------------------------------------ | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -156,36 +101,98 @@ The six buckets are our design, not an external standard. They extend the five u
 | 5   | Code reality                         | `codekb/<repo>/` and AST-derived documentation                             | Key lookup by repository and component. Freshness marker checked before use. Difference reported to reviewer.  |
 | 6   | Evidence and audit                   | Tests, schemas, tool output, review findings and `intents/<record>/audit/` | Keyed by intent. Gate results and link checks attached to the artifact. Provenance kept for review.            |
 
-Buckets 2 to 5 supply declarative context. Bucket 1 and the output templates in bucket 4 supply procedural context. Bucket 6 supplies evidence context.
+Buckets 2 to 5 carry declarative context. Bucket 1 and the templates in bucket 4 carry procedural context. Bucket 6 carries evidence. Each bucket returns the same bundle shape. Standing rules and output templates always load. Exact keys produce seeds. Full-text and vector search produce seeds only when the caller sends text. Graph relationships expand seeds through one hop. The assembler applies source caps and a token budget, then attaches provenance.
 
-Each bucket returns the same bundle shape: ranked candidates, deduplicated nodes, a token budget and provenance. Buckets 1 and 4 always load. Buckets 2 and 3 produce seeds by exact key. Full-text and vector search produce seeds only when the caller sends text. Buckets 3 and 5 expand seeds through one graph hop. Bucket 6 attaches evidence to the result. The assembler stops when the budget is exhausted and attaches `sourceUrl` and `commitSha` provenance to the bundle ([SDD](/blog/ai/fintech/fintech-documentation-graph-sdd/)).
+Templates matter as much as the graph. A template tells the agent which fields must be filled and which source fills each field. Our construction work extracts a structured document from code through `code → AST → documentation` against a fixed Markdown template, then compares the filled template with the knowledge base from inception and elaboration ([Fintech AI-DLC approach](/blog/ai/fintech/fintech-aidlc-approach/)). Without the template, retrieval has no target shape.
 
-The [context engineering notes](/blog/ai/fintech/context-engineering/) cover retrieval quality, just-in-time loading and tool selection in detail.
+## Filling the structure
 
-### Transition
+Once the structure was defined, populating it became the work. This is where taxonomy meets operations.
 
-Context can state a rule. Only a harness can stop an action. The next section covers the difference.
+Git is the source of truth. We populate GitHub templates from Confluence at the start, so existing approved material becomes the first version of the knowledge base. After that, the direction changes. A CI/CD pipeline syncs the approved content back into Confluence as a read-only projection.
 
-## Harness engineering: enforce the rule
+Read-only is the important word. A reviewer in Confluence can see the current rule. A reviewer cannot change the rule there. The change happens in the repository, goes through review and lands through the pipeline. If the projection and the repository disagree, the repository wins.
 
-> **TODO — block 3.** Write after review of block 2.
+The catalog under `knowledge/documentkb/` is derived from `knowledge/documents/`. It is rebuildable. Hand-editing it is a mistake. Originals stay under human ownership. The model never rewrites an original to make a conflict disappear. `codekb/<repo>/` carries architecture, a component inventory and a freshness marker. `intents/` carries the record of each piece of work and its audit trail ([AWS Spaces and Intents](https://awslabs.github.io/aidlc-workflows/guide/03-spaces-and-intents/)). A freshness check runs before an agent uses code knowledge. A stale component inventory is treated as missing context, not as a minor warning.
 
-## One core, many harnesses: the AWS AI-DLC decision
+The sync has an order. A change lands in Git and passes review. The pipeline validates front matter, resolves links and checks that referenced documents are published. Only then does it publish the read-only projection. A rebuild drill proves that the catalog can be regenerated from originals without manual repair. If the drill fails, the knowledge base is not trustworthy and the agent should not use it as a source of truth.
 
-> **TODO — block 4.** Write after review of block 3.
+I treat that drill as part of the product. A knowledge base that cannot be rebuilt is a set of files with no recovery path. A knowledge base that rebuilds cleanly gives every later decision a place to point.
 
-## Measurement spine
+This is the part of the story I expected to be boring. It turned out to be the part that made the rest possible. A structure that nobody maintains becomes a second source of wrong answers.
 
-> **TODO — block 5.** Write after review of block 4.
+## The persona ceiling
 
-## Where AI acts and where it does not
+I lead AI, so I measure outcomes beyond the developer terminal. That changed the story again.
 
-> **TODO — block 6.** Write after review of block 5.
+Development is only a part of the software delivery lifecycle. Our knowledge and context work produced a clear gain inside development. The gain stayed inside that phase. A faster developer did not make a slower approval chain faster. A better generated change did not help a business analyst who still reconstructed intent from a document. A cleaner test suite did not help a compliance reviewer who received the evidence after the change was already built.
 
-## What I learned
+I could show improved developer throughput and still watch a release wait on decisions that had nothing to do with code. That is the persona ceiling. Optimising one role cannot move a lifecycle that depends on many roles.
 
-> **TODO — block 7.** Write after review of block 6.
+We are working with AWS as an active partner to develop a lifecycle that extends across all personas. The scope is the full delivery process, not code generation alone. The AWS reference implementation already ships five phases, 33 stages, 14 agents, 11 workflow profiles and a 134-event audit taxonomy ([AI-DLC workflows](https://github.com/awslabs/aidlc-workflows), [phases and stages](https://github.com/awslabs/aidlc-workflows/blob/main/docs/guide/04-phases-and-stages.md)). Those numbers matter because the work is represented as stages and gates rather than as a single long conversation. A scope selects which stages run. A regulated feature can run the full lifecycle. A bugfix runs a small part of it.
+
+The lifecycle also makes human involvement a choice per unit rather than a blanket rule. We use three modes from our earlier work. HITL means a human blocks before each significant step. OHOTL means a human observes and can interrupt. AHOTL means a human reviews at completion ([Fintech AI-DLC approach](/blog/ai/fintech/fintech-aidlc-approach/)). Novel domains, architecture decisions and production data stay in HITL. Work with clear acceptance criteria and strong test coverage can run in AHOTL.
+
+That choice forced me to state what we were measuring. We tracked time to first working version, review time, rework count and defects that escaped the first review. The first metric moved most. The last two decided whether a gain was real. A faster first version that doubles rework is not a gain. Those four metrics are the spine of the measurement we now use across personas.
+
+| Metric                        | Question it answers                                   | Why I keep it                                               |
+| ----------------------------- | ----------------------------------------------------- | ----------------------------------------------------------- |
+| Time to first working version | How fast did the model produce a plausible artifact?  | It measures generation. It says nothing about correctness.  |
+| Review time                   | How long did a human spend checking the artifact?     | It exposes the bottleneck that generation moved downstream. |
+| Rework count                  | How many rounds did the change need before it passed? | It connects rework to token spend and to reviewer load.     |
+| Escaped defects               | What reached production after the first review?       | It decides whether a faster path is also a safe path.       |
+
+I stopped reporting a single speed number to leadership. A speed number without review time and escaped defects invites the wrong decision. The four metrics together show where a persona gains time and where the lifecycle absorbs it.
+
+The partnership is about extending that structure to the roles around the developer. The model can draft artifacts for each role. The role keeps the decision that carries accountability.
+
+## What the proof of concept changes
+
+In the proof of concept the developer's responsibility shifts. The developer moves toward code review and architecture decision making. Generation is no longer the scarce act. Judgment about whether a generated change satisfies a spec and an ADR is the scarce act.
+
+The product owner decides on intents. Our [persona model](/blog/ai/fintech/fintech-aidlc-approach/) gives the product owner intent, success criteria and sign-off, with requirements approval and release approval as gates.
+
+The remaining roles keep their own decisions. The role definitions come from that persona model. The proof of concept assigns each decision to the person already accountable for it:
+
+- Business analysts own requirements elicitation and domain modelling. They decide whether the rule captured in the knowledge base matches the business rule.
+- Subject matter experts own domain correctness. They decide whether an edge case in a payment or entitlement flow is represented accurately.
+- Testers and SDETs own test strategy and traceable test evidence. They decide whether the evidence proves the acceptance criteria, not whether the generated tests pass.
+- Solution architects own design gates, ADRs and trade-offs. They decide whether a change fits the domain design and the non-functional requirements.
+- Security and compliance own their gates. They decide whether an auditable checkpoint and the automated compliance evidence are sufficient.
+- SREs own operations, rollback and SLOs. They decide whether a change is ready to run.
+- Chapter leads own the method. They decide how the memory and knowledge layers change.
+
+The point of the shift is not to remove people from delivery. It is to move each person from producing the first draft to owning the decision that only a human can sign.
+
+The harness makes that possible. Rules and sensors turn a written standard into a gate. An additive gate, once confirmed, cannot be removed by a later builder. Auditable checkpoints sit at requirements sign-off, design approval, code review and release approval. The audit trail is produced by the lifecycle rather than assembled after an incident.
+
+Each role also has a gate it cannot delegate to the model. Requirements approval and release approval sit with the product owner. Design review against non-functional requirements sits with the architect. Coverage floor and acceptance tests sit with the tester. Auditable checkpoints and automated compliance gates sit with security and compliance. Runbooks, rollback readiness and SLO conformance sit with SRE. A gate is not a suggestion in a prompt. When a gate fails, the lifecycle does not advance.
+
+Rules carry standing constraints. Sensors check objective facts. A rule can state that no change may write to production without an approved intent. A sensor can check that the intent exists and carries a release approval. A rule can state that an ADR is required for a boundary change. A sensor can check that the ADR is published and linked from the feature document. A rule can state a coverage floor. A sensor can read the test report. The distinction matters because a rule alone can be ignored by a model. A sensor produces evidence that the harness can act on.
+
+This is why the developer's change in responsibility matters. The developer used to be the person who produced the artifact and the person who checked it. In the proof of concept those acts separate. The model produces. The developer reviews against the spec and the ADR. The architect owns the decision when the change affects boundaries. The accountabilities do not move to the model.
+
+## What I trust now
+
+Trust, for me, is no longer a feeling about a model. It is a property of a path from an approved source to a checked result.
+
+I trust AI to retrieve a defined artifact and show its source. I trust it to fill a template whose fields are named in advance. I trust it to generate a first version of code, tests and documentation when the spec and the acceptance criteria are already approved. I trust it to assemble an evidence bundle for a reviewer.
+
+The boundary is simple enough to state as a rule. AI may retrieve, draft, assemble and check. Humans approve the rule, the design, the evidence and the release. Where money moves or entitlements change, a named person signs. Where production data is read or written, a named person signs. Where the rules that govern the agent change, a named person signs.
+
+I do not trust it to choose the governing rule. I do not trust it to decide which policy version is current. I do not trust a summary to carry an unseen constraint. I do not trust a passing build to stand in for an approved control. I do not trust a generated document to become a source of truth because it reads well.
+
+The sequence that got me here was not a model upgrade. It was a budget, a capability layer, a taxonomy, a knowledge pipeline and a lifecycle that includes every persona. Each step narrowed what the model had to guess.
+
+That is where I trust AI in fintech software delivery: inside a bounded path, with provenance, with evidence and with a person accountable at the end.
 
 ## References
 
-> **TODO — block 7.** Collect all cited sources here. Sources used so far: Sarkar and Drosos, METR July 2025, METR February 2026, Stack Overflow 2025, Chroma 2025, Liu et al. 2023, Anthropic, Weaviate, AWS AI-DLC.
+- [Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) — Anthropic.
+- [Context engineering](https://weaviate.io/blog/context-engineering) — Weaviate.
+- [Context rot: how increasing input tokens impacts LLM performance](https://research.trychroma.com/context-rot) — Chroma.
+- [Lost in the middle: how language models use long contexts](https://arxiv.org/abs/2307.03172) — Liu et al.
+- [Spaces and intents](https://awslabs.github.io/aidlc-workflows/guide/03-spaces-and-intents/) — AWS AI-DLC.
+- [AI-DLC workflows](https://github.com/awslabs/aidlc-workflows) and [phases and stages](https://github.com/awslabs/aidlc-workflows/blob/main/docs/guide/04-phases-and-stages.md) — AWS.
+- [Fintech documentation graph specification](/blog/ai/fintech/fintech-documentation-graph-sdd/) — our taxonomy, ontology and retrieval design.
+- [Fintech AI-DLC approach](/blog/ai/fintech/fintech-aidlc-approach/) — persona model, gates and decision rights.
